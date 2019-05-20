@@ -39,6 +39,8 @@ setwd("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST")
 ###############################################################
 
 MNT <- raster("MNT_all_5m.tif")
+# set projection
+crs(MNT) <- "+init=epsg:2154"
 plot(MNT, col=colorRampPalette(c("black", "white"))(255))
 
 # convert raster into a df and plot with ggplot
@@ -47,6 +49,14 @@ plot(MNT, col=colorRampPalette(c("black", "white"))(255))
 #ggplot() +
 #  geom_raster(data = MNT, aes(x = x, y = y, fill = MNT_all_5m))
 
+# slope
+slope <- terrain(MNT, opt = c('slope', 'flowdir'), unit = 'degrees', neighbors = 8)
+plot(slope > 40, add = TRUE, alpha = 0.2)
+
+plot(slope$slope)
+plot(slope$flowdir)
+
+plot(slope$flowdir < 10, add = TRUE, alpha = 0.2)
 
 ###############################################################
 # BD foret
