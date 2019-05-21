@@ -35,28 +35,26 @@ setwd("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST")
 
 
 ###############################################################
-# MNT
+# elev
 ###############################################################
 
-MNT <- raster("MNT_all_5m.tif")
+elev <- raster("MNT_all_5m.tif")
 # set projection
-crs(MNT) <- "+init=epsg:2154"
-plot(MNT, col=colorRampPalette(c("black", "white"))(255))
+crs(elev) <- "+init=epsg:2154"
+plot(elev, col=colorRampPalette(c("black", "white"))(255))
 
 # convert raster into a df and plot with ggplot
-#MNT <- as.data.frame(MNT, xy = TRUE)
-#MNT <- MNT[1:20658916,]
+#elev <- as.data.frame(elev, xy = TRUE)
+#elev <- elev[1:20658916,]
 #ggplot() +
-#  geom_raster(data = MNT, aes(x = x, y = y, fill = MNT_all_5m))
+#  geom_raster(data = elev, aes(x = x, y = y, fill = MNT_all_5m))
 
 # slope
-slope <- terrain(MNT, opt = c('slope', 'flowdir'), unit = 'degrees', neighbors = 8)
-plot(slope > 40, add = TRUE, alpha = 0.2)
+slo <- terrain(elev, opt = 'slope', unit = 'degrees', neighbors = 8)
 
-plot(slope$slope)
-plot(slope$flowdir)
+# orientation
+orien <- terrain(elev, opt = 'aspect', unit = 'degrees', neighbors = 8)
 
-plot(slope$flowdir < 10, add = TRUE, alpha = 0.2)
 
 ###############################################################
 # BD foret
@@ -80,15 +78,16 @@ plot(BDforet, col = BDforet$CODE_TFV, add = TRUE)
 
 # # plot
 # plot(BDforet[BDforet$CODE_TFV == "FF1-10-10",])
-# plot(MNT, col=colorRampPalette(c("black", "white"))(255), xlim = c(928800, 929800), ylim = c(6519500, 6520500), alpha = 0.5, interpolate = FALSE, add = TRUE)
+# plot(elev, col=colorRampPalette(c("black", "white"))(255), xlim = c(928800, 929800), ylim = c(6519500, 6520500), alpha = 0.5, interpolate = FALSE, add = TRUE)
 #
 # # intersect
-# inter <- intersect(MNT, BDforet[BDforet$CODE_TFV == "FF1-10-10",])
+# inter <- intersect(elev, BDforet[BDforet$CODE_TFV == "FF1-10-10",])
 # #plot(inter, col=colorRampPalette(c("black", "white"))(255), asp = 1)
 #
-# # mask
-# ma <- mask(MNT, BDforet[BDforet$CODE_TFV == "FF1-10-10",])
+# mask
+# ma <- mask(elev, BDforet[BDforet$CODE_TFV == "FO0",])
 # plot(ma)
+# range(ma@data@values, na.rm = T)
 # mean(ma@data@values, na.rm = TRUE)
 
 
@@ -98,7 +97,7 @@ plot(BDforet, col = BDforet$CODE_TFV, add = TRUE)
 
 ###################################
 # extract with raster package
-# ex <- extract(MNT, BDforet, fun = mean, sp = T) # lasts 2h00, try velox package
+# ex <- extract(elev, BDforet, fun = mean, sp = T) # lasts 2h00, try velox package
 # names(ex)[names(ex) == "MNT_all_5m"] <- "mean_alt"
 # hist(ex$mean_alt)
 # plot(ex, col = ex$CODE_TFV)
@@ -107,27 +106,51 @@ plot(BDforet, col = BDforet$CODE_TFV, add = TRUE)
 ###################################
 # extract with velox package
 # convert "Raster" into "VeloxRaster"
-vraster <- velox(MNT)
+elev_VR <- velox(elev)
+slo_VR <- velox(slo)
+orien_VR <- velox(orien)
 
 # extract
 start_time <- Sys.time()
-velox_ex <- vraster$extract(sp = BDforet, fun = mean, small = TRUE)
+# elev_ext <- elev_VR$extract(sp = BDforet[BDforet$CODE_TFV == "FF1-10-10",], fun = mean, small = TRUE)
+elev_ext <- elev_VR$extract(sp = BDforet, fun = mean, small = TRUE)
+end_time <- Sys.time()
+end_time - start_time
+
+start_time <- Sys.time()
+slo_ext <- slo_VR$extract(sp = BDforet, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+end_time <- Sys.time()
+end_time - start_time
+
+start_time <- Sys.time()
+orien_ext <- orien_VR$extract(sp = BDforet, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
 end_time <- Sys.time()
 end_time - start_time
 
 # convert into df
-velox_ex_df <- data.frame(velox_ex)
-colnames(velox_ex_df) <- "mean_alt"
+elev_ext_df <- data.frame(elev_ext)
+colnames(elev_ext_df) <- "alt"
+slo_ext_df <- data.frame(slo_ext)
+colnames(slo_ext_df) <- "slope"
+orien_ext_df <- data.frame(orien_ext)
+colnames(orien_ext_df) <- "orient"
+
+# convert slope degrees into percent
+slo_ext_df$slope <- tan(slo_ext_df$slope*pi/180)*100
+
+# convert orientation radians into cos(radians)
+orien_ext_df$orient <- cos(orien_ext_df$orient*pi/180)
 
 # integrate into the shp file
-BDforet@data <- cbind(BDforet@data, velox_ex_df)
-
+BDforet@data <- cbind(BDforet@data, elev_ext_df)
+BDforet@data <- cbind(BDforet@data, slo_ext_df)
+BDforet@data <- cbind(BDforet@data, orien_ext_df)
 
 ###############################################################
 # save new shp with altitudes
 ###############################################################
 
-shapefile(BDforet, filename = 'BDforet_alti_velox')
+shapefile(BDforet, filename = 'topo')
 
 
 ###############################################################
@@ -140,3 +163,7 @@ shapefile(BDforet, filename = 'BDforet_alti_velox')
 # testMAP <- bckgrd +
 #   geom_polygon(aes(x=long, y=lat, group=group), fill='grey', size=.2, color='black', data = BDforet, alpha = 0.25) +
 # testMAP
+
+
+
+topo <- readOGR(dsn = ".", layer = "topo", encoding = "UTF-8", use_iconv = TRUE)
