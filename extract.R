@@ -35,7 +35,7 @@ setwd("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST")
 
 
 ###############################################################
-# elev
+# elevation
 ###############################################################
 
 elev <- raster("MNT_all_5m.tif")
@@ -61,7 +61,7 @@ orien <- terrain(elev, opt = 'aspect', unit = 'degrees', neighbors = 8)
 ###############################################################
 
 BDforet <- readOGR(dsn = ".", layer = "BD_Foret_V2_PNR_2014", encoding = "UTF-8", use_iconv = TRUE)
-plot(BDforet, col = BDforet$CODE_TFV, add = TRUE)
+plot(BDforet, col = BDforet$CODE_TFV, border = BDforet$CODE_TFV, add = TRUE)
 
 # convert shp into a df and plot with ggplot
 #BDforet_df <- as(BDforet, "data.frame")
@@ -71,6 +71,19 @@ plot(BDforet, col = BDforet$CODE_TFV, add = TRUE)
 #               aes(x = long, y = lat, group = group, fill = "blue"),
 #               color = 'black', size = .2)+
 
+
+###############################################################
+# GRECO
+###############################################################
+
+GRECO <- readOGR(dsn = "Z:/Private/DonneesIFN/Shapes_SER_GRECO", layer = "greco_l93", encoding = "UTF-8", use_iconv = TRUE)
+plot(GRECO, col = GRECO$CODEGRECO, add = TRUE)
+
+# convert into a Raster
+ext <- floor(extent(BDforet))
+r <- raster(ext, res=100)
+GRECO_raster <- rasterize(GRECO, r, field="CODEGRECO")
+plot(GRECO_raster)
 
 ###############################################################
 # intersection
@@ -109,25 +122,40 @@ plot(BDforet, col = BDforet$CODE_TFV, add = TRUE)
 elev_VR <- velox(elev)
 slo_VR <- velox(slo)
 orien_VR <- velox(orien)
+GRECO_VR <- velox(GRECO_raster)
 
-# extract
+# extract GRECO
+# Create a function to calculate the mode.
+# Each plot is assigned the most represented GRECO.
+getmode <- function(x) {
+   uniqv <- unique(x)
+   uniqv[which.max(tabulate(match(x, uniqv)))]
+}
+GRECO_ext <- GRECO_VR$extract(sp = BDforet, fun = getmode, small = TRUE) # works despite the error message
+
+# extract elevation
 start_time <- Sys.time()
 # elev_ext <- elev_VR$extract(sp = BDforet[BDforet$CODE_TFV == "FF1-10-10",], fun = mean, small = TRUE)
 elev_ext <- elev_VR$extract(sp = BDforet, fun = mean, small = TRUE)
 end_time <- Sys.time()
 end_time - start_time
 
+# extract slope
 start_time <- Sys.time()
 slo_ext <- slo_VR$extract(sp = BDforet, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
 end_time <- Sys.time()
 end_time - start_time
 
+# extract orientation
 start_time <- Sys.time()
 orien_ext <- orien_VR$extract(sp = BDforet, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
 end_time <- Sys.time()
 end_time - start_time
 
 # convert into df
+GRECO_ext_df <- data.frame(GRECO_ext)
+colnames(GRECO_ext_df) <- "GRECO"
+GRECO_ext_df$GRECO <- GRECO$CODEGRECO[GRECO_ext_df$GRECO] # convert back factor numbers into GRECO letters
 elev_ext_df <- data.frame(elev_ext)
 colnames(elev_ext_df) <- "alt"
 slo_ext_df <- data.frame(slo_ext)
@@ -142,6 +170,7 @@ slo_ext_df$slope <- tan(slo_ext_df$slope*pi/180)*100
 orien_ext_df$orient <- cos(orien_ext_df$orient*pi/180)
 
 # integrate into the shp file
+BDforet@data <- cbind(BDforet@data, GRECO_ext_df)
 BDforet@data <- cbind(BDforet@data, elev_ext_df)
 BDforet@data <- cbind(BDforet@data, slo_ext_df)
 BDforet@data <- cbind(BDforet@data, orien_ext_df)
@@ -150,7 +179,7 @@ BDforet@data <- cbind(BDforet@data, orien_ext_df)
 # save new shp with altitudes
 ###############################################################
 
-shapefile(BDforet, filename = 'topo')
+shapefile(BDforet, filename = 'topo_greco')
 
 
 ###############################################################
@@ -163,7 +192,3 @@ shapefile(BDforet, filename = 'topo')
 # testMAP <- bckgrd +
 #   geom_polygon(aes(x=long, y=lat, group=group), fill='grey', size=.2, color='black', data = BDforet, alpha = 0.25) +
 # testMAP
-
-
-
-topo <- readOGR(dsn = ".", layer = "topo", encoding = "UTF-8", use_iconv = TRUE)
