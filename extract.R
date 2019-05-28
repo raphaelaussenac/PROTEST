@@ -166,8 +166,10 @@ colnames(orien_ext_df) <- "orient"
 # convert slope degrees into percent
 slo_ext_df$slope <- tan(slo_ext_df$slope*pi/180)*100
 
-# convert orientation radians into cos(radians)
-orien_ext_df$orient <- cos(orien_ext_df$orient*pi/180)
+# convert orientation degrees into cos(radians)
+orien_ext_df$expoNS <- cos(orien_ext_df$orient*pi/180)
+orien_ext_df$expoEW <- sin(orien_ext_df$orient*pi/180)
+orien_ext_df <- orien_ext_df[,c("expoNS", "expoEW")]
 
 # integrate into the shp file
 BDforet@data <- cbind(BDforet@data, GRECO_ext_df)
