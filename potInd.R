@@ -38,13 +38,19 @@ IFNgeol <- SpatialPointsDataFrame(bdBauges[,c("xl93", "yl93")], data = data.fram
 IFNgeol <- intersect(IFNgeol, geol)
 bdBauges <- IFNgeol@data
 
-# import  BDforet?
+# create the "ensemble geol" variable from isère departement legend
+bdBauges$ENS_GEOL <- "AA"
+bdBauges$CODE_LEG <- as.numeric(as.character(bdBauges$CODE_LEG))
+bdBauges[bdBauges$CODE_LEG >= 1 & bdBauges$CODE_LEG <= 54, "ENS_GEOL"] <- "FSQ"
+bdBauges[bdBauges$CODE_LEG >= 55 & bdBauges$CODE_LEG <= 78, "ENS_GEOL"] <- "FST"
+bdBauges[bdBauges$CODE_LEG >= 79 & bdBauges$CODE_LEG <= 105, "ENS_GEOL"] <- "JDDJ"
+bdBauges[bdBauges$CODE_LEG >= 106 & bdBauges$CODE_LEG <= 201, "ENS_GEOL"] <- "FSS"
 
 ###############################################################
-# model unknown part of potential index
+# model potential index
 ###############################################################
 
-##########################################
+###############################################################
 ########################## quercus petraea (03)
 
 # known variables:   - rocheCalc
@@ -54,12 +60,14 @@ bdBauges <- IFNgeol@data
 #                    - CN_decor
 #                    - de_7
 #                    - swhc
-#
+
 # I(TYPE_GEOL == "Couverture sédimentaire") + LITHOLOGIE + CODE + yl93 + greco + expoEW + expoNS
-modUnPa03 <- lm(unknownPart03 ~ xl93 + greco + pent2, data = bdBauges[!is.na(bdBauges$expoNS) & !is.na(bdBauges$expoEW),])
+modUnPa03 <- lm(unknownPart03 ~ xl93 + greco + pent2 + alti , data = bdBauges[!is.na(bdBauges$expoNS) & !is.na(bdBauges$expoEW),])
 summary(modUnPa03)
 
-##########################################
+var(residuals(modUnPa03)) / var(bdBauges[!is.na(bdBauges$expoNS) & !is.na(bdBauges$expoEW), "potentiel_03"])
+
+###############################################################
 ########################## fagus sylvatica (09)
 
 # known variables:   - alti
@@ -69,12 +77,14 @@ summary(modUnPa03)
 #                    - C/N
 #                    - swhc
 #                    - solD
-#
+
 # I(TYPE_GEOL == "Couverture sédimentaire") + LITHOLOGIE + CODE + yl93 + greco + expoEW + expoNS
-modUnPa09 <- lm(unknownPart09 ~ xl93 + expoEW + pent2, data = bdBauges[!is.na(bdBauges$expoNS) & !is.na(bdBauges$expoEW),])
+modUnPa09 <- lm(unknownPart09 ~ alti + xl93 + expoEW + pent2, data = bdBauges[!is.na(bdBauges$expoNS) & !is.na(bdBauges$expoEW),])
 summary(modUnPa09)
 
-##########################################
+var(residuals(modUnPa09)) / var(bdBauges[!is.na(bdBauges$expoNS) & !is.na(bdBauges$expoEW), "potentiel_09"], na.rm = TRUE)
+
+###############################################################
 ########################## abies alba (61)
 
 # known variables:   - GRECO A
@@ -83,12 +93,34 @@ summary(modUnPa09)
 #                    - ETP June
 #                    - RUM 1st horizon
 #                    - C/N
-#
-# I(TYPE_GEOL == "Couverture sédimentaire") + LITHOLOGIE + CODE + yl93 + greco + expoEW + expoNS
-modUnPa61 <- lm(unknownPart61 ~ alti + xl93 + pent2, data = bdBauges[!is.na(bdBauges$expoNS) & !is.na(bdBauges$expoEW),])
+
+# create a data subset without NA (depends on the variables included in the model)
+bdBauges61 <- bdBauges[!is.na(bdBauges$pent2), ]
+
+# model
+modUnPa61 <- lm(unknownPart61 ~ alti + xl93 + pent2, data = bdBauges61)
 summary(modUnPa61)
 
-##########################################
+# variance of the known part
+bdBauges61$knPa61 <- 0
+bdBauges61[bdBauges61$greco =="H", "knPa61"] <- -11.56
+varKnPa61 <- var(bdBauges61$knPa61)
+
+# variance of the unknown part
+bdBauges61$unPa61 <- modUnPa61$coef["(Intercept)"] + (modUnPa61$coef["alti"] * bdBauges61$alti) +
+                                                (modUnPa61$coef["xl93"] * bdBauges61$xl93) +
+                                                (modUnPa61$coef["pent2"] * bdBauges61$pent2)
+varUnPa61 <- var(bdBauges61$unPa61)
+
+# var(potentiel) = var(a) + var(b) + var(c) + 2*cov(a,b) + 2*cov(a,c) + 2*cov(b,c)
+var(bdBauges61$potentiel_61)
+varKnPa61 + varUnPa61 + 2 * cov(bdBauges61$knPa61, bdBauges61$unPa61) + var(residuals(modUnPa61)) + 2 * cov(residuals(modUnPa61), bdBauges61$unPa61) + 2 * cov(bdBauges61$knPa61, residuals(modUnPa61))
+
+# global goodness of fit (pot61 = knPa + unPa + epsilon)
+# ratio of var(residuals) / var(potentiel)
+var(residuals(modUnPa61)) / var(bdBauges61$potentiel_61)
+
+###############################################################
 ########################## picea abies (62)
 
 # known variables:   - slope
@@ -99,10 +131,12 @@ summary(modUnPa61)
 #                    - swhc_A
 #                    - bhc_5
 #                    - C/N
-#
+
 # I(TYPE_GEOL == "Couverture sédimentaire") + LITHOLOGIE + CODE + yl93 + greco + expoEW + expoNS
 modUnPa62 <- lm(unknownPart62 ~ alti + xl93 + yl93 + pent2, data = bdBauges[!is.na(bdBauges$expoNS) & !is.na(bdBauges$expoEW),])
 summary(modUnPa62)
+
+var(residuals(modUnPa62)) / var(bdBauges[!is.na(bdBauges$expoNS) & !is.na(bdBauges$expoEW), "potentiel_62"], na.rm = TRUE)
 
 ###############################################################
 # assign potential index to each plot (= centroid)
@@ -121,7 +155,7 @@ coord <- data.frame(coordinates(topo_greco))
 colnames(coord) <- c("X", "Y")
 modDf <- cbind(modDf, coord)
 
-##########################################
+###############################################################
 ########################## quercus petraea (03)
 # calculate the unknown part
 modDf$unPa03 <- modUnPa03$coef["(Intercept)"] + (modUnPa03$coef["xl93"] * modDf$X) +
@@ -135,7 +169,7 @@ modDf$knPa03 <- 0                                                       #   -11.
 # calculate the potential index
 modDf$pot03 <- modDf$unPa03 + modDf$knPa03
 
-##########################################
+###############################################################
 ########################## fagus sylvatica (09)
 # calculate the unknown part
 modDf$unPa09 <- modUnPa09$coef["(Intercept)"] + (modUnPa09$coef["expoEW"] * modDf$expoEW) +
@@ -148,7 +182,7 @@ modDf$knPa09 <- -0.0083 * modDf$alti + -0.086 * modDf$slope
 # calculate the potential index
 modDf$pot09 <- modDf$unPa09 + modDf$knPa09
 
-##########################################
+###############################################################
 ########################## abies alba (61)
 # calculate the unknown part
 modDf$unPa61 <- modUnPa61$coef["(Intercept)"] + (modUnPa61$coef["alti"] * modDf$alti) +
@@ -162,7 +196,10 @@ modDf[modDf$GRECO =="H", "knPa61"] <- -11.56
 # calculate the potential index
 modDf$pot61 <- modDf$unPa61 + modDf$knPa61
 
-##########################################
+# calculate the potential index with a random variation
+modDf$pot61Epsilon <- modDf$unPa61 + modDf$knPa61 + rnorm(nrow(modDf), 0, sd(residuals(modUnPa61)))
+
+###############################################################
 ########################## picea abies (62)
 # calculate the unknown part
 modDf$unPa62 <- modUnPa62$coef["(Intercept)"] + (modUnPa62$coef["alti"] * modDf$alti) +
@@ -180,15 +217,15 @@ modDf$pot62 <- modDf$unPa62 + modDf$knPa62
 # integrate potential index into a shapefile
 ###############################################################
 
-topo_greco@data <- cbind(topo_greco@data, modDf[, c("ID", "pot61", "pot62", "pot09", "pot03")])
+topo_greco@data <- cbind(topo_greco@data, modDf[, c("ID", "pot61", "pot61Epsilon", "pot62", "pot09", "pot03", "expoNS", "expoEW")])
 
 # convert to export to ggplot
-topo_greco@data$id = rownames(topo_greco@data)
-topo_greco.points = fortify(topo_greco, region="id")
-topo_greco.df = join(topo_greco.points, topo_greco@data, by="id")
+topo_greco@data$id <- rownames(topo_greco@data)
+topo_greco.points <- fortify(topo_greco, region="id")
+topoGrecoDf <- join(topo_greco.points, topo_greco@data, by="id")
 
 ########################## quercus petraea (03)
-ggplot(topo_greco.df) +
+ggplot(topoGrecoDf) +
   aes(long,lat,group=group,fill=pot03) +
   geom_polygon() +
   coord_equal() +
@@ -199,7 +236,7 @@ ggplot(topo_greco.df) +
   guides(fill = guide_colourbar(title.position="top", title.hjust = 0.5, barwidth = 0.75, barheight = 15))
 
 ########################## fagus sylvatica (09)
-ggplot(topo_greco.df) +
+ggplot(topoGrecoDf) +
   aes(long,lat,group=group,fill=pot09) +
   geom_polygon() +
   coord_equal() +
@@ -210,7 +247,7 @@ ggplot(topo_greco.df) +
   guides(fill = guide_colourbar(title.position="top", title.hjust = 0.5, barwidth = 0.75, barheight = 15))
 
 ########################## abies alba (61)
-ggplot(topo_greco.df) +
+ggplot(topoGrecoDf) +
   aes(long,lat,group=group,fill=pot61) +
   geom_polygon() +
   coord_equal() +
@@ -221,7 +258,7 @@ ggplot(topo_greco.df) +
   guides(fill = guide_colourbar(title.position="top", title.hjust = 0.5, barwidth = 0.75, barheight = 15))
 
 ########################## picea abies (62)
-ggplot(topo_greco.df) +
+ggplot(topoGrecoDf) +
   aes(long,lat,group=group,fill=pot62) +
   geom_polygon() +
   coord_equal() +
@@ -237,6 +274,7 @@ ggplot(topo_greco.df) +
 ###############################################################
 
 compare <- intersect(ptIFN, topo_greco)
+compare <- data.frame(compare@data)
 
 ########################## quercus petraea (03)
 plot(compare$pot03, compare$potentiel_03)
@@ -263,8 +301,12 @@ lines(density(compare$potentiel_09, na.rm = TRUE), col = "red")
 plot(compare$pot61, compare$potentiel_61)
 abline(coef = c(0,1), col = "red")
 
-hist(compare$pot61, breaks = seq(5, 55, 0.5), col = "grey")
-hist(compare$potentiel_61, add = TRUE, breaks = seq(5, 55, 0.5), border = 'red')
+hist(compare$potentiel_61, breaks = seq(5, 55, 0.5), ylim = c(0,50), col = "grey")
+hist(compare$pot61, add = TRUE, breaks = seq(5, 55, 0.5), border = 'red')
+hist(compare$pot61 + rnorm(length(compare$pot61), mean = 0, sd = sd(residuals(modUnPa61))), add = TRUE, breaks = seq(5, 55, 0.5), border = 'green')
+
+hist(compare$pot61Epsilon, add = TRUE, breaks = seq(5, 55, 0.5), border = 'yellow')
+
 
 plot(density(compare$pot61), xlim = c(5, 55))
 lines(density(compare$potentiel_61), col = "red")
