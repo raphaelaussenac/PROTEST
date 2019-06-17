@@ -11,6 +11,8 @@
 #
 # 4 - import the shp in R (click "Save...")
 #
+# 5 - run the "extract" script on this new shp
+#
 ###############################################################
 # initialisation
 ###############################################################
@@ -43,4 +45,4 @@ BDforet@data <- data.frame(BDforet$SuperID)
 colnames(BDforet@data) <- "superID"
 
 # save new shapefile
-shapefile(BDforet, filename = 'superID')
+shapefile(BDforet, filename = 'superID', overwrite = T)
