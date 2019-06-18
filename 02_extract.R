@@ -202,8 +202,8 @@ end_time - start_time
 
 # convert into df
 grecoExtDf <- data.frame(grecoExt)
-colnames(grecoExtDf) <- "GRECO"
-grecoExtDf$GRECO <- greco$CODEGRECO[grecoExtDf$GRECO] # convert back factor numbers into GRECO letters
+colnames(grecoExtDf) <- "greco"
+grecoExtDf$greco <- greco$CODEGRECO[grecoExtDf$greco] # convert back factor numbers into GRECO letters
 elevExtDf <- data.frame(elevExt)
 colnames(elevExtDf) <- "alti"
 sloExtDf <- data.frame(sloExt)
@@ -251,4 +251,4 @@ forestPlots@data <- cbind(forestPlots@data, grecoExtDf, elevExtDf, sloExtDf, ori
 # save new shp with altitudes
 ###############################################################
 
-shapefile(forestPlots, filename = 'forestPlots3Ha')
+shapefile(forestPlots, filename = 'forestPlots3Ha', overwrite = TRUE)
