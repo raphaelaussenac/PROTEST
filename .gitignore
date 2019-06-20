@@ -6,3 +6,5 @@
 *.tif
 *.Rhistory
 *.csv
+output
+notes.R

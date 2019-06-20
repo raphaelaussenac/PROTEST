@@ -105,45 +105,52 @@ ggplot(forestPlotsDf) +
   aes(long,lat,group=group,fill=pot03) +
   geom_polygon() +
   coord_equal() +
-  scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(modDf$pot03), name = "fretility\nindex\n(modeled)") +
+  scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(modDf$pot03), name = "fertility\nindex\n(modeled)") +
   theme_bw() +
   ggtitle("Quercus petraea") +
   theme(plot.title = element_text(hjust = 0.5), legend.position="right") +
   guides(fill = guide_colourbar(title.position="top", title.hjust = 0.5, barwidth = 0.75, barheight = 15))
+
+ggsave("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/fertilty03.pdf", "pdf", plot = last_plot())
 
 ########################## fagus sylvatica (09)
 ggplot(forestPlotsDf) +
   aes(long,lat,group=group,fill=pot09) +
   geom_polygon() +
   coord_equal() +
-  scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(modDf$pot09), name = "fretility\nindex\n(modeled)") +
+  scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(modDf$pot09), name = "fertility\nindex\n(modeled)") +
   theme_bw() +
   ggtitle("Fagus sylvatica") +
   theme(plot.title = element_text(hjust = 0.5), legend.position="right") +
   guides(fill = guide_colourbar(title.position="top", title.hjust = 0.5, barwidth = 0.75, barheight = 15))
 
+ggsave("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/fertilty09.pdf", "pdf", plot = last_plot())
+
 ########################## abies alba (61)
 ggplot(forestPlotsDf) +
-  aes(long,lat,group=group,fill=pot61Epsilon) +
+  aes(long,lat,group=group,fill=pot61) +
   geom_polygon() +
   coord_equal() +
-  scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(modDf$pot61Epsilon), name = "fretility\nindex\n(modeled)") +
+  scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(modDf$pot61), name = "fertility\nindex\n(modeled)") +
   theme_bw() +
   ggtitle("Abies alba") +
   theme(plot.title = element_text(hjust = 0.5), legend.position="right") +
   guides(fill = guide_colourbar(title.position="top", title.hjust = 0.5, barwidth = 0.75, barheight = 15))
+
+ggsave("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/fertilty61.pdf", "pdf", plot = last_plot())
 
 ########################## picea abies (62)
 ggplot(forestPlotsDf) +
   aes(long,lat,group=group,fill=pot62) +
   geom_polygon() +
   coord_equal() +
-  scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(modDf$pot62), name = "fretility\nindex\n(modeled)") +
+  scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(modDf$pot62), name = "fertility\nindex\n(modeled)") +
   theme_bw() +
   ggtitle("Picea abies") +
   theme(plot.title = element_text(hjust = 0.5), legend.position="right") +
   guides(fill = guide_colourbar(title.position="top", title.hjust = 0.5, barwidth = 0.75, barheight = 15))
 
+ggsave("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/fertilty62.pdf", "pdf", plot = last_plot())
 
 ###############################################################
 # compare modeled potential index and IFN potential index
@@ -185,15 +192,6 @@ hist(forestPlots$pot61, add = TRUE, breaks = seq(-15, 60, 0.5), border = 'red')
 hist(forestPlots$pot61Epsilon, add = TRUE, breaks = seq(-15, 60, 0.5), border = 'green')
 
 ########################## picea abies (62)
-
-
-###############################################################
-# save new shp with climate data
-###############################################################
-
-# shapefile(topo_greco, filename = 'topo_greco_clim')
-
-
 
 
 
