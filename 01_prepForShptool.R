@@ -28,7 +28,7 @@ library(raster)
 setwd("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST")
 
 # load BDforet shapefile
-BDforet <- readOGR(dsn = ".", layer = "BD_Foret_V2_PNR_2014", encoding = "UTF-8", use_iconv = TRUE)
+BDforet <- readOGR(dsn = "X:/ProjetsCommuns/PROTEST/T1/Donnees_SIG/BD_Foret", layer = "BD_Foret_V2_PNRfilled_Foret_2014", encoding = "UTF-8", use_iconv = TRUE)
 
 ###############################################################
 # create new shapefile with only ID

@@ -30,6 +30,9 @@ colnames(bdBauges)[colnames(bdBauges) == "xl93"] <- "X"
 colnames(bdBauges)[colnames(bdBauges) == "yl93"] <- "Y"
 colnames(bdBauges)[colnames(bdBauges) == "pent2"] <- "slope"
 
+# add a column to plot ifn points (and set the point shape)
+bdBauges$ifnPt <- "NFI points"
+
 ###############################################################
 # model quercus petraea (03) potential index
 ###############################################################

@@ -20,7 +20,7 @@ source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/modfertInd.R')
 # load forest plots
 forestPlots <- readOGR(dsn = "C:/Users/raphael.aussenac/Documents/GitHub/PROTEST", layer = "forestPlots3Ha", encoding = "UTF-8", use_iconv = TRUE)
 # plot(forestPlots, col = forestPlots$CODE_TFV, border = forestPlots$CODE_TFV)
-forestPlots <- forestPlots[forestPlots$SUPERID != '1782',]
+plot(coordinates(forestPlots), asp = 1)
 
 # create df with variables used in the models
 modDf <- data.frame(forestPlots[, c("SUPERID", "alti", "slope", "greco", "expoNS", "expoEW")])
@@ -129,7 +129,8 @@ ggplot() +
   ggtitle("Quercus petraea") +
   theme(plot.title = element_text(hjust = 0.5), legend.position="right") +
   geom_point(data = bdBauges03, aes(X, Y, size = sqrt(residuals^2), color = sign), alpha = 0.5) +
-  guides(fill = FALSE, size = guide_legend(title = "residuals"), color = guide_legend(title="sign"))
+  geom_point(data = bdBauges, aes(X, Y, shape = ifnPt), size = 0.5) +
+  guides(fill = FALSE, size = guide_legend(title = "residuals"), color = guide_legend(title="sign"), shape = guide_legend(title = ""))
 
 ggsave("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/residuals03.pdf", plot = last_plot())
 
@@ -162,7 +163,8 @@ ggplot() +
   ggtitle("Fagus sylvatica") +
   theme(plot.title = element_text(hjust = 0.5), legend.position="right") +
   geom_point(data = bdBauges09, aes(X, Y, size = sqrt(residuals^2), color = sign), alpha = 0.5) +
-  guides(fill = FALSE, size = guide_legend(title = "residuals"), color = guide_legend(title="sign"))
+  geom_point(data = bdBauges, aes(X, Y, shape = ifnPt), size = 0.5) +
+  guides(fill = FALSE, size = guide_legend(title = "residuals"), color = guide_legend(title="sign"), shape = guide_legend(title = ""))
 
 ggsave("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/residuals09.pdf", plot = last_plot())
 
@@ -194,7 +196,8 @@ ggplot() +
   ggtitle("Abies alba") +
   theme(plot.title = element_text(hjust = 0.5), legend.position="right") +
   geom_point(data = bdBauges61, aes(X, Y, size = sqrt(residuals^2), color = sign), alpha = 0.5) +
-  guides(fill = FALSE, size = guide_legend(title = "residuals"), color = guide_legend(title="sign"))
+  geom_point(data = bdBauges, aes(X, Y, shape = ifnPt), size = 0.5) +
+  guides(fill = FALSE, size = guide_legend(title = "residuals"), color = guide_legend(title="sign"), shape = guide_legend(title = ""))
 
 ggsave("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/residuals61.pdf", plot = last_plot())
 
@@ -227,7 +230,8 @@ ggplot() +
   ggtitle("Picea abies") +
   theme(plot.title = element_text(hjust = 0.5), legend.position="right") +
   geom_point(data = bdBauges62, aes(X, Y, size = sqrt(residuals^2), color = sign), alpha = 0.5) +
-  guides(fill = FALSE, size = guide_legend(title = "residuals"), color = guide_legend(title="sign"))
+  geom_point(data = bdBauges, aes(X, Y, shape = ifnPt), size = 0.5) +
+  guides(fill = FALSE, size = guide_legend(title = "residuals"), color = guide_legend(title="sign"), shape = guide_legend(title = ""))
 
 ggsave("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/residuals62.pdf", plot = last_plot())
 
