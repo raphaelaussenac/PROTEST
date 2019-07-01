@@ -5,8 +5,6 @@
 rm(list = ls())
 
 # load packages
-library(raster)
-library(rgdal)
 library(ggplot2)
 library(plyr)
 library(sf)
@@ -32,6 +30,10 @@ modDf <- cbind(modDf, coord)
 
 # max slope = 200 --> remove cliff effect
 modDf[modDf$slope > 200, "slope"] <- 200
+
+# plot area histogram
+hist(area(forestPlots), breaks = 1000)
+hist(area(forestPlots)[area(forestPlots)<20], breaks = 10)
 
 ###############################################################
 ########################## quercus petraea (03)
