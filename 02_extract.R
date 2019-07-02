@@ -65,7 +65,6 @@ gdalwarp('X:/ProjetsCommuns/PROTEST/T1/Donnees_SIG/Foret_protection.tif',
           dstfile="Z:/Private/rasterVanneck/forProtec.tif", t_srs = crs(elev),
           output_Raster = FALSE, overwrite = TRUE, verbose = TRUE) # change projection
 forProtec <- raster('Z:/Private/rasterVanneck/forProtec.tif')
-# forProtec <- projectRaster(from = forProtec, crs = crs(forestPlots), res = res(forProtec)) # change projection
 
 # Dg_pred
 dgPred <- raster('X:/ProjetsCommuns/PROTEST/T5/Livrables/T1/model_pnr_bauges_73_74/raster/Dg_pred.tif')
@@ -88,9 +87,22 @@ p100gfPred <- raster('X:/ProjetsCommuns/PROTEST/T5/Livrables/T1/model_pnr_bauges
 crs(p100gfPred) <- crs(forestPlots)
 
 ###############################################################
-# geol
+# SILVAE data
 ###############################################################
 
+# pH
+gdalwarp('Z:/Private/donneesSilvae/ph_2008.tif',
+          dstfile="Z:/Private/donneesSilvae/ph.tif", t_srs = crs(elev),
+          output_Raster = FALSE, overwrite = TRUE, verbose = TRUE,
+          te = c(925930, 6489455, 968160, 6538375), te_srs = crs(elev)) # change projection
+ph <- raster('Z:/Private/donneesSilvae/ph.tif')
+
+# ru
+gdalwarp('Z:/Private/donneesSilvae/rum_500_v2009.tif',
+          dstfile="Z:/Private/donneesSilvae/ru.tif", t_srs = crs(elev),
+          output_Raster = FALSE, overwrite = TRUE, verbose = TRUE,
+          te = c(925930, 6489455, 968160, 6538375), te_srs = crs(elev)) # change projection
+ru <- raster('Z:/Private/donneesSilvae/ru.tif')
 
 ###############################################################
 # Universal Soil Loss Equation (USLE) parameters
@@ -147,6 +159,9 @@ ggbPredVr <- velox(ggbPred)
 nPredVr <- velox(nPred)
 p100gfPredVr <- velox(p100gfPred)
 
+phVr <- velox(ph)
+ruVr <- velox(ru)
+
 kVr <- velox(k)
 lsVr <- velox(ls)
 pVr <- velox(p)
@@ -179,6 +194,10 @@ start_time <- Sys.time()
 orienExt <- orienVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
 end_time <- Sys.time()
 end_time - start_time
+
+# extract silvae data
+phExt <- phVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+ruExt <- ruVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
 
 # extract dendro
 start_time <- Sys.time()
@@ -222,6 +241,10 @@ nPredExtDf <- data.frame(nPredExt)
 colnames(nPredExtDf) <- "nPred"
 p100gfPredExtDf <- data.frame(p100gfPredExt)
 colnames(p100gfPredExtDf) <- "p100gfPred"
+phExtDf <- data.frame(phExt)
+colnames(phExtDf) <- "ph"
+ruExtDf <- data.frame(ruExt)
+colnames(ruExtDf) <- "ru"
 kExtDf <- data.frame(kExt)
 colnames(kExtDf) <- "k"
 lsExtDf <- data.frame(lsExt)
@@ -240,12 +263,10 @@ orienExtDf$expoEW <- sin(orienExtDf$orient*pi/180)
 orienExtDf <- orienExtDf[,c("expoNS", "expoEW")]
 
 # integrate into the shp file
-forestPlots@data <- cbind(forestPlots@data, grecoExtDf, elevExtDf, sloExtDf, orienExtDf,
-                      forProtecExtDf, dgPredExtDf, gPredExtDf, ggbPredExtDf,
-                      nPredExtDf, p100gfPredExtDf, kExtDf, lsExtDf, pExtDf, rExtDf)
-# forestPlots@data <- cbind(forestPlots@data, elevExtDf)
-# forestPlots@data <- cbind(forestPlots@data, sloExtDf)
-# forestPlots@data <- cbind(forestPlots@data, orienExtDf)
+forestPlots@data <- cbind(forestPlots@data, grecoExtDf, elevExtDf, sloExtDf,
+                      orienExtDf, forProtecExtDf, dgPredExtDf, gPredExtDf,
+                      ggbPredExtDf, nPredExtDf, p100gfPredExtDf, phExtDf,
+                      ruExtDf, kExtDf, lsExtDf, pExtDf, rExtDf)
 
 ###############################################################
 # save new shp with altitudes
