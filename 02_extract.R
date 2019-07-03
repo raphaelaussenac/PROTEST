@@ -10,20 +10,16 @@ library(rgdal)
 library(raster)
 library(velox)
 library(gdalUtils)
+library(sf)
 
 # set work directory
 setwd("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST")
 
 ###############################################################
-# BD foret
+# study area extend
 ###############################################################
 
-forestPlots <- readOGR(dsn = ".", layer = "superID_1", encoding = "UTF-8", use_iconv = TRUE)
-crs(forestPlots) <- "+proj=lcc +lat_1=49 +lat_2=44 +lat_0=46.5 +lon_0=3 +x_0=700000
-+y_0=6600000 +ellps=GRS80 +units=m +no_defs"
-
-# bdForet <- readOGR(dsn = ".", layer = "BD_Foret_V2_PNR_2014", encoding = "UTF-8", use_iconv = TRUE)
-# plot(bdForet, col = bdForet$CODE_TFV, border = bdForet$CODE_TFV)
+pnr <- readOGR(dsn = "Z:/Private/PNR Bauges/Sans_Trou", layer = "parc_filled", encoding = "UTF-8", use_iconv = TRUE)
 
 ###############################################################
 # elevation
@@ -31,7 +27,7 @@ crs(forestPlots) <- "+proj=lcc +lat_1=49 +lat_2=44 +lat_0=46.5 +lon_0=3 +x_0=700
 
 elev <- raster("MNT_all_5m.tif")
 # set projection
-crs(elev) <- crs(forestPlots)
+crs(elev) <- crs(pnr)
 # plot(elev, col=colorRampPalette(c("black", "white"))(255))
 
 # slope
@@ -45,7 +41,7 @@ orien <- terrain(elev, opt = 'aspect', unit = 'degrees', neighbors = 8)
 ###############################################################
 
 greco <- readOGR(dsn = "Z:/Private/DonneesIFN/Shapes_SER_GRECO", layer = "greco_l93", encoding = "UTF-8", use_iconv = TRUE)
-greco <- spTransform(greco, crs(forestPlots)) # change projection
+greco <- spTransform(greco, crs(pnr)) # change projection
 
 # plot(greco, col = greco$CODEGRECO)
 
@@ -53,7 +49,7 @@ greco <- spTransform(greco, crs(forestPlots)) # change projection
 ext <- floor(extent(elev))
 r <- raster(ext, res=res(elev))
 grecoRaster <- rasterize(greco, r, field="CODEGRECO")
-crs(grecoRaster) <- crs(forestPlots)
+crs(grecoRaster) <- crs(pnr)
 # plot(grecoRaster)
 
 ###############################################################
@@ -63,28 +59,29 @@ crs(grecoRaster) <- crs(forestPlots)
 # forest length
 gdalwarp('X:/ProjetsCommuns/PROTEST/T1/Donnees_SIG/Foret_protection.tif',
           dstfile="Z:/Private/rasterVanneck/forProtec.tif", t_srs = crs(elev),
-          output_Raster = FALSE, overwrite = TRUE, verbose = TRUE) # change projection
+          output_Raster = FALSE, overwrite = TRUE, verbose = TRUE,
+          te = c(925930, 6489455, 968160, 6538375), te_srs = crs(elev)) # change projection
 forProtec <- raster('Z:/Private/rasterVanneck/forProtec.tif')
 
 # Dg_pred
 dgPred <- raster('X:/ProjetsCommuns/PROTEST/T5/Livrables/T1/model_pnr_bauges_73_74/raster/Dg_pred.tif')
-crs(dgPred) <- crs(forestPlots)
+crs(dgPred) <- crs(pnr)
 
 # G_pred
 gPred <- raster('X:/ProjetsCommuns/PROTEST/T5/Livrables/T1/model_pnr_bauges_73_74/raster/G_pred.tif')
-crs(gPred) <- crs(forestPlots)
+crs(gPred) <- crs(pnr)
 
 # GGB_pred
 ggbPred <- raster('X:/ProjetsCommuns/PROTEST/T5/Livrables/T1/model_pnr_bauges_73_74/raster/GGB_pred.tif')
-crs(ggbPred) <- crs(forestPlots)
+crs(ggbPred) <- crs(pnr)
 
 # N_pred
 nPred <- raster('X:/ProjetsCommuns/PROTEST/T5/Livrables/T1/model_pnr_bauges_73_74/raster/N_pred.tif')
-crs(nPred) <- crs(forestPlots)
+crs(nPred) <- crs(pnr)
 
 # p100GF_pred
 p100gfPred <- raster('X:/ProjetsCommuns/PROTEST/T5/Livrables/T1/model_pnr_bauges_73_74/raster/p100GF_pred.tif')
-crs(p100gfPred) <- crs(forestPlots)
+crs(p100gfPred) <- crs(pnr)
 
 ###############################################################
 # SILVAE data
@@ -99,10 +96,10 @@ ph <- raster('Z:/Private/donneesSilvae/ph.tif')
 
 # ru
 gdalwarp('Z:/Private/donneesSilvae/rum_500_v2009.tif',
-          dstfile="Z:/Private/donneesSilvae/ru.tif", t_srs = crs(elev),
+          dstfile="Z:/Private/donneesSilvae/rum.tif", t_srs = crs(elev),
           output_Raster = FALSE, overwrite = TRUE, verbose = TRUE,
           te = c(925930, 6489455, 968160, 6538375), te_srs = crs(elev)) # change projection
-ru <- raster('Z:/Private/donneesSilvae/ru.tif')
+rum <- raster('Z:/Private/donneesSilvae/rum.tif')
 
 ###############################################################
 # Universal Soil Loss Equation (USLE) parameters
@@ -137,35 +134,58 @@ gdalwarp('Z:/Private/rasterVanneck/Rf_gp1.tif',
 r <- raster('Z:/Private/rasterVanneck/r.tif')
 
 ###############################################################
-# extract
+# prepare NFI data for extraction
 ###############################################################
 
-# gather all rasters into one rasterbrick
-# brk <- brick(slo, orien, template = elev)
-# brk.vx <- velox(brk)
+# load IFN points
+source('Z:/Private/Calcul_Potentiels/Calcul_Potentiels_Purs.R')
 
-###################################
+# set back work directory
+setwd("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST")
+
+# 1 - create circular plots around NFI points
+  # 1a - select points in the study area
+ptIfn <- SpatialPointsDataFrame(bd[,c("xl93", "yl93")], data = data.frame(bd), proj4string = CRS(proj4string(pnr)))
+baugesIfn <-over(ptIfn, pnr)
+baugesIfn <- droplevels(baugesIfn[!is.na(baugesIfn$ID),])
+bdBauges <- droplevels(bd[as.numeric(row.names(baugesIfn)),])
+bdBauges <- bdBauges[, c("idp", "xl93", "yl93")]
+  # 1b - convert into spatial points
+baugesIfnPts <- SpatialPointsDataFrame(bdBauges[,c("xl93", "yl93")], data = data.frame(bdBauges), proj4string = CRS(proj4string(pnr)))
+baugesIfnPts@data <- data.frame(baugesIfnPts$idp)
+  # 1c - convert into sf object
+baugesIfnPtsSf <- st_as_sf(baugesIfnPts)
+  # 1c - create circular plots around points and set the radius
+ifnCircular <- st_buffer(baugesIfnPtsSf, dist = 15)
+
+plot(elev, col=colorRampPalette(c("black", "white"))(255))
+plot(ifnCircular, add = TRUE, col = 'red', border = 'red')
+
+###############################################################
 # extract with velox package
+###############################################################
+
 # convert "Raster" into "VeloxRaster"
 elevVr <- velox(elev)
 sloVr <- velox(slo)
 orienVr <- velox(orien)
 grecoVr <- velox(grecoRaster)
-
 forProtecVr <- velox(forProtec)
 dgPredVr <- velox(dgPred)
 gPredVr <- velox(gPred)
 ggbPredVr <- velox(ggbPred)
 nPredVr <- velox(nPred)
 p100gfPredVr <- velox(p100gfPred)
-
 phVr <- velox(ph)
-ruVr <- velox(ru)
-
+rumVr <- velox(rum)
 kVr <- velox(k)
 lsVr <- velox(ls)
 pVr <- velox(p)
 rVr <- velox(r)
+
+###############################################################
+# extract values for NFI plots
+###############################################################
 
 # extract GRECO
 # Create a function to calculate the mode.
@@ -174,50 +194,34 @@ getmode <- function(x) {
    uniqv <- unique(x)
    uniqv[which.max(tabulate(match(x, uniqv)))]
 }
-grecoExt <- grecoVr$extract(sp = forestPlots, fun = getmode, small = TRUE) # works despite the error message
+grecoExt <- grecoVr$extract(sp = ifnCircular, fun = getmode, small = TRUE)
 
 # extract elevation
-start_time <- Sys.time()
-# elevExt <- elevVr$extract(sp = forestPlots[forestPlots$CODE_TFV == "FF1-10-10",], fun = mean, small = TRUE)
-elevExt <- elevVr$extract(sp = forestPlots, fun = mean, small = TRUE)
-end_time <- Sys.time()
-end_time - start_time
+elevExt <- elevVr$extract(sp = ifnCircular, fun = mean, small = TRUE)
 
 # extract slope
-start_time <- Sys.time()
-sloExt <- sloVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
-end_time <- Sys.time()
-end_time - start_time
+sloExt <- sloVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
 
 # extract orientation
-start_time <- Sys.time()
-orienExt <- orienVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
-end_time <- Sys.time()
-end_time - start_time
+orienExt <- orienVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
 
 # extract silvae data
-phExt <- phVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
-ruExt <- ruVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+phExt <- phVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+rumExt <- rumVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
 
 # extract dendro
-start_time <- Sys.time()
-forProtecExt <- forProtecVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
-dgPredExt <- dgPredVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
-gPredExt <- gPredVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
-ggbPredExt <- ggbPredVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
-nPredExt <- nPredVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
-p100gfPredExt <- p100gfPredVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
-end_time <- Sys.time()
-end_time - start_time
+forProtecExt <- forProtecVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+dgPredExt <- dgPredVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+gPredExt <- gPredVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+ggbPredExt <- ggbPredVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+nPredExt <- nPredVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+p100gfPredExt <- p100gfPredVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
 
 # extract USLE parameters
-start_time <- Sys.time()
-kExt <- kVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
-lsExt <- lsVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
-pExt <- pVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
-rExt <- rVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
-end_time <- Sys.time()
-end_time - start_time
+kExt <- kVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+lsExt <- lsVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+pExt <- pVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+rExt <- rVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
 
 # convert into df
 grecoExtDf <- data.frame(grecoExt)
@@ -243,8 +247,99 @@ p100gfPredExtDf <- data.frame(p100gfPredExt)
 colnames(p100gfPredExtDf) <- "p100gfPred"
 phExtDf <- data.frame(phExt)
 colnames(phExtDf) <- "ph"
-ruExtDf <- data.frame(ruExt)
-colnames(ruExtDf) <- "ru"
+rumExtDf <- data.frame(rumExt)
+colnames(rumExtDf) <- "rum"
+kExtDf <- data.frame(kExt)
+colnames(kExtDf) <- "k"
+lsExtDf <- data.frame(lsExt)
+colnames(lsExtDf) <- "ls"
+pExtDf <- data.frame(pExt)
+colnames(pExtDf) <- "p"
+rExtDf <- data.frame(rExt)
+colnames(rExtDf) <- "r"
+
+# convert slope degrees into percent
+sloExtDf$slope <- tan(sloExtDf$slope*pi/180)*100
+
+# convert orientation degrees into cos(radians)
+orienExtDf$expoNS <- cos(orienExtDf$orient*pi/180)
+orienExtDf$expoEW <- sin(orienExtDf$orient*pi/180)
+orienExtDf <- orienExtDf[,c("expoNS", "expoEW")]
+
+# create shp file
+ifnCircular <- as(ifnCircular, 'Spatial')
+colnames(ifnCircular@data) <- 'idp'
+ifnCircular@data <- cbind(ifnCircular@data, grecoExtDf, elevExtDf, sloExtDf,
+                      orienExtDf, forProtecExtDf, dgPredExtDf, gPredExtDf,
+                      ggbPredExtDf, nPredExtDf, p100gfPredExtDf, phExtDf,
+                      rumExtDf, kExtDf, lsExtDf, pExtDf, rExtDf)
+
+# save
+shapefile(ifnCircular, filename = 'ifnCircular', overwrite = TRUE)
+
+###############################################################
+# extract values for all forest plots
+###############################################################
+
+forestPlots <- readOGR(dsn = ".", layer = "superID_1", encoding = "UTF-8", use_iconv = TRUE)
+crs(forestPlots) <- crs(pnr)
+
+# extract GRECO
+grecoExt <- grecoVr$extract(sp = forestPlots, fun = getmode, small = TRUE) # works despite the error message
+
+# extract elevation
+elevExt <- elevVr$extract(sp = forestPlots, fun = mean, small = TRUE)
+
+# extract slope
+sloExt <- sloVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+
+# extract orientation
+orienExt <- orienVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+
+# extract silvae data
+phExt <- phVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+rumExt <- rumVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+
+# extract dendro
+forProtecExt <- forProtecVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+dgPredExt <- dgPredVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+gPredExt <- gPredVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+ggbPredExt <- ggbPredVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+nPredExt <- nPredVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+p100gfPredExt <- p100gfPredVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+
+# extract USLE parameters
+kExt <- kVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+lsExt <- lsVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+pExt <- pVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+rExt <- rVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+
+# convert into df
+grecoExtDf <- data.frame(grecoExt)
+colnames(grecoExtDf) <- "greco"
+grecoExtDf$greco <- greco$CODEGRECO[grecoExtDf$greco] # convert back factor numbers into GRECO letters
+elevExtDf <- data.frame(elevExt)
+colnames(elevExtDf) <- "alti"
+sloExtDf <- data.frame(sloExt)
+colnames(sloExtDf) <- "slope"
+orienExtDf <- data.frame(orienExt)
+colnames(orienExtDf) <- "orient"
+forProtecExtDf <- data.frame(forProtecExt)
+colnames(forProtecExtDf) <- "forProtec"
+dgPredExtDf <- data.frame(dgPredExt)
+colnames(dgPredExtDf) <- "dgPred"
+gPredExtDf <- data.frame(gPredExt)
+colnames(gPredExtDf) <- "gPred"
+ggbPredExtDf <- data.frame(ggbPredExt)
+colnames(ggbPredExtDf) <- "ggbPred"
+nPredExtDf <- data.frame(nPredExt)
+colnames(nPredExtDf) <- "nPred"
+p100gfPredExtDf <- data.frame(p100gfPredExt)
+colnames(p100gfPredExtDf) <- "p100gfPred"
+phExtDf <- data.frame(phExt)
+colnames(phExtDf) <- "ph"
+rumExtDf <- data.frame(rumExt)
+colnames(rumExtDf) <- "rum"
 kExtDf <- data.frame(kExt)
 colnames(kExtDf) <- "k"
 lsExtDf <- data.frame(lsExt)
@@ -266,10 +361,8 @@ orienExtDf <- orienExtDf[,c("expoNS", "expoEW")]
 forestPlots@data <- cbind(forestPlots@data, grecoExtDf, elevExtDf, sloExtDf,
                       orienExtDf, forProtecExtDf, dgPredExtDf, gPredExtDf,
                       ggbPredExtDf, nPredExtDf, p100gfPredExtDf, phExtDf,
-                      ruExtDf, kExtDf, lsExtDf, pExtDf, rExtDf)
+                      rumExtDf, kExtDf, lsExtDf, pExtDf, rExtDf)
 
-###############################################################
-# save new shp with altitudes
-###############################################################
+# save
 
 shapefile(forestPlots, filename = 'forestPlots3Ha', overwrite = TRUE)
