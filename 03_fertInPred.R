@@ -241,16 +241,32 @@ ggsave("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/residuals62.pd
 # compare modeled potential index and IFN potential index
 ###############################################################
 
+########################## density plots
+# density observed vs predicted
+d <- density(ifnCircular$ptnt_61)
+plot(d, xlim = c(-15, 60), ylim = c(0, 0.1), lwd = 2, main = "density observed vs modeled vs modeled + noise")
+polygon(d, col="grey", border="black")
+lines(density(forestPlots$pot61), col = "red", lwd = 2)
+lines(density(forestPlots$pot61Epsilon), col = "blue", lwd = 2)
+
+
+
+
+
+########################## scatter plots
 # create an intersect between ptIFN and forestPlots
 compare <- intersect(forestPlots, ifnCircular)
 
 # there is more lines in the compare table (288) than there is NFI points
 # in the study area because some of the NFI circular plots overlap with
 # several forest plots
+# has no effect
+# in that case there are 2 predicted fertility index (ex: pot61) for 1 fertility
+# index coming from the NFI database --> there are therefore 2 points on the plot
 
 plot(forestPlots[forestPlots$id == 4520,], col = 'orange')
 plot(forestPlots[forestPlots$id == 2778,], add = TRUE, col = "green4")
-plot(ifnCircular[ifnCircular$idp == 100733,], add = TRUE, col = 'black', alpha = 0.5)
+plot(ifnCircular[ifnCircular$idp == 100733,], add = TRUE, col = 'black')
 
 ########################## quercus petraea (03)
 
@@ -268,13 +284,6 @@ plot(compare$pot61Epsilon, compare$ptnt_61, pch = 16, main = "observed vs predic
 abline(coef = c(0,1), col = "red")
 plot(compare$pot61, compare$ptnt_61, col = ifelse(compare$greco.1 == "H", "blue", "red"), pch = 16, main = "observed vs predicted (without random noise)", xlim = c(xymin, xymax), ylim = c(xymin, xymax))
 abline(coef = c(0,1), col = "red")
-
-# density observed vs predicted
-d <- density(ifnCircular$ptnt_61)
-plot(d, xlim = c(-15, 60), ylim = c(0, 0.1), lwd = 2, main = "density observed vs modeled vs modeled + noise")
-polygon(d, col="grey", border="black")
-lines(density(forestPlots$pot61), col = "red", lwd = 2)
-lines(density(forestPlots$pot61Epsilon), col = "blue", lwd = 2)
 
 ########################## picea abies (62)
 
