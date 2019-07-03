@@ -146,7 +146,6 @@ setwd("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST")
 # 1 - create circular plots around NFI points
   # 1a - select points in the study area
 ptIfn <- SpatialPointsDataFrame(bd[,c("xl93", "yl93")], data = data.frame(bd), proj4string = CRS(proj4string(pnr)))
-<<<<<<< HEAD
 baugesIfn <- over(ptIfn, pnr)
 baugesIfn <- droplevels(baugesIfn[!is.na(baugesIfn$ID),])
 bdBauges <- droplevels(bd[as.numeric(row.names(baugesIfn)),])
@@ -155,15 +154,6 @@ bdBauges <- bdBauges[, c("idp", "xl93", "yl93", "potentiel_03", "potentiel_09",
                         'unknownPart09', 'unknownPart61', 'unknownPart62')]
   # 1b - convert into spatial points
 baugesIfnPts <- SpatialPointsDataFrame(bdBauges[,c("xl93", "yl93")], data = data.frame(bdBauges), proj4string = CRS(proj4string(pnr)))
-=======
-baugesIfn <-over(ptIfn, pnr)
-baugesIfn <- droplevels(baugesIfn[!is.na(baugesIfn$ID),])
-bdBauges <- droplevels(bd[as.numeric(row.names(baugesIfn)),])
-bdBauges <- bdBauges[, c("idp", "xl93", "yl93")]
-  # 1b - convert into spatial points
-baugesIfnPts <- SpatialPointsDataFrame(bdBauges[,c("xl93", "yl93")], data = data.frame(bdBauges), proj4string = CRS(proj4string(pnr)))
-baugesIfnPts@data <- data.frame(baugesIfnPts$idp)
->>>>>>> 4cfe8f8b979dc368310f4ebe1b53c1ad2419a4b3
   # 1c - convert into sf object
 baugesIfnPtsSf <- st_as_sf(baugesIfnPts)
   # 1c - create circular plots around points and set the radius
@@ -279,13 +269,9 @@ orienExtDf <- orienExtDf[,c("expoNS", "expoEW")]
 
 # create shp file
 ifnCircular <- as(ifnCircular, 'Spatial')
-<<<<<<< HEAD
 colnames(ifnCircular@data) <- c(c("idp", "xl93", "yl93", "potentiel_03", "potentiel_09",
                                 "potentiel_61", "potentiel_62", 'unknownPart03',
                                 'unknownPart09', 'unknownPart61', 'unknownPart62'))
-=======
-colnames(ifnCircular@data) <- 'idp'
->>>>>>> 4cfe8f8b979dc368310f4ebe1b53c1ad2419a4b3
 ifnCircular@data <- cbind(ifnCircular@data, grecoExtDf, elevExtDf, sloExtDf,
                       orienExtDf, forProtecExtDf, dgPredExtDf, gPredExtDf,
                       ggbPredExtDf, nPredExtDf, p100gfPredExtDf, phExtDf,

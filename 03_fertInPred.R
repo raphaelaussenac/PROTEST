@@ -249,10 +249,6 @@ polygon(d, col="grey", border="black")
 lines(density(forestPlots$pot61), col = "red", lwd = 2)
 lines(density(forestPlots$pot61Epsilon), col = "blue", lwd = 2)
 
-
-
-
-
 ########################## scatter plots
 # create an intersect between ptIFN and forestPlots
 compare <- intersect(forestPlots, ifnCircular)
