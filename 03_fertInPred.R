@@ -21,7 +21,7 @@ forestPlots <- readOGR(dsn = "C:/Users/raphael.aussenac/Documents/GitHub/PROTEST
 plot(coordinates(forestPlots), asp = 1)
 
 # create df with variables used in the models
-modDf <- data.frame(forestPlots[, c("SUPERID", "alti", "slope", "greco", "expoNS", "expoEW")])
+modDf <- data.frame(forestPlots[, c("SUPERID", "alti", "slope", "greco", "expoNS", "expoEW", "ph", "rum")])
 
 # add the coordinates of the polygons' centroids
 coord <- data.frame(coordinates(forestPlots))
@@ -242,12 +242,15 @@ ggsave("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/residuals62.pd
 ###############################################################
 
 # create an intersect between ptIFN and forestPlots
-# here the "intersect" function cannot be used (memory issues with too
-# many plots). The "sf" package is used instead
-forestPlotsSf <- st_as_sf(forestPlots)
-ptIfnSf <- st_as_sf(ptIfn)
-compare <- st_intersection(ptIfnSf, forestPlotsSf)
-compare <- data.frame(compare)
+compare <- intersect(forestPlots, ifnCircular)
+
+# there is more lines in the compare table (288) than there is NFI points
+# in the study area because some of the NFI circular plots overlap with
+# several forest plots
+
+plot(forestPlots[forestPlots$id == 4520,], col = 'orange')
+plot(forestPlots[forestPlots$id == 2778,], add = TRUE, col = "green4")
+plot(ifnCircular[ifnCircular$idp == 100733,], add = TRUE, col = 'black', alpha = 0.5)
 
 ########################## quercus petraea (03)
 
@@ -257,24 +260,21 @@ compare <- data.frame(compare)
 
 ########################## abies alba (61)
 # plot observed vs predicted
-xymin <- round(min(range(compare$pot61), range(compare$potentiel_61), range(compare$pot61Epsilon)))-1
-xymax <- round(max(range(compare$pot61), range(compare$potentiel_61), range(compare$pot61Epsilon)))+1
-plot(compare$pot61, compare$potentiel_61, pch = 16, main = "observed vs predicted (without random noise)", xlim = c(xymin, xymax), ylim = c(xymin, xymax))
+xymin <- round(min(range(compare$pot61), range(compare$ptnt_61), range(compare$pot61Epsilon)))-1
+xymax <- round(max(range(compare$pot61), range(compare$ptnt_61), range(compare$pot61Epsilon)))+1
+plot(compare$pot61, compare$ptnt_61, pch = 16, main = "observed vs predicted (without random noise)", xlim = c(xymin, xymax), ylim = c(xymin, xymax))
 abline(coef = c(0,1), col = "red")
-plot(compare$pot61Epsilon, compare$potentiel_61, pch = 16, main = "observed vs predicted (with random noise)", xlim = c(xymin, xymax), ylim = c(xymin, xymax), col = "green")
+plot(compare$pot61Epsilon, compare$ptnt_61, pch = 16, main = "observed vs predicted (with random noise)", xlim = c(xymin, xymax), ylim = c(xymin, xymax), col = "green")
+abline(coef = c(0,1), col = "red")
+plot(compare$pot61, compare$ptnt_61, col = ifelse(compare$greco.1 == "H", "blue", "red"), pch = 16, main = "observed vs predicted (without random noise)", xlim = c(xymin, xymax), ylim = c(xymin, xymax))
 abline(coef = c(0,1), col = "red")
 
 # density observed vs predicted
-d <- density(bdBauges61$potentiel_61)
+d <- density(ifnCircular$ptnt_61)
 plot(d, xlim = c(-15, 60), ylim = c(0, 0.1), lwd = 2, main = "density observed vs modeled vs modeled + noise")
 polygon(d, col="grey", border="black")
 lines(density(forestPlots$pot61), col = "red", lwd = 2)
 lines(density(forestPlots$pot61Epsilon), col = "blue", lwd = 2)
-
-# histogram observed vs predicted
-hist(bdBauges61$potentiel_61, breaks = seq(-15, 60, 0.5), ylim = c(0,5000), col = "grey")
-hist(forestPlots$pot61, add = TRUE, breaks = seq(-15, 60, 0.5), border = 'red')
-hist(forestPlots$pot61Epsilon, add = TRUE, breaks = seq(-15, 60, 0.5), border = 'green')
 
 ########################## picea abies (62)
 

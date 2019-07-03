@@ -1,37 +1,18 @@
 library(rgdal)
 library(raster)
 
+# set work directory
+setwd("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST")
+
 ###############################################################
-# import IFN points & their potential index
+# import IFN points (their potential index & associated
+# data (slope, expoNS...)
 ###############################################################
 
-# load IFN points
-source('Z:/Private/Calcul_Potentiels/Calcul_Potentiels_Purs.R')
-
-# load a mask of the study area
-pnr <- readOGR(dsn = "Z:/Private/PNR Bauges/Sans_Trou", layer = "parc_filled", encoding = "UTF-8", use_iconv = TRUE)
-# plot(pnr)
-# points(bd$xl93, bd$yl93, pch = 16, col = 'black')
-
-# select points in the study area
-ptIfn <- SpatialPointsDataFrame(bd[,c("xl93", "yl93")], data = data.frame(bd), proj4string = CRS(proj4string(pnr)))
-baugesIfn <-over(ptIfn, pnr)
-baugesIfn <- droplevels(baugesIfn[!is.na(baugesIfn$ID),])
-bdBauges <- droplevels(bd[as.numeric(row.names(baugesIfn)),])
-# points(bdBauges$xl93, bdBauges$yl93, pch = 16, col = 'black', cex = 2)
-
-# assign geological data to each point
-geol <- readOGR(dsn = "C:/Users/raphael.aussenac/Documents/GitHub/PROTEST", layer = "geol", encoding = "UTF-8", use_iconv = TRUE)
-# plot(geol, col = geol$CODE, border = geol$CODE, add = TRUE)
-ifnGeol <- SpatialPointsDataFrame(bdBauges[,c("xl93", "yl93")], data = data.frame(bdBauges), proj4string = CRS(proj4string(pnr)))
-ifnGeol <- intersect(ifnGeol, geol)
-bdBauges <- ifnGeol@data
-
-# harmonise colnames between bdBauges and forestPlots
-# usefull for subsequent prediction of fertility index
+ifnCircular <- readOGR(dsn = ".", layer = "ifnCircular", encoding = "UTF-8", use_iconv = TRUE)
+bdBauges <- ifnCircular@data
 colnames(bdBauges)[colnames(bdBauges) == "xl93"] <- "X"
 colnames(bdBauges)[colnames(bdBauges) == "yl93"] <- "Y"
-colnames(bdBauges)[colnames(bdBauges) == "pent2"] <- "slope"
 
 # add a column to plot ifn points (and set the point shape)
 bdBauges$ifnPt <- "NFI points"
@@ -50,12 +31,12 @@ bdBauges$ifnPt <- "NFI points"
 bdBauges03 <- bdBauges[!is.na(bdBauges$slope), ]
 
 # model
-modUnPa03 <- lm(unknownPart03 ~ X + greco + slope + alti , data = bdBauges03)
+modUnPa03 <- lm(unknP03 ~ X + greco + slope + alti , data = bdBauges03)
 summary(modUnPa03)
 
 ############################## variance partition
 # potentiel variance
-varPot03 <- var(bdBauges03$potentiel_03)
+varPot03 <- var(bdBauges03$ptnt_03)
 
 # residuals variance
 varEpsi03 <- var(residuals(modUnPa03))
@@ -98,12 +79,12 @@ varPar03 <- data.frame(round(c(varPot03, varKnPa03, varUnPa03, varEpsi03, covKnU
 bdBauges09 <- bdBauges[!is.na(bdBauges$slope) & !is.na(bdBauges$expoNS) & !is.na(bdBauges$expoEW), ]
 
 # model
-modUnPa09 <- lm(unknownPart09 ~ alti + X + expoEW + slope, data = bdBauges09)
+modUnPa09 <- lm(unknP09 ~ alti + X + expoEW + slope, data = bdBauges09)
 summary(modUnPa09)
 
 ############################## variance partition
 # potentiel variance
-varPot09 <- var(bdBauges09$potentiel_09)
+varPot09 <- var(bdBauges09$ptnt_09)
 
 # residuals variance
 varEpsi09 <- var(residuals(modUnPa09))
@@ -139,19 +120,19 @@ varPar09 <- data.frame(round(c(varPot09, varKnPa09, varUnPa09, varEpsi09, covKnU
 
 # known variables:   - GRECO A        # unknown variables: - Intercept
 #                    - GRECO H        #                    - ETP June
-#                                     #                    - RUM 1st horizon
+#                                     #                    - swhc_A
 #                                     #                    - C/N
 
 # create a data subset without NA (depends on the variables included in the model)
 bdBauges61 <- bdBauges[!is.na(bdBauges$slope), ]
 
 # model
-modUnPa61 <- lm(unknownPart61 ~ alti + X + slope, data = bdBauges61)
+modUnPa61 <- lm(unknP61 ~ alti + X + slope + rum, data = bdBauges61) #
 summary(modUnPa61)
 
 ############################## variance partition
 # potentiel variance
-varPot61 <- var(bdBauges61$potentiel_61)
+varPot61 <- var(bdBauges61$ptnt_61)
 
 # residuals variance
 varEpsi61 <- var(residuals(modUnPa61))
@@ -195,12 +176,12 @@ varPar61 <- data.frame(round(c(varPot61, varKnPa61, varUnPa61, varEpsi61, covKnU
 bdBauges62 <- bdBauges[!is.na(bdBauges$slope), ]
 
 # model
-modUnPa62 <- lm(unknownPart62 ~ alti + X + Y + slope, data = bdBauges62)
+modUnPa62 <- lm(unknP62 ~ alti + X + Y + slope, data = bdBauges62)
 summary(modUnPa62)
 
 ############################## variance partition
 # potentiel variance
-varPot62 <- var(bdBauges62$potentiel_62)
+varPot62 <- var(bdBauges62$ptnt_62)
 
 # residuals variance
 varEpsi62 <- var(residuals(modUnPa62))
