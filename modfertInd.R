@@ -18,6 +18,68 @@ colnames(bdBauges)[colnames(bdBauges) == "yl93"] <- "Y"
 bdBauges$ifnPt <- "NFI points"
 
 ###############################################################
+# prediction function
+###############################################################
+
+predFert <- function(mod, modData, sp){
+  # 1 - calculate the known part
+  if (sp == '03'){
+    modData$knPa <- 0
+  } else if (sp == '09'){
+    modData$knPa <- -0.0083 * modData$alti + -0.086 * modData$slope
+  } else if (sp == '61'){
+    modData$knPa <- 0
+    modData[modData$greco =="H", "knPa"] <- -11.56
+  } else if (sp == '62'){
+    modData$knPa <- -0.255 * modData$slope + -3.705 * modData$expoNS
+  }
+  # 2 - calculate the unknow part
+  modData$unPa <- predict(mod, newdata = modData)
+  # 3 - calculate the predicted fertility index (by adding both parts)
+  modData$pot <- modData$unPa + modData$knPa
+  # 4 - calculate the potential index with a random variation
+  modData$potEpsilon <- modData$unPa + modData$knPa + rnorm(nrow(modData), 0, sd(residuals(mod)))
+  # 5 - add sp to colnames
+  colnames(modData)[colnames(modData) == "knPa"] <- paste("knPa", sp, sep="")
+  colnames(modData)[colnames(modData) == "unPa"] <- paste("unPa", sp, sep="")
+  colnames(modData)[colnames(modData) == "pot"] <- paste("pot", sp, sep="")
+  colnames(modData)[colnames(modData) == "potEpsilon"] <- paste("pot", sp, "Epsilon", sep="")
+  return(modData)
+}
+
+###############################################################
+# variance partition function
+###############################################################
+
+varPar <- function(mod, modData, sp){
+  # retrieve colnames without sp code
+  colnames(modData)[colnames(modData) == paste('knPa', sp, sep = "")] <- 'knPa'
+  colnames(modData)[colnames(modData) == paste('unPa', sp, sep = "")] <- 'unPa'
+  colnames(modData)[colnames(modData) == paste('ptnt_', sp, sep = "")] <- 'ptnt'
+  # potentiel variance
+  varPot <- var(modData$ptnt)
+  # residuals variance
+  varEpsi <- var(residuals(mod))
+  # global goodness of fit
+  # ratio of var(residuals) / var(potentiel)
+  ratEpsiPot <- varEpsi / varPot
+  # variance of the known part
+  varKnPa <- var(modData$knPa)
+  # variance of the unknown part
+  varUnPa <- var(modData$unPa)
+  # covarances
+  covKnUn <- 2 * cov(modData$knPa, modData$unPa)
+  covKnEpsi <- 2 * cov(modData$knPa, residuals(mod))
+  covUnEpsi <- 2 * cov(modData$unPa, residuals(mod))
+  # verification
+  # var(potentiel) = var(a) + var(b) + var(c) + 2*cov(a,b) + 2*cov(a,c) + 2*cov(b,c)
+  sumVarCov <- varKnPa + varUnPa + varEpsi + covKnUn + covKnEpsi + covUnEpsi
+  # save
+  varPar <- data.frame(round(c(varPot, varKnPa, varUnPa, varEpsi, covKnUn, covKnEpsi, covUnEpsi, ratEpsiPot, sumVarCov), 5))
+  return(varPar)
+}
+
+###############################################################
 # model quercus petraea (03) potential index
 ###############################################################
 
@@ -31,41 +93,14 @@ bdBauges$ifnPt <- "NFI points"
 bdBauges03 <- bdBauges[!is.na(bdBauges$slope), ]
 
 # model
-modUnPa03 <- lm(unknP03 ~ X + greco + slope + alti , data = bdBauges03)
+modUnPa03 <- lm(unknP03 ~ X + greco + slope + alti +ph + expoEW + expoNS, data = bdBauges03)
 summary(modUnPa03)
 
-############################## variance partition
-# potentiel variance
-varPot03 <- var(bdBauges03$ptnt_03)
+# prediction on the same data set (for obs vs pred comparison)
+bdBauges03 <- predFert(modUnPa03, bdBauges03, "03")
 
-# residuals variance
-varEpsi03 <- var(residuals(modUnPa03))
-
-# global goodness of fit
-# ratio of var(residuals) / var(potentiel)
-ratEpsiPot03 <- varEpsi03 / varPot03
-
-# variance of the known part
-bdBauges03$knPa03 <- 0
-bdBauges03[bdBauges03$greco =="H", "knPa03"] <- -11.56
-varKnPa03 <- var(bdBauges03$knPa03)
-
-# variance of the unknown part
-bdBauges03$unPa03 <- predict(modUnPa03, newdata = bdBauges03)
-varUnPa03 <- var(bdBauges03$unPa03)
-
-# covarances
-covKnUn03 <- 2 * cov(bdBauges03$knPa03, bdBauges03$unPa03)
-covKnEpsi03 <- 2 * cov(bdBauges03$knPa03, residuals(modUnPa03))
-covUnEpsi03 <- 2 * cov(bdBauges03$unPa03, residuals(modUnPa03))
-
-# verification
-# var(potentiel) = var(a) + var(b) + var(c) + 2*cov(a,b) + 2*cov(a,c) + 2*cov(b,c)
-sumVarCov03 <- varKnPa03 + varUnPa03 + varEpsi03 + covKnUn03 + covKnEpsi03 + covUnEpsi03
-
-# save
-varPar03 <- data.frame(round(c(varPot03, varKnPa03, varUnPa03, varEpsi03, covKnUn03, covKnEpsi03, covUnEpsi03, ratEpsiPot03, sumVarCov03), 5))
-
+# variance partition
+varPar03 <- varPar(modUnPa03, bdBauges03, "03")
 ###############################################################
 # model fagus sylvatica (09) potential index
 ###############################################################
@@ -79,41 +114,14 @@ varPar03 <- data.frame(round(c(varPot03, varKnPa03, varUnPa03, varEpsi03, covKnU
 bdBauges09 <- bdBauges[!is.na(bdBauges$slope) & !is.na(bdBauges$expoNS) & !is.na(bdBauges$expoEW), ]
 
 # model
-modUnPa09 <- lm(unknP09 ~ alti + X + expoEW + slope, data = bdBauges09)
+modUnPa09 <- lm(unknP09 ~ alti + X + expoEW + slope + ph + expoNS + expoEW, data = bdBauges09)
 summary(modUnPa09)
 
-############################## variance partition
-# potentiel variance
-varPot09 <- var(bdBauges09$ptnt_09)
+# prediction on the same data set (for obs vs pred comparison)
+bdBauges09 <- predFert(modUnPa09, bdBauges09, "09")
 
-# residuals variance
-varEpsi09 <- var(residuals(modUnPa09))
-
-# global goodness of fit
-# ratio of var(residuals) / var(potentiel)
-ratEpsiPot09 <- varEpsi09 / varPot09
-
-# variance of the known part
-bdBauges09$knPa09 <- 0
-bdBauges09[bdBauges09$greco =="H", "knPa09"] <- -11.56
-varKnPa09 <- var(bdBauges09$knPa09)
-
-# variance of the unknown part
-bdBauges09$unPa09 <- predict(modUnPa09, newdata = bdBauges09)
-varUnPa09 <- var(bdBauges09$unPa09)
-
-# covarances
-covKnUn09 <- 2 * cov(bdBauges09$knPa09, bdBauges09$unPa09)
-covKnEpsi09 <- 2 * cov(bdBauges09$knPa09, residuals(modUnPa09))
-covUnEpsi09 <- 2 * cov(bdBauges09$unPa09, residuals(modUnPa09))
-
-# verification
-# var(potentiel) = var(a) + var(b) + var(c) + 2*cov(a,b) + 2*cov(a,c) + 2*cov(b,c)
-sumVarCov09 <- varKnPa09 + varUnPa09 + varEpsi09 + covKnUn09 + covKnEpsi09 + covUnEpsi09
-
-# save
-varPar09 <- data.frame(round(c(varPot09, varKnPa09, varUnPa09, varEpsi09, covKnUn09, covKnEpsi09, covUnEpsi09, ratEpsiPot09, sumVarCov09), 5))
-
+# variance partition
+varPar09 <- varPar(modUnPa09, bdBauges09, "09")
 ###############################################################
 # model abies alba (61) potential index
 ###############################################################
@@ -130,37 +138,11 @@ bdBauges61 <- bdBauges[!is.na(bdBauges$slope), ]
 modUnPa61 <- lm(unknP61 ~ alti + X + slope + rum, data = bdBauges61) #
 summary(modUnPa61)
 
-############################## variance partition
-# potentiel variance
-varPot61 <- var(bdBauges61$ptnt_61)
+# prediction on the same data set (for obs vs pred comparison)
+bdBauges61 <- predFert(modUnPa61, bdBauges61, "61")
 
-# residuals variance
-varEpsi61 <- var(residuals(modUnPa61))
-
-# global goodness of fit
-# ratio of var(residuals) / var(potentiel)
-ratEpsiPot61 <- varEpsi61 / varPot61
-
-# variance of the known part
-bdBauges61$knPa61 <- 0
-bdBauges61[bdBauges61$greco =="H", "knPa61"] <- -11.56
-varKnPa61 <- var(bdBauges61$knPa61)
-
-# variance of the unknown part
-bdBauges61$unPa61 <- predict(modUnPa61, newdata = bdBauges61)
-varUnPa61 <- var(bdBauges61$unPa61)
-
-# covarances
-covKnUn61 <- 2 * cov(bdBauges61$knPa61, bdBauges61$unPa61)
-covKnEpsi61 <- 2 * cov(bdBauges61$knPa61, residuals(modUnPa61))
-covUnEpsi61 <- 2 * cov(bdBauges61$unPa61, residuals(modUnPa61))
-
-# verification
-# var(potentiel) = var(a) + var(b) + var(c) + 2*cov(a,b) + 2*cov(a,c) + 2*cov(b,c)
-sumVarCov61 <- varKnPa61 + varUnPa61 + varEpsi61 + covKnUn61 + covKnEpsi61 + covUnEpsi61
-
-# save
-varPar61 <- data.frame(round(c(varPot61, varKnPa61, varUnPa61, varEpsi61, covKnUn61, covKnEpsi61, covUnEpsi61, ratEpsiPot61, sumVarCov61), 5))
+# variance partition
+varPar61 <- varPar(modUnPa61, bdBauges61, "61")
 
 ###############################################################
 # model picea abies (62) potential index
@@ -179,37 +161,11 @@ bdBauges62 <- bdBauges[!is.na(bdBauges$slope), ]
 modUnPa62 <- lm(unknP62 ~ alti + X + Y + slope, data = bdBauges62)
 summary(modUnPa62)
 
-############################## variance partition
-# potentiel variance
-varPot62 <- var(bdBauges62$ptnt_62)
+# prediction on the same data set (for obs vs pred comparison)
+bdBauges62 <- predFert(modUnPa62, bdBauges62, "62")
 
-# residuals variance
-varEpsi62 <- var(residuals(modUnPa62))
-
-# global goodness of fit
-# ratio of var(residuals) / var(potentiel)
-ratEpsiPot62 <- varEpsi62 / varPot62
-
-# variance of the known part
-bdBauges62$knPa62 <- 0
-bdBauges62[bdBauges62$greco =="H", "knPa62"] <- -11.56
-varKnPa62 <- var(bdBauges62$knPa62)
-
-# variance of the unknown part
-bdBauges62$unPa62 <- predict(modUnPa62, newdata = bdBauges62)
-varUnPa62 <- var(bdBauges62$unPa62)
-
-# covarances
-covKnUn62 <- 2 * cov(bdBauges62$knPa62, bdBauges62$unPa62)
-covKnEpsi62 <- 2 * cov(bdBauges62$knPa62, residuals(modUnPa62))
-covUnEpsi62 <- 2 * cov(bdBauges62$unPa62, residuals(modUnPa62))
-
-# verification
-# var(potentiel) = var(a) + var(b) + var(c) + 2*cov(a,b) + 2*cov(a,c) + 2*cov(b,c)
-sumVarCov62 <- varKnPa62 + varUnPa62 + varEpsi62 + covKnUn62 + covKnEpsi62 + covUnEpsi62
-
-# save
-varPar62 <- data.frame(round(c(varPot62, varKnPa62, varUnPa62, varEpsi62, covKnUn62, covKnEpsi62, covUnEpsi62, ratEpsiPot62, sumVarCov62), 5))
+# variance partition
+varPar62 <- varPar(modUnPa62, bdBauges62, "62")
 
 ###############################################################
 # save variance partition into a df

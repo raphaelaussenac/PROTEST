@@ -12,7 +12,7 @@ library(sf)
 source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/modfertInd.R')
 
 ###############################################################
-# assign potential index to each plot (= centroid)
+# assign potential index to each forest plot (= centroid)
 ###############################################################
 
 # load forest plots
@@ -23,7 +23,8 @@ plot(coordinates(forestPlots), asp = 1)
 # create df with variables used in the models
 modDf <- data.frame(forestPlots[, c("SUPERID", "alti", "slope", "greco", "expoNS", "expoEW", "ph", "rum")])
 
-# add the coordinates of the polygons' centroids
+# add the coordinates of the polygons' centroids (since X and Y may be used
+# in the models)
 coord <- data.frame(coordinates(forestPlots))
 colnames(coord) <- c("X", "Y")
 modDf <- cbind(modDf, coord)
@@ -33,74 +34,88 @@ modDf[modDf$slope > 200, "slope"] <- 200
 
 # plot area histogram
 hist(area(forestPlots), breaks = 1000)
-hist(area(forestPlots)[area(forestPlots)<20], breaks = 10)
+# hist(area(forestPlots)[area(forestPlots)<20], breaks = 10)
+
+# predict fertility index
+modDf <- predFert(modUnPa61, modDf, "03")
+modDf <- predFert(modUnPa61, modDf, "09")
+modDf <- predFert(modUnPa61, modDf, "61")
+modDf <- predFert(modUnPa61, modDf, "62")
 
 ###############################################################
-########################## quercus petraea (03)
-# calculate the unknown part
-modDf$unPa03 <- modUnPa03$coef["(Intercept)"] + (modUnPa03$coef["X"] * modDf$X) +
-                                                (modUnPa03$coef["slope"] * modDf$slope)
-
-modDf[modDf$greco == "H", "unPa03"] <- modDf[modDf$greco == "H", "unPa03"] + modUnPa03$coef["grecoH"]
-
-# calculate the known part#                                             !!!!!!!!!!!!!!!! ajouter roche caalcaire
-modDf$knPa03 <- 0                                                       #   -11.097 * modDF$rocheCalc
-
-# calculate the potential index
-modDf$pot03 <- modDf$unPa03 + modDf$knPa03
-
-###############################################################
-########################## fagus sylvatica (09)
-# calculate the unknown part
-modDf$unPa09 <- modUnPa09$coef["(Intercept)"] + (modUnPa09$coef["expoEW"] * modDf$expoEW) +
-                                                (modUnPa09$coef["X"] * modDf$X) +
-                                                (modUnPa09$coef["slope"] * modDf$slope)
-
-# calculate the known part
-modDf$knPa09 <- -0.0083 * modDf$alti + -0.086 * modDf$slope
-
-# calculate the potential index
-modDf$pot09 <- modDf$unPa09 + modDf$knPa09
-
-###############################################################
-########################## abies alba (61)
-# calculate the unknown part
-modDf$unPa61 <- predict(modUnPa61, newdata = modDf)
-
-# calculate the known part
-modDf$knPa61 <- 0
-modDf[modDf$greco =="H", "knPa61"] <- -11.56
-
-# calculate the potential index
-modDf$pot61 <- modDf$unPa61 + modDf$knPa61
-
-# calculate the potential index with a random variation
-modDf$pot61Epsilon <- modDf$unPa61 + modDf$knPa61 + rnorm(nrow(modDf), 0, sd(residuals(modUnPa61)))
-
-###############################################################
-########################## picea abies (62)
-# calculate the unknown part
-modDf$unPa62 <- modUnPa62$coef["(Intercept)"] + (modUnPa62$coef["alti"] * modDf$alti) +
-                                                (modUnPa62$coef["X"] * modDf$X) +
-                                                (modUnPa62$coef["Y"] * modDf$Y) +
-                                                (modUnPa62$coef["slope"] * modDf$slope)
-
-# calculate the known part                                      # !!!!!!!!!!!!!!!! ajouter roche caalcaire
-modDf$knPa62 <- -0.255 * modDf$slope + -3.705 * modDf$expoNS    #   -8.100 * modDF$rocheCalc
-
-# calculate the potential index
-modDf$pot62 <- modDf$unPa62 + modDf$knPa62
-
-###############################################################
-# integrate potential index into a shapefile
+# control model quality and create fertility maps
 ###############################################################
 
-forestPlots@data <- cbind(forestPlots@data, modDf[, c("pot61", "pot61Epsilon", "pot62", "pot09", "pot03", "expoNS", "expoEW")])
+forestPlots@data <- cbind(forestPlots@data, modDf[,c('pot03', 'pot03Epsilon',
+                                            'pot09', 'pot09Epsilon', 'pot61',
+                                            'pot61Epsilon', 'pot62',
+                                            'pot62Epsilon')])
+
 
 # convert to export to ggplot
 forestPlots@data$id <- rownames(forestPlots@data)
 forestPlotsPts <- fortify(forestPlots, region="id")
 forestPlotsDf <- join(forestPlotsPts, forestPlots@data, by="id")
+
+########################## abies alba (61)
+# density observed vs predicted
+ggplot() +
+  geom_density(data = ifnCircular@data, aes(ptnt_61), col = 'black', fill = 'grey') +
+  geom_density(data = forestPlots@data, aes(pot61), col = 'red') +
+  geom_density(data = forestPlots@data, aes(pot61Epsilon), col = 'blue') +
+  theme_bw()
+
+# obs vs pred
+ggplot() +
+  geom_point(data = bdBauges61, aes(pot61, ptnt_61, col = greco)) +
+  geom_abline(slope = 1, col = 'red') +
+  theme_bw()
+
+ggplot() +
+  geom_point(data = bdBauges61, aes(pot61Epsilon, ptnt_61, col = greco)) +
+  geom_abline(slope = 1, col = 'red') +
+  theme_bw()
+
+  # fertility map
+  ggplot() +
+    geom_polygon(data = forestPlotsDf, aes(long,lat,group=group,fill=pot61)) +
+    coord_equal() +
+    scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(modDf$pot61), name = "fertility\nindex\n(modeled)") +
+    theme_bw() +
+    ggtitle("Abies alba") +
+    theme(plot.title = element_text(hjust = 0.5), legend.position="right") +
+    guides(fill = guide_colourbar(title.position="top", title.hjust = 0.5, barwidth = 0.75, barheight = 15))
+
+  ggsave("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/fertilty61.pdf", plot = last_plot())
+
+  # residuals map
+  res <-data.frame(residuals(modUnPa61))
+  colnames(res) <- "residuals"
+  res$sign <- "positive"
+  res[res$res < 0, "sign"] <- "negative"
+  bdBauges61 <- cbind(bdBauges61, res)
+
+  ggplot() +
+    geom_polygon(data = forestPlotsDf, aes(long,lat,group=group,fill=pot61), alpha = 0.08) +
+    coord_equal() +
+    scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(modDf$pot61), name = "fertility\nindex\n(modeled)") +
+    theme_bw() +
+    ggtitle("Abies alba") +
+    theme(plot.title = element_text(hjust = 0.5), legend.position="right") +
+    geom_point(data = bdBauges61, aes(X, Y, size = sqrt(residuals^2), color = sign), alpha = 0.5) +
+    geom_point(data = bdBauges, aes(X, Y, shape = ifnPt), size = 0.5) +
+    guides(fill = FALSE, size = guide_legend(title = "residuals"), color = guide_legend(title="sign"), shape = guide_legend(title = ""))
+
+  ggsave("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/residuals61.pdf", plot = last_plot())
+
+
+
+
+
+
+
+
+
 
 ########################## quercus petraea (03)
 # fertility map
@@ -171,37 +186,6 @@ ggplot() +
 ggsave("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/residuals09.pdf", plot = last_plot())
 
 ########################## abies alba (61)
-# fertility map
-ggplot() +
-  geom_polygon(data = forestPlotsDf, aes(long,lat,group=group,fill=pot61)) +
-  coord_equal() +
-  scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(modDf$pot61), name = "fertility\nindex\n(modeled)") +
-  theme_bw() +
-  ggtitle("Abies alba") +
-  theme(plot.title = element_text(hjust = 0.5), legend.position="right") +
-  guides(fill = guide_colourbar(title.position="top", title.hjust = 0.5, barwidth = 0.75, barheight = 15))
-
-ggsave("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/fertilty61.pdf", plot = last_plot())
-
-# residuals map
-res <-data.frame(residuals(modUnPa61))
-colnames(res) <- "residuals"
-res$sign <- "positive"
-res[res$res < 0, "sign"] <- "negative"
-bdBauges61 <- cbind(bdBauges61, res)
-
-ggplot() +
-  geom_polygon(data = forestPlotsDf, aes(long,lat,group=group,fill=pot61), alpha = 0.08) +
-  coord_equal() +
-  scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(modDf$pot61), name = "fertility\nindex\n(modeled)") +
-  theme_bw() +
-  ggtitle("Abies alba") +
-  theme(plot.title = element_text(hjust = 0.5), legend.position="right") +
-  geom_point(data = bdBauges61, aes(X, Y, size = sqrt(residuals^2), color = sign), alpha = 0.5) +
-  geom_point(data = bdBauges, aes(X, Y, shape = ifnPt), size = 0.5) +
-  guides(fill = FALSE, size = guide_legend(title = "residuals"), color = guide_legend(title="sign"), shape = guide_legend(title = ""))
-
-ggsave("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/residuals61.pdf", plot = last_plot())
 
 ########################## picea abies (62)
 # fertility map
@@ -236,52 +220,6 @@ ggplot() +
   guides(fill = FALSE, size = guide_legend(title = "residuals"), color = guide_legend(title="sign"), shape = guide_legend(title = ""))
 
 ggsave("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/residuals62.pdf", plot = last_plot())
-
-###############################################################
-# compare modeled potential index and IFN potential index
-###############################################################
-
-########################## density plots
-# density observed vs predicted
-d <- density(ifnCircular$ptnt_61)
-plot(d, xlim = c(-15, 60), ylim = c(0, 0.1), lwd = 2, main = "density observed vs modeled vs modeled + noise")
-polygon(d, col="grey", border="black")
-lines(density(forestPlots$pot61), col = "red", lwd = 2)
-lines(density(forestPlots$pot61Epsilon), col = "blue", lwd = 2)
-
-########################## scatter plots
-# create an intersect between ptIFN and forestPlots
-compare <- intersect(forestPlots, ifnCircular)
-
-# there is more lines in the compare table (288) than there is NFI points
-# in the study area because some of the NFI circular plots overlap with
-# several forest plots
-# has no effect
-# in that case there are 2 predicted fertility index (ex: pot61) for 1 fertility
-# index coming from the NFI database --> there are therefore 2 points on the plot
-
-plot(forestPlots[forestPlots$id == 4520,], col = 'orange')
-plot(forestPlots[forestPlots$id == 2778,], add = TRUE, col = "green4")
-plot(ifnCircular[ifnCircular$idp == 100733,], add = TRUE, col = 'black')
-
-########################## quercus petraea (03)
-
-
-########################## fagus sylvatica (09)
-
-
-########################## abies alba (61)
-# plot observed vs predicted
-xymin <- round(min(range(compare$pot61), range(compare$ptnt_61), range(compare$pot61Epsilon)))-1
-xymax <- round(max(range(compare$pot61), range(compare$ptnt_61), range(compare$pot61Epsilon)))+1
-plot(compare$pot61, compare$ptnt_61, pch = 16, main = "observed vs predicted (without random noise)", xlim = c(xymin, xymax), ylim = c(xymin, xymax))
-abline(coef = c(0,1), col = "red")
-plot(compare$pot61Epsilon, compare$ptnt_61, pch = 16, main = "observed vs predicted (with random noise)", xlim = c(xymin, xymax), ylim = c(xymin, xymax), col = "green")
-abline(coef = c(0,1), col = "red")
-plot(compare$pot61, compare$ptnt_61, col = ifelse(compare$greco.1 == "H", "blue", "red"), pch = 16, main = "observed vs predicted (without random noise)", xlim = c(xymin, xymax), ylim = c(xymin, xymax))
-abline(coef = c(0,1), col = "red")
-
-########################## picea abies (62)
 
 
 
