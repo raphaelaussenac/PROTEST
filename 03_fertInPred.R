@@ -8,6 +8,7 @@ rm(list = ls())
 library(ggplot2)
 library(plyr)
 library(sf)
+library(gridExtra)
 
 source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/modfertInd.R')
 
@@ -57,170 +58,138 @@ forestPlots@data$id <- rownames(forestPlots@data)
 forestPlotsPts <- fortify(forestPlots, region="id")
 forestPlotsDf <- join(forestPlotsPts, forestPlots@data, by="id")
 
-########################## abies alba (61)
-# density observed vs predicted
-ggplot() +
-  geom_density(data = ifnCircular@data, aes(ptnt_61), col = 'black', fill = 'grey') +
-  geom_density(data = forestPlots@data, aes(pot61), col = 'red') +
-  geom_density(data = forestPlots@data, aes(pot61Epsilon), col = 'blue') +
-  theme_bw()
+# plot
+plotMap <- function(sp){
+  # manage colnames
+  ifn <- ifnCircular@data
+  colnames(ifn)[colnames(ifn) == paste('ptnt_', sp, sep ='')] <- 'ptnt'
+  forest <- forestPlots@data
+  colnames(forest)[colnames(forest) == paste('pot', sp, sep ='')] <- 'pot'
+  colnames(forest)[colnames(forest) == paste('pot', sp, 'Epsilon', sep ='')] <- 'potEpsilon'
+  if (sp == "03"){
+    mod <- modUnPa03
+    bd <- bdBauges03
+    ti <- "Quercus petraea"
+  } else if(sp == "09"){
+    mod <- modUnPa09
+    bd <- bdBauges09
+    ti <- "Fagus sylvatica"
+  } else if(sp == "61"){
+    mod <- modUnPa61
+    bd <- bdBauges61
+    ti <- "Abies alba"
+  } else if(sp == "62"){
+    mod <- modUnPa62
+    bd <- bdBauges62
+    ti <- "Picea abies"
+  }
+  colnames(bd)[colnames(bd) == paste('pot', sp, sep ='')] <- 'pot'
+  colnames(bd)[colnames(bd) == paste('ptnt_', sp, sep ='')] <- 'ptnt'
+  colnames(bd)[colnames(bd) == paste('pot', sp, 'Epsilon', sep ='')] <- 'potEpsilon'
+  forestDf <- forestPlotsDf
+  colnames(forestDf)[colnames(forestDf) == paste('pot', sp, sep ='')] <- 'pot'
+  colnames(forestDf)[colnames(forestDf) == paste('pot', sp, 'Epsilon', sep ='')] <- 'potEpsilon'
+  mDf <- modDf
+  colnames(mDf)[colnames(mDf) == paste('pot', sp, sep ='')] <- 'pot'
 
-# obs vs pred
-ggplot() +
-  geom_point(data = bdBauges61, aes(pot61, ptnt_61, col = greco)) +
-  geom_abline(slope = 1, col = 'red') +
-  theme_bw()
+  # density observed vs predicted
+  dens <- ggplot() +
+    geom_density(data = ifn, aes(ptnt), col = 'black', fill = 'grey') +
+    geom_density(data = forest, aes(pot), col = 'red') +
+    geom_density(data = forest, aes(potEpsilon), col = 'blue') +
+    annotate("text", label = paste("R² =", round(summary(mod)$r.squared,3)), x = 5, y = 0.02, size = 5) +
+    theme_bw()
 
-ggplot() +
-  geom_point(data = bdBauges61, aes(pot61Epsilon, ptnt_61, col = greco)) +
-  geom_abline(slope = 1, col = 'red') +
-  theme_bw()
+  # obs vs pred
+  mn <- min(bd$pot, bd$ptnt)
+  mx <- max(bd$pot, bd$ptnt)
+  ovsp <- ggplot() +
+    geom_point(data = bd, aes(pot, ptnt)) + # , col = greco
+    xlim(mn, mx) +
+    ylim(mn, mx) +
+    geom_abline(slope = 1, col = 'red') +
+    theme_bw()
+
+  # obs vs pred + E
+  mn <- min(bd$potEpsilon, bd$ptnt)
+  mx <- max(bd$potEpsilon, bd$ptnt)
+  ovspE <- ggplot() +
+    geom_point(data = bd, aes(potEpsilon, ptnt)) + # , col = greco
+    xlim(mn, mx) +
+    ylim(mn, mx) +
+    geom_abline(slope = 1, col = 'red') +
+    theme_bw()
 
   # fertility map
-  ggplot() +
-    geom_polygon(data = forestPlotsDf, aes(long,lat,group=group,fill=pot61)) +
+  fert <- ggplot() +
+    geom_polygon(data = forestDf, aes(long,lat,group=group,fill=pot)) +
     coord_equal() +
-    scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(modDf$pot61), name = "fertility\nindex\n(modeled)") +
+    scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(mDf$pot), name = "fertility\nindex\n(modeled)") +
+    ggtitle(ti) +
+    guides(fill = guide_colourbar(title.position="top", title.hjust = 0.5, barwidth = 0.75, barheight = 15)) +
     theme_bw() +
-    ggtitle("Abies alba") +
-    theme(plot.title = element_text(hjust = 0.5), legend.position="right") +
-    guides(fill = guide_colourbar(title.position="top", title.hjust = 0.5, barwidth = 0.75, barheight = 15))
+    theme(plot.title = element_text(hjust = 0.5), legend.position="right",
+            axis.text.x=element_blank(), axis.ticks.x=element_blank(),
+            axis.text.y=element_blank(), axis.ticks.y=element_blank(),
+            axis.title.x=element_blank(), axis.title.y=element_blank())
 
-  ggsave("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/fertilty61.pdf", plot = last_plot())
+  fertE <- ggplot() +
+    geom_polygon(data = forestDf, aes(long,lat,group=group,fill=potEpsilon)) +
+    coord_equal() +
+    scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(mDf$pot), name = "fertility\nindex\n(modeled)") +
+    ggtitle(paste(ti, " + E")) +
+    guides(fill = guide_colourbar(title.position="top", title.hjust = 0.5, barwidth = 0.75, barheight = 15)) +
+    theme_bw() +
+    theme(plot.title = element_text(hjust = 0.5), legend.position="right",
+            axis.text.x=element_blank(), axis.ticks.x=element_blank(),
+            axis.text.y=element_blank(), axis.ticks.y=element_blank(),
+            axis.title.x=element_blank(), axis.title.y=element_blank())
 
   # residuals map
-  res <-data.frame(residuals(modUnPa61))
+  res <-data.frame(residuals(mod))
   colnames(res) <- "residuals"
   res$sign <- "positive"
   res[res$res < 0, "sign"] <- "negative"
-  bdBauges61 <- cbind(bdBauges61, res)
+  bd <- cbind(bd, res)
 
-  ggplot() +
+  fertRes <- ggplot() +
     geom_polygon(data = forestPlotsDf, aes(long,lat,group=group,fill=pot61), alpha = 0.08) +
     coord_equal() +
     scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(modDf$pot61), name = "fertility\nindex\n(modeled)") +
-    theme_bw() +
-    ggtitle("Abies alba") +
-    theme(plot.title = element_text(hjust = 0.5), legend.position="right") +
-    geom_point(data = bdBauges61, aes(X, Y, size = sqrt(residuals^2), color = sign), alpha = 0.5) +
+    ggtitle(paste(ti, "res")) +
+    geom_point(data = bd, aes(X, Y, size = sqrt(residuals^2), color = sign), alpha = 0.5) +
     geom_point(data = bdBauges, aes(X, Y, shape = ifnPt), size = 0.5) +
-    guides(fill = FALSE, size = guide_legend(title = "residuals"), color = guide_legend(title="sign"), shape = guide_legend(title = ""))
+    guides(fill = FALSE, size = guide_legend(title = "residuals"), color = guide_legend(title="sign"), shape = guide_legend(title = "")) +
+    theme_bw() +
+    theme(plot.title = element_text(hjust = 0.5), legend.position="right",
+            axis.text.x=element_blank(), axis.ticks.x=element_blank(),
+            axis.text.y=element_blank(), axis.ticks.y=element_blank(),
+            axis.title.x=element_blank(), axis.title.y=element_blank())
 
-  ggsave("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/residuals61.pdf", plot = last_plot())
+  # print(grid.arrange(dens, ovsp, ovspE, fert, fertE, fertRes, nrow = 2, ncol = 3))
+  print(grid.arrange(dens, ovsp, ovspE, nrow = 1, ncol = 3))
+  print(grid.arrange(fert, fertE, fertRes, nrow = 1, ncol = 3))
+}
 
+# model quercus petraea (03)
+pdf(file="C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/map03.pdf", width = 20, height = 10)
+plotMap("03")
+dev.off()
 
+# model fagus sylvatica  (09)
+pdf(file="C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/map09.pdf", width = 20, height = 10)
+plotMap("09")
+dev.off()
 
+# model abies alba (61)
+pdf(file="C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/map61.pdf", width = 20, height = 10)
+plotMap("61")
+dev.off()
 
-
-
-
-
-
-
-########################## quercus petraea (03)
-# fertility map
-ggplot(forestPlotsDf) +
-  aes(long,lat,group=group,fill=pot03) +
-  geom_polygon() +
-  coord_equal() +
-  scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(modDf$pot03), name = "fertility\nindex\n(modeled)") +
-  theme_bw() +
-  ggtitle("Quercus petraea") +
-  theme(plot.title = element_text(hjust = 0.5), legend.position="right") +
-  guides(fill = guide_colourbar(title.position="top", title.hjust = 0.5, barwidth = 0.75, barheight = 15))
-
-ggsave("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/fertilty03.pdf", plot = last_plot())
-
-# residuals map
-res <-data.frame(residuals(modUnPa03))
-colnames(res) <- "residuals"
-res$sign <- "positive"
-res[res$res < 0, "sign"] <- "negative"
-bdBauges03 <- cbind(bdBauges03, res)
-
-ggplot() +
-  geom_polygon(data = forestPlotsDf, aes(long,lat,group=group,fill=pot03), alpha = 0.08) +
-  coord_equal() +
-  scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(modDf$pot03), name = "fertility\nindex\n(modeled)") +
-  theme_bw() +
-  ggtitle("Quercus petraea") +
-  theme(plot.title = element_text(hjust = 0.5), legend.position="right") +
-  geom_point(data = bdBauges03, aes(X, Y, size = sqrt(residuals^2), color = sign), alpha = 0.5) +
-  geom_point(data = bdBauges, aes(X, Y, shape = ifnPt), size = 0.5) +
-  guides(fill = FALSE, size = guide_legend(title = "residuals"), color = guide_legend(title="sign"), shape = guide_legend(title = ""))
-
-ggsave("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/residuals03.pdf", plot = last_plot())
-
-########################## fagus sylvatica (09)
-# fertility map
-ggplot(forestPlotsDf) +
-  aes(long,lat,group=group,fill=pot09) +
-  geom_polygon() +
-  coord_equal() +
-  scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(modDf$pot09), name = "fertility\nindex\n(modeled)") +
-  theme_bw() +
-  ggtitle("Fagus sylvatica") +
-  theme(plot.title = element_text(hjust = 0.5), legend.position="right") +
-  guides(fill = guide_colourbar(title.position="top", title.hjust = 0.5, barwidth = 0.75, barheight = 15))
-
-ggsave("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/fertilty09.pdf", plot = last_plot())
-
-# residuals map
-res <-data.frame(residuals(modUnPa09))
-colnames(res) <- "residuals"
-res$sign <- "positive"
-res[res$res < 0, "sign"] <- "negative"
-bdBauges09 <- cbind(bdBauges09, res)
-
-ggplot() +
-  geom_polygon(data = forestPlotsDf, aes(long,lat,group=group,fill=pot09), alpha = 0.08) +
-  coord_equal() +
-  scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(modDf$pot09), name = "fertility\nindex\n(modeled)") +
-  theme_bw() +
-  ggtitle("Fagus sylvatica") +
-  theme(plot.title = element_text(hjust = 0.5), legend.position="right") +
-  geom_point(data = bdBauges09, aes(X, Y, size = sqrt(residuals^2), color = sign), alpha = 0.5) +
-  geom_point(data = bdBauges, aes(X, Y, shape = ifnPt), size = 0.5) +
-  guides(fill = FALSE, size = guide_legend(title = "residuals"), color = guide_legend(title="sign"), shape = guide_legend(title = ""))
-
-ggsave("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/residuals09.pdf", plot = last_plot())
-
-########################## abies alba (61)
-
-########################## picea abies (62)
-# fertility map
-ggplot(forestPlotsDf) +
-  aes(long,lat,group=group,fill=pot62) +
-  geom_polygon() +
-  coord_equal() +
-  scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(modDf$pot62), name = "fertility\nindex\n(modeled)") +
-  theme_bw() +
-  ggtitle("Picea abies") +
-  theme(plot.title = element_text(hjust = 0.5), legend.position="right") +
-  guides(fill = guide_colourbar(title.position="top", title.hjust = 0.5, barwidth = 0.75, barheight = 15))
-
-ggsave("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/fertilty62.pdf", plot = last_plot())
-
-# residuals map
-res <-data.frame(residuals(modUnPa62))
-colnames(res) <- "residuals"
-res$sign <- "positive"
-res[res$res < 0, "sign"] <- "negative"
-bdBauges62 <- cbind(bdBauges62, res)
-
-ggplot() +
-  geom_polygon(data = forestPlotsDf, aes(long,lat,group=group,fill=pot62), alpha = 0.08) +
-  coord_equal() +
-  scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(modDf$pot62), name = "fertility\nindex\n(modeled)") +
-  theme_bw() +
-  ggtitle("Picea abies") +
-  theme(plot.title = element_text(hjust = 0.5), legend.position="right") +
-  geom_point(data = bdBauges62, aes(X, Y, size = sqrt(residuals^2), color = sign), alpha = 0.5) +
-  geom_point(data = bdBauges, aes(X, Y, shape = ifnPt), size = 0.5) +
-  guides(fill = FALSE, size = guide_legend(title = "residuals"), color = guide_legend(title="sign"), shape = guide_legend(title = ""))
-
-ggsave("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/residuals62.pdf", plot = last_plot())
-
+# model picea abies (62)
+pdf(file="C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/map62.pdf", width = 20, height = 10)
+plotMap("62")
+dev.off()
 
 
 
