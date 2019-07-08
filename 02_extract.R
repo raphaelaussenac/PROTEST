@@ -163,6 +163,15 @@ plot(elev, col=colorRampPalette(c("black", "white"))(255))
 plot(ifnCircular, add = TRUE, col = 'red', border = 'red')
 
 ###############################################################
+# geological data
+###############################################################
+
+geol <- readOGR(dsn = ".", layer = "geol", encoding = "UTF-8", use_iconv = TRUE)
+
+# intersection NFI points / geol polygone
+ifnGeol <- intersect(baugesIfnPts, geol)
+
+###############################################################
 # extract with velox package
 ###############################################################
 
@@ -210,20 +219,6 @@ orienExt <- orienVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = 
 phExt <- phVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
 rumExt <- rumVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
 
-# extract dendro
-forProtecExt <- forProtecVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
-dgPredExt <- dgPredVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
-gPredExt <- gPredVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
-ggbPredExt <- ggbPredVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
-nPredExt <- nPredVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
-p100gfPredExt <- p100gfPredVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
-
-# extract USLE parameters
-kExt <- kVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
-lsExt <- lsVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
-pExt <- pVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
-rExt <- rVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
-
 # convert into df
 grecoExtDf <- data.frame(grecoExt)
 colnames(grecoExtDf) <- "greco"
@@ -234,30 +229,10 @@ sloExtDf <- data.frame(sloExt)
 colnames(sloExtDf) <- "slope"
 orienExtDf <- data.frame(orienExt)
 colnames(orienExtDf) <- "orient"
-forProtecExtDf <- data.frame(forProtecExt)
-colnames(forProtecExtDf) <- "forProtec"
-dgPredExtDf <- data.frame(dgPredExt)
-colnames(dgPredExtDf) <- "dgPred"
-gPredExtDf <- data.frame(gPredExt)
-colnames(gPredExtDf) <- "gPred"
-ggbPredExtDf <- data.frame(ggbPredExt)
-colnames(ggbPredExtDf) <- "ggbPred"
-nPredExtDf <- data.frame(nPredExt)
-colnames(nPredExtDf) <- "nPred"
-p100gfPredExtDf <- data.frame(p100gfPredExt)
-colnames(p100gfPredExtDf) <- "p100gfPred"
 phExtDf <- data.frame(phExt)
 colnames(phExtDf) <- "ph"
 rumExtDf <- data.frame(rumExt)
 colnames(rumExtDf) <- "rum"
-kExtDf <- data.frame(kExt)
-colnames(kExtDf) <- "k"
-lsExtDf <- data.frame(lsExt)
-colnames(lsExtDf) <- "ls"
-pExtDf <- data.frame(pExt)
-colnames(pExtDf) <- "p"
-rExtDf <- data.frame(rExt)
-colnames(rExtDf) <- "r"
 
 # convert slope degrees into percent
 sloExtDf$slope <- tan(sloExtDf$slope*pi/180)*100
@@ -267,15 +242,16 @@ orienExtDf$expoNS <- cos(orienExtDf$orient*pi/180)
 orienExtDf$expoEW <- sin(orienExtDf$orient*pi/180)
 orienExtDf <- orienExtDf[,c("expoNS", "expoEW")]
 
+# add geol data
+ifnCircular <- as_Spatial(ifnCircular)
+ifnCircular@data <- cbind(ifnCircular@data, ifnGeol$NOTATION)
+
 # create shp file
-ifnCircular <- as(ifnCircular, 'Spatial')
-colnames(ifnCircular@data) <- c(c("idp", "xl93", "yl93", "potentiel_03", "potentiel_09",
+colnames(ifnCircular@data) <- c(c("idp", "X", "Y", "potentiel_03", "potentiel_09",
                                 "potentiel_61", "potentiel_62", 'unknownPart03',
-                                'unknownPart09', 'unknownPart61', 'unknownPart62'))
+                                'unknownPart09', 'unknownPart61', 'unknownPart62', 'geolNotation'))
 ifnCircular@data <- cbind(ifnCircular@data, grecoExtDf, elevExtDf, sloExtDf,
-                      orienExtDf, forProtecExtDf, dgPredExtDf, gPredExtDf,
-                      ggbPredExtDf, nPredExtDf, p100gfPredExtDf, phExtDf,
-                      rumExtDf, kExtDf, lsExtDf, pExtDf, rExtDf)
+                      orienExtDf, phExtDf, rumExtDf)
 
 # save
 shapefile(ifnCircular, filename = 'ifnCircular', overwrite = TRUE)
@@ -317,6 +293,15 @@ lsExt <- lsVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE),
 pExt <- pVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
 rExt <- rVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
 
+# extract geol
+# retrieve forest plots centroid coordinates
+coordForest <- data.frame(coordinates(forestPlots))
+colnames(coordForest) <- c("X", "Y")
+# convert into a spatialPoint ob=object
+coordForest <- SpatialPointsDataFrame(coordForest[,c("X", "Y")], data = data.frame(coordForest), proj4string = CRS(proj4string(pnr)))
+# intersection forest plots centroid / geol polygone
+coordForest <- intersect(coordForest, geol)
+
 # convert into df
 grecoExtDf <- data.frame(grecoExt)
 colnames(grecoExtDf) <- "greco"
@@ -352,6 +337,10 @@ colnames(pExtDf) <- "p"
 rExtDf <- data.frame(rExt)
 colnames(rExtDf) <- "r"
 
+# add geol data
+forestPlots@data <- cbind(forestPlots@data, coordForest$NOTATION)
+colnames(forestPlots@data)[colnames(forestPlots@data) == 'coordForest$NOTATION'] <- 'geolNotation'
+
 # convert slope degrees into percent
 sloExtDf$slope <- tan(sloExtDf$slope*pi/180)*100
 
@@ -367,5 +356,4 @@ forestPlots@data <- cbind(forestPlots@data, grecoExtDf, elevExtDf, sloExtDf,
                       rumExtDf, kExtDf, lsExtDf, pExtDf, rExtDf)
 
 # save
-
 shapefile(forestPlots, filename = 'forestPlots3Ha', overwrite = TRUE)
