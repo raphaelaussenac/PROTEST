@@ -11,11 +11,17 @@ setwd("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST")
 
 ifnCircular <- readOGR(dsn = ".", layer = "ifnCircular", encoding = "UTF-8", use_iconv = TRUE)
 bdBauges <- ifnCircular@data
-colnames(bdBauges)[colnames(bdBauges) == "xl93"] <- "X"
-colnames(bdBauges)[colnames(bdBauges) == "yl93"] <- "Y"
 
 # add a column to plot ifn points (and set the point shape)
 bdBauges$ifnPt <- "NFI points"
+
+###############################################################
+# load geol classification
+###############################################################
+
+classGeol <- read.csv("classificationGeol.csv", header = TRUE, sep = ";")
+classGeol <- classGeol[, c('NOTATION', 'Code_carbonate', 'Code_hydro')]
+bdBauges <- merge(bdBauges, classGeol, by.x = 'gelNttn', by.y = 'NOTATION', all.x = TRUE)
 
 ###############################################################
 # prediction function
@@ -132,10 +138,10 @@ varPar09 <- varPar(modUnPa09, bdBauges09, "09")
 #                                     #                    - C/N
 
 # create a data subset without NA (depends on the variables included in the model)
-bdBauges61 <- bdBauges[!is.na(bdBauges$slope), ]
+bdBauges61 <- bdBauges[!is.na(bdBauges$Code_carbonate), ]
 
 # model
-modUnPa61 <- lm(unknP61 ~ alti + X + slope + rum, data = bdBauges61) #
+modUnPa61 <- lm(unknP61 ~ alti + X + Y + expoNS + expoEW + slope + rum + Code_carbonate + Code_hydro, data = bdBauges61) #
 summary(modUnPa61)
 
 # prediction on the same data set (for obs vs pred comparison)

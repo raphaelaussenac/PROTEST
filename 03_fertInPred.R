@@ -21,8 +21,11 @@ forestPlots <- readOGR(dsn = "C:/Users/raphael.aussenac/Documents/GitHub/PROTEST
 # plot(forestPlots, col = forestPlots$CODE_TFV, border = forestPlots$CODE_TFV)
 plot(coordinates(forestPlots), asp = 1)
 
+# load geol classification
+forestPlots@data <- merge(forestPlots@data, classGeol, by.x = 'gelNttn', by.y = 'NOTATION', all.x = TRUE)
+
 # create df with variables used in the models
-modDf <- data.frame(forestPlots[, c("SUPERID", "alti", "slope", "greco", "expoNS", "expoEW", "ph", "rum")])
+modDf <- data.frame(forestPlots[, c("SUPERID", "alti", "slope", "greco", "expoNS", "expoEW", "ph", "rum", 'gelNttn' ,'Code_carbonate', 'Code_hydro')])
 
 # add the coordinates of the polygons' centroids (since X and Y may be used
 # in the models)
@@ -38,10 +41,10 @@ hist(area(forestPlots), breaks = 1000)
 # hist(area(forestPlots)[area(forestPlots)<20], breaks = 10)
 
 # predict fertility index
-modDf <- predFert(modUnPa61, modDf, "03")
-modDf <- predFert(modUnPa61, modDf, "09")
+modDf <- predFert(modUnPa03, modDf, "03")
+modDf <- predFert(modUnPa09, modDf, "09")
 modDf <- predFert(modUnPa61, modDf, "61")
-modDf <- predFert(modUnPa61, modDf, "62")
+modDf <- predFert(modUnPa62, modDf, "62")
 
 ###############################################################
 # control model quality and create fertility maps
@@ -124,7 +127,7 @@ plotMap <- function(sp){
   fert <- ggplot() +
     geom_polygon(data = forestDf, aes(long,lat,group=group,fill=pot)) +
     coord_equal() +
-    scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(mDf$pot), name = "fertility\nindex\n(modeled)") +
+    scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(modDf$pot, na.rm = TRUE), name = "fertility\nindex\n(modeled)") +
     ggtitle(ti) +
     guides(fill = guide_colourbar(title.position="top", title.hjust = 0.5, barwidth = 0.75, barheight = 15)) +
     theme_bw() +
@@ -136,7 +139,7 @@ plotMap <- function(sp){
   fertE <- ggplot() +
     geom_polygon(data = forestDf, aes(long,lat,group=group,fill=potEpsilon)) +
     coord_equal() +
-    scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(mDf$pot), name = "fertility\nindex\n(modeled)") +
+    scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(modDf$pot, na.rm = TRUE), name = "fertility\nindex\n(modeled)") +
     ggtitle(paste(ti, " + E")) +
     guides(fill = guide_colourbar(title.position="top", title.hjust = 0.5, barwidth = 0.75, barheight = 15)) +
     theme_bw() +
@@ -153,9 +156,9 @@ plotMap <- function(sp){
   bd <- cbind(bd, res)
 
   fertRes <- ggplot() +
-    geom_polygon(data = forestPlotsDf, aes(long,lat,group=group,fill=pot61), alpha = 0.08) +
+    geom_polygon(data = forestPlotsDf, aes(long,lat,group=group,fill=pot), alpha = 0.08) +
     coord_equal() +
-    scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(modDf$pot61), name = "fertility\nindex\n(modeled)") +
+    scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(modDf$pot, na.rm = TRUE), name = "fertility\nindex\n(modeled)") +
     ggtitle(paste(ti, "res")) +
     geom_point(data = bd, aes(X, Y, size = sqrt(residuals^2), color = sign), alpha = 0.5) +
     geom_point(data = bdBauges, aes(X, Y, shape = ifnPt), size = 0.5) +
