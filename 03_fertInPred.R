@@ -10,10 +10,14 @@ library(plyr)
 library(sf)
 library(gridExtra)
 
+# set model method
+chosenMethod <- 'direct' # 'knPa-unPa' or 'direct'
+
+# load models
 source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/modfertInd.R')
 
 ###############################################################
-# assign potential index to each forest plot (= centroid)
+# prediction : assign potential index to each forest plot
 ###############################################################
 
 # load forest plots
@@ -21,17 +25,21 @@ forestPlots <- readOGR(dsn = "C:/Users/raphael.aussenac/Documents/GitHub/PROTEST
 # plot(forestPlots, col = forestPlots$CODE_TFV, border = forestPlots$CODE_TFV)
 plot(coordinates(forestPlots), asp = 1)
 
-# load geol classification
-forestPlots@data <- merge(forestPlots@data, classGeol, by.x = 'gelNttn', by.y = 'NOTATION', all.x = TRUE)
-
-# create df with variables used in the models
-modDf <- data.frame(forestPlots[, c("SUPERID", "alti", "slope", "greco", "expoNS", "expoEW", "ph", "rum", 'gelNttn' ,'Code_carbonate', 'Code_hydro')])
-
 # add the coordinates of the polygons' centroids (since X and Y may be used
 # in the models)
 coord <- data.frame(coordinates(forestPlots))
 colnames(coord) <- c("X", "Y")
-modDf <- cbind(modDf, coord)
+forestPlots@data <- cbind(forestPlots@data, coord)
+
+# remove polygones with geol == 'hydro' (== lac, river)
+forestPlots <- forestPlots[forestPlots$gelNttn != 'hydro', ]
+
+# load geol classification
+forestPlots@data <- merge(forestPlots@data, classGeol, by.x = 'gelNttn', by.y = 'NOTATION', all.x = TRUE)
+
+# create df with variables used in the models
+modDf <- forestPlots@data
+modDf <- modDf[, c("alti", "slope", "greco", "expoNS", "expoEW", "ph", "rum", 'gelNttn' ,'Code_carbonate', 'Code_hydro', 'rocheCalc', 'X', 'Y')]
 
 # max slope = 200 --> remove cliff effect
 modDf[modDf$slope > 200, "slope"] <- 200
@@ -41,10 +49,10 @@ hist(area(forestPlots), breaks = 1000)
 # hist(area(forestPlots)[area(forestPlots)<20], breaks = 10)
 
 # predict fertility index
-modDf <- predFert(modUnPa03, modDf, "03")
-modDf <- predFert(modUnPa09, modDf, "09")
-modDf <- predFert(modUnPa61, modDf, "61")
-modDf <- predFert(modUnPa62, modDf, "62")
+modDf <- predFert(modUnPa03, modDf, "03", 'prediction', chosenMethod)
+modDf <- predFert(modUnPa09, modDf, "09", 'prediction', chosenMethod)
+modDf <- predFert(modUnPa61, modDf, "61", 'prediction', chosenMethod)
+modDf <- predFert(modUnPa62, modDf, "62", 'prediction', chosenMethod)
 
 ###############################################################
 # control model quality and create fertility maps
@@ -55,7 +63,6 @@ forestPlots@data <- cbind(forestPlots@data, modDf[,c('pot03', 'pot03Epsilon',
                                             'pot61Epsilon', 'pot62',
                                             'pot62Epsilon')])
 
-
 # convert to export to ggplot
 forestPlots@data$id <- rownames(forestPlots@data)
 forestPlotsPts <- fortify(forestPlots, region="id")
@@ -64,27 +71,26 @@ forestPlotsDf <- join(forestPlotsPts, forestPlots@data, by="id")
 # plot
 plotMap <- function(sp){
   # manage colnames
-  ifn <- ifnCircular@data
-  colnames(ifn)[colnames(ifn) == paste('ptnt_', sp, sep ='')] <- 'ptnt'
-  forest <- forestPlots@data
-  colnames(forest)[colnames(forest) == paste('pot', sp, sep ='')] <- 'pot'
-  colnames(forest)[colnames(forest) == paste('pot', sp, 'Epsilon', sep ='')] <- 'potEpsilon'
   if (sp == "03"){
     mod <- modUnPa03
     bd <- bdBauges03
-    ti <- "Quercus petraea"
+    ti <- "Q. petraea"
+    ratEpsiPot <- varPar[ti, "ratEpsiPot"]
   } else if(sp == "09"){
     mod <- modUnPa09
     bd <- bdBauges09
-    ti <- "Fagus sylvatica"
+    ti <- "F. sylvatica"
+    ratEpsiPot <- varPar[2, "ratEpsiPot"]
   } else if(sp == "61"){
     mod <- modUnPa61
     bd <- bdBauges61
-    ti <- "Abies alba"
+    ti <- "A. alba"
+    ratEpsiPot <- varPar[3, "ratEpsiPot"]
   } else if(sp == "62"){
     mod <- modUnPa62
     bd <- bdBauges62
-    ti <- "Picea abies"
+    ti <- "P. abies"
+    ratEpsiPot <- varPar[4, "ratEpsiPot"]
   }
   colnames(bd)[colnames(bd) == paste('pot', sp, sep ='')] <- 'pot'
   colnames(bd)[colnames(bd) == paste('ptnt_', sp, sep ='')] <- 'ptnt'
@@ -95,13 +101,32 @@ plotMap <- function(sp){
   mDf <- modDf
   colnames(mDf)[colnames(mDf) == paste('pot', sp, sep ='')] <- 'pot'
 
+  # add residuals tp bd
+  res <-data.frame(residuals(mod))
+  colnames(res) <- "residuals"
+  res$sign <- "positive"
+  res[res$res < 0, "sign"] <- "negative"
+  bd <- cbind(bd, res)
+
+  # residuals vs fitted
+  rvsf <- ggplot() +
+    geom_point(data = bd, aes(pot, residuals)) +
+    geom_hline(yintercept = 0, col = 'red', linetype = "dashed") +
+    theme_bw()
+
   # density observed vs predicted
   dens <- ggplot() +
-    geom_density(data = ifn, aes(ptnt), col = 'black', fill = 'grey') +
-    geom_density(data = forest, aes(pot), col = 'red') +
-    geom_density(data = forest, aes(potEpsilon), col = 'blue') +
-    annotate("text", label = paste("R² =", round(summary(mod)$r.squared,3)), x = 5, y = 0.02, size = 5) +
-    theme_bw()
+    geom_density(data = bd, aes(ptnt), col = 'black', fill = 'grey', lwd = 1, , linetype = 'dashed') +
+    geom_density(data = bd, aes(pot), col = 'red') +
+    geom_density(data = bd, aes(potEpsilon), col = 'blue') +
+    # geom_density(data = forestDf, aes(potEpsilon), col = 'green4') +
+    # geom_density(data = forestDf, aes(pot), col = 'green1') +
+    annotate("text", label = paste("R² =", round(summary(mod)$r.squared,2)), x = 20, y = 0.075, size = 5) +
+    theme_bw() +
+
+  # model observed - predicted (voir article: How to evaluate models: Observed vs. predictedor predicted vs. observed?)
+  pred <- lm(ptnt ~ pot, data = bd)
+  predE <- lm(ptnt ~ potEpsilon, data = bd)
 
   # obs vs pred
   mn <- min(bd$pot, bd$ptnt)
@@ -110,7 +135,10 @@ plotMap <- function(sp){
     geom_point(data = bd, aes(pot, ptnt)) + # , col = greco
     xlim(mn, mx) +
     ylim(mn, mx) +
-    geom_abline(slope = 1, col = 'red') +
+    geom_abline(slope = 1, col = 'red', linetype = "dashed") +
+    geom_abline(slope = coef(pred)[[2]], intercept = coef(pred)[[1]], col = 'black') +
+    annotate("text", label = paste("intercept:", round(coef(pred)[[1]],2), "slope:", round(coef(pred)[[2]],2),
+              "R²:", round(summary(pred)$r.squared, 2)), x = mean(bd$pot)+10, y = mean(bd$ptnt)-5, size = 5) +
     theme_bw()
 
   # obs vs pred + E
@@ -120,14 +148,17 @@ plotMap <- function(sp){
     geom_point(data = bd, aes(potEpsilon, ptnt)) + # , col = greco
     xlim(mn, mx) +
     ylim(mn, mx) +
-    geom_abline(slope = 1, col = 'red') +
+    geom_abline(slope = 1, col = 'red', linetype = "dashed") +
+    geom_abline(slope = coef(predE)[[2]], intercept = coef(predE)[[1]], col = 'black') +
+    annotate("text", label = paste("intercept:", round(coef(predE)[[1]],2), "slope:", round(coef(predE)[[2]],2),
+              "R²:", round(summary(predE)$r.squared, 2)), x = mean(bd$pot)+10, y = mean(bd$ptnt)-5, size = 5) +
     theme_bw()
 
   # fertility map
   fert <- ggplot() +
     geom_polygon(data = forestDf, aes(long,lat,group=group,fill=pot)) +
     coord_equal() +
-    scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(modDf$pot, na.rm = TRUE), name = "fertility\nindex\n(modeled)") +
+    scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(forestDf$pot), name = "fertility\nindex\n(modeled)") +
     ggtitle(ti) +
     guides(fill = guide_colourbar(title.position="top", title.hjust = 0.5, barwidth = 0.75, barheight = 15)) +
     theme_bw() +
@@ -139,7 +170,7 @@ plotMap <- function(sp){
   fertE <- ggplot() +
     geom_polygon(data = forestDf, aes(long,lat,group=group,fill=potEpsilon)) +
     coord_equal() +
-    scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(modDf$pot, na.rm = TRUE), name = "fertility\nindex\n(modeled)") +
+    scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(forestDf$pot), name = "fertility\nindex\n(modeled)") +
     ggtitle(paste(ti, " + E")) +
     guides(fill = guide_colourbar(title.position="top", title.hjust = 0.5, barwidth = 0.75, barheight = 15)) +
     theme_bw() +
@@ -148,17 +179,10 @@ plotMap <- function(sp){
             axis.text.y=element_blank(), axis.ticks.y=element_blank(),
             axis.title.x=element_blank(), axis.title.y=element_blank())
 
-  # residuals map
-  res <-data.frame(residuals(mod))
-  colnames(res) <- "residuals"
-  res$sign <- "positive"
-  res[res$res < 0, "sign"] <- "negative"
-  bd <- cbind(bd, res)
-
   fertRes <- ggplot() +
-    geom_polygon(data = forestPlotsDf, aes(long,lat,group=group,fill=pot), alpha = 0.08) +
+    geom_polygon(data = forestDf, aes(long,lat,group=group,fill=pot), alpha = 0.08) +
     coord_equal() +
-    scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(modDf$pot, na.rm = TRUE), name = "fertility\nindex\n(modeled)") +
+    scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(forestDf$pot), name = "fertility\nindex\n(modeled)") +
     ggtitle(paste(ti, "res")) +
     geom_point(data = bd, aes(X, Y, size = sqrt(residuals^2), color = sign), alpha = 0.5) +
     geom_point(data = bdBauges, aes(X, Y, shape = ifnPt), size = 0.5) +
@@ -170,7 +194,7 @@ plotMap <- function(sp){
             axis.title.x=element_blank(), axis.title.y=element_blank())
 
   # print(grid.arrange(dens, ovsp, ovspE, fert, fertE, fertRes, nrow = 2, ncol = 3))
-  print(grid.arrange(dens, ovsp, ovspE, nrow = 1, ncol = 3))
+  print(grid.arrange(dens, rvsf, ovsp, ovspE, nrow = 2, ncol = 2))
   print(grid.arrange(fert, fertE, fertRes, nrow = 1, ncol = 3))
 }
 
@@ -215,3 +239,23 @@ dev.off()
 # (range(bdBauges$expoEW, na.rm = TRUE)[2] - range(bdBauges$expoEW, na.rm = TRUE)[1]) * modTmin2$coefficients["expoEW"]
 # # expoNS
 # (range(bdBauges$expoNS, na.rm = TRUE)[2] - range(bdBauges$expoNS, na.rm = TRUE)[1]) * modTmin2$coefficients["expoNS"]
+
+
+
+# summary(lm(residuals(modUnPa03) ~ bdBauges03[,"rum"]))
+plot(residuals(modUnPa03) ~ bdBauges03[,"rum"], pch = 16)
+abline(h = 0, lty = 2, col = 'red')
+panel.smooth(bdBauges03[, "rum"], residuals(modUnPa03), span = 0.5)
+
+
+plot(modUnPa03)
+plot(residuals(modUnPa03) ~ bdBauges03[,"pot03"], pch = 16, xlim = c(-10, 40), ylim = c(-10, 40))
+
+
+
+# observed vs predicted (voir article: How to evaluate models: Observed vs. predictedor predicted vs. observed?)
+testPred <- lm(ptnt_09 ~ pot09, data = bdBauges09)
+summary(testPred)
+plot(bdBauges09$ptnt_09 ~ bdBauges09$pot09)
+curve(1*x, add = TRUE, col = 'red', lty = 2)
+curve(coef(testPred)[[1]] +  coef(testPred)[[2]] *x, add = TRUE, col = 'black')
