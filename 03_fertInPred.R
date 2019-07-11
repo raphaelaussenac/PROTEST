@@ -122,7 +122,7 @@ plotMap <- function(sp){
     # geom_density(data = forestDf, aes(potEpsilon), col = 'green4') +
     # geom_density(data = forestDf, aes(pot), col = 'green1') +
     annotate("text", label = paste("R² =", round(summary(mod)$r.squared,2)), x = 20, y = 0.075, size = 5) +
-    theme_bw() +
+    theme_bw()
 
   # model observed - predicted (voir article: How to evaluate models: Observed vs. predictedor predicted vs. observed?)
   pred <- lm(ptnt ~ pot, data = bd)
