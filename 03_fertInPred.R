@@ -223,39 +223,20 @@ dev.off()
 
 
 
-# # residuals
-# summary(lm(residuals(modPot02)~bdBauges[!is.na(bdBauges$expoNS) & !is.na(bdBauges$expoEW),"alti"]))
-# plot(residuals(modPot02)~bdBauges[!is.na(bdBauges$expoNS) & !is.na(bdBauges$expoEW),"alti"]); abline(h = 0, lty = 2)
-# panel.smooth(bdBauges[!is.na(bdBauges$expoNS) & !is.na(bdBauges$expoEW),"alti"], residuals(modTmin2), span = 0.5)
+
 #
-# # effets sur la variable clim
-# # x = continentalité
-# (range(bdBauges$X)[2] - range(bdBauges$X)[1]) * modTmin2$coefficients["X"]
-# # y = lattitude
-# (range(bdBauges$Y)[2] - range(bdBauges$Y)[1]) * modTmin2$coefficients["Y"]
-# # alti
-# (range(bdBauges$alti)[2] - range(bdBauges$alti)[1]) * modTmin2$coefficients["alti"]
-# # expoEW
-# (range(bdBauges$expoEW, na.rm = TRUE)[2] - range(bdBauges$expoEW, na.rm = TRUE)[1]) * modTmin2$coefficients["expoEW"]
-# # expoNS
-# (range(bdBauges$expoNS, na.rm = TRUE)[2] - range(bdBauges$expoNS, na.rm = TRUE)[1]) * modTmin2$coefficients["expoNS"]
-
-
-
-# summary(lm(residuals(modUnPa03) ~ bdBauges03[,"rum"]))
-plot(residuals(modUnPa03) ~ bdBauges03[,"rum"], pch = 16)
-abline(h = 0, lty = 2, col = 'red')
-panel.smooth(bdBauges03[, "rum"], residuals(modUnPa03), span = 0.5)
-
-
-plot(modUnPa03)
-plot(residuals(modUnPa03) ~ bdBauges03[,"pot03"], pch = 16, xlim = c(-10, 40), ylim = c(-10, 40))
-
-
-
-# observed vs predicted (voir article: How to evaluate models: Observed vs. predictedor predicted vs. observed?)
-testPred <- lm(ptnt_09 ~ pot09, data = bdBauges09)
-summary(testPred)
-plot(bdBauges09$ptnt_09 ~ bdBauges09$pot09)
-curve(1*x, add = TRUE, col = 'red', lty = 2)
-curve(coef(testPred)[[1]] +  coef(testPred)[[2]] *x, add = TRUE, col = 'black')
+# # summary(lm(residuals(modUnPa03) ~ bdBauges03[,"rum"]))
+# plot(residuals(modUnPa03) ~ bdBauges03[,"rum"], pch = 16)
+# abline(h = 0, lty = 2, col = 'red')
+# panel.smooth(bdBauges03[, "rum"], residuals(modUnPa03), span = 0.5)
+#
+#
+# plot(modUnPa03)
+# plot(residuals(modUnPa03) ~ bdBauges03[,"pot03"], pch = 16, xlim = c(-10, 40), ylim = c(-10, 40))
+#
+# # observed vs predicted (voir article: How to evaluate models: Observed vs. predictedor predicted vs. observed?)
+# testPred <- lm(ptnt_09 ~ pot09, data = bdBauges09)
+# summary(testPred)
+# plot(bdBauges09$ptnt_09 ~ bdBauges09$pot09)
+# curve(1*x, add = TRUE, col = 'red', lty = 2)
+# curve(coef(testPred)[[1]] +  coef(testPred)[[2]] *x, add = TRUE, col = 'black')

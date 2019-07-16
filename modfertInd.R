@@ -120,7 +120,7 @@ bdBauges03 <- bdBauges
 
 # model
 if (chosenMethod == 'direct'){
-  modUnPa03 <- lm(ptnt_03 ~ alti + X + Y + expoNS + expoEW + slope + rum + ph + greco + rocheCalc + Code_hydro, data = bdBauges03) #
+  modUnPa03 <- lm(ptnt_03 ~ alti + rum + ph + greco + rocheCalc + Code_hydro, data = bdBauges03) #
 } else if (chosenMethod == 'knPa-unPa'){
   modUnPa03 <- lm(unknP03 ~ alti + rum + I(rum^2) + Code_carbonate + Code_hydro, data = bdBauges03)
 }
@@ -146,7 +146,7 @@ bdBauges09 <- bdBauges[!is.na(bdBauges$ptnt_09), ]
 
 # model
 if (chosenMethod == 'direct'){
-  modUnPa09 <- lm(ptnt_09 ~ alti + X + Y + expoNS + expoEW + slope + rum + ph + greco + rocheCalc + Code_hydro, data = bdBauges09) #
+  modUnPa09 <- lm(ptnt_09 ~ alti + expoNS + slope + I(rum^2), data = bdBauges09) #
 } else if (chosenMethod == 'knPa-unPa'){
   modUnPa09 <- lm(unknP09 ~ alti + rum + I(rum^2) + Code_carbonate + Code_hydro, data = bdBauges09)
 }
@@ -172,7 +172,7 @@ bdBauges61 <- bdBauges
 
 # model
 if (chosenMethod == 'direct'){
-  modUnPa61 <- lm(ptnt_61 ~ alti + X + Y + expoNS + expoEW + slope + rum + ph + greco + rocheCalc + Code_hydro, data = bdBauges61) #
+  modUnPa61 <- lm(ptnt_61 ~ alti + expoEW + rum + greco + rocheCalc, data = bdBauges61) #
 } else if (chosenMethod == 'knPa-unPa'){
   modUnPa61 <- lm(unknP61 ~ alti + rum + I(rum^2) + Code_carbonate + Code_hydro, data = bdBauges61)
 }
@@ -199,7 +199,7 @@ bdBauges62 <- bdBauges[!is.na(bdBauges$ptnt_62), ]
 
 # model
 if (chosenMethod == 'direct'){
-  modUnPa62 <- lm(ptnt_62 ~ alti + X + Y + expoNS + expoEW + slope + rum + ph + greco + rocheCalc + Code_hydro, data = bdBauges62) #
+  modUnPa62 <- lm(ptnt_62 ~ expoEW + slope + rum + greco + rocheCalc + I(slope^2), data = bdBauges62) #
 } else if (chosenMethod == 'knPa-unPa'){
   modUnPa62 <- lm(unknP62 ~ alti + rum + I(rum^2) + Code_carbonate + Code_hydro, data = bdBauges62)
 }
