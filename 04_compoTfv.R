@@ -86,18 +86,58 @@ legend("topright", legend = c("nb protest pt", 'surface'), fill = c("red", 'blac
 
 # https://inventaire-forestier.ign.fr/IMG/pdf/dc_bdforet_2-0.pdf
 
-todo -------> regroupement des types TFV
+# main types
+A <- 'FF1-00-00' #: Forêt fermée à mélange de feuillus
+B <- 'FF2G61-61' #: Forêt fermée de sapin ou épicéa
+C <- 'FF31' #: Forêt fermée à mélange de feuillus prépondérants et conifères
+D <- 'FF32' #: Forêt fermée à mélange de conifères prépondérants et feuillus
+E <- 'FF1-09-09' #: Forêt fermée de hêtre pur
+
+# under-represented types
+# FO1: Forêt ouverte de feuillus purs ----------------------> A
+# FF1-00: Forêt fermée de feuillus purs en îlots -----------> A
+# FO2: Forêt ouverte de conifères purs ---------------------> B
+# FO3: Forêt ouverte à mélange de feuillus et conifères ----> C
+# FF1-49-49: Forêt fermée d’un autre feuillu pur -----------> A
+# FF2-00-00: Forêt fermée à mélange de conifères -----------> B
+# FF1G01-01: Forêt fermée de chênes décidus purs -----------> A
+# FF2G53-53: Forêt fermée de pin laricio ou pin noir pur ---> B
+# FF2-90-90: Forêt fermée à mélange d’autres conifères -----> B
+# FF2-64-64: Forêt fermée de douglas pur -------------------> B
+# FF2-00: Forêt fermée de conifères purs en îlots ----------> B
+# FF1-10-10: Forêt fermée de châtaignier pur ---------------> A
+# FO0: Forêt ouverte sans couvert arboré -------------------> remove
+# FF2-52-52: Forêt fermée de pin sylvestre pur -------------> B
+# FF0: Forêt fermée sans couvert arboré --------------------> remove
+
+
+groupTfv <- function(df){
+  df <- df[!(df$CODE_TF %in% c('FO0', 'FF0')),]
+  df[df$CODE_TF == "FO1", "CODE_TF"] <- A
+  df[df$CODE_TF == "FF1-00", "CODE_TF"] <- A
+  df[df$CODE_TF == "FO2", "CODE_TF"] <- B
+  df[df$CODE_TF == "FO3", "CODE_TF"] <- C
+  df[df$CODE_TF == "FF1-49-49", "CODE_TF"] <- A
+  df[df$CODE_TF == "FF2-00-00", "CODE_TF"] <- B
+  df[df$CODE_TF == "FF1G01-01", "CODE_TF"] <- A
+  df[df$CODE_TF == "FF2G53-53", "CODE_TF"] <- B
+  df[df$CODE_TF == "FF2-90-90", "CODE_TF"] <- B
+  df[df$CODE_TF == "FF2-64-64", "CODE_TF"] <- B
+  df[df$CODE_TF == "FF2-00", "CODE_TF"] <- B
+  df[df$CODE_TF == "FF1-10-10", "CODE_TF"] <- A
+  df[df$CODE_TF == "FF2-52-52", "CODE_TF"] <- B
+  return(df)
+}
 
 # protestPlots
 protestPlotsDf <- protestPlots@data
 protestPlotsDf$CODE_TF <- as.character(protestPlotsDf$CODE_TF)
-minitfv <- protestPtSurfTfv[protestPtSurfTfv$surface < 1000, 'tfv'] # all small TFV in FF1-00-00
-protestPlotsDf[protestPlotsDf$CODE_TF %in% minitfv, "CODE_TF"] <- 'FF1-00-00'
+protestPlotsDf <- groupTfv(protestPlotsDf)
 
 # forestPlotsDf
 forestPlotsDf <- forestPlots@data
 forestPlotsDf$CODE_TF <- as.character(forestPlotsDf$CODE_TF)
-forestPlotsDf[forestPlotsDf$CODE_TF %in% minitfv, "CODE_TF"] <- 'FF1-00-00'
+forestPlotsDf <- groupTfv(forestPlotsDf)
 
 ###############################################################
 # Define whether the plot is composed of deciduous and / or conifers
@@ -125,6 +165,14 @@ forestPlotsDf$compoSp <- NA
 arbres.vivant$Id_plac <- as.character(arbres.vivant$Id_plac)
 arbres.vivant$Cod_ess <- as.character(arbres.vivant$Cod_ess)
 
+
+
+
+# ------> transformer tous les feuillus en chene ou hetre selon l'abondance de l'espèce sur la placette (prorata G)
+#  idem pour les résineux
+
+
+
 # calculate basal area for each protest plot
 protestG <- ddply(arbres.vivant, .(Id_plac), summarise, G = sum(g))
 # calculate species basal area for each protest plot
@@ -151,10 +199,6 @@ for (i in unique(protestMixed$Id_plac)){
   plac <- plac[c(1:2),]
   protestMixedProp <- rbind(protestMixedProp, plac)
 }
-
-#
-# remove plots where the 2nd most abundant species represent less than 25% G ?
-#
 
 # change format long --> wide
 protestMixed <- dcast(protestMixedProp, formula =  Id_plac ~ Cod_ess)
