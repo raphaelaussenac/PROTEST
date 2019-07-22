@@ -165,13 +165,8 @@ forestPlotsDf$compoSp <- NA
 arbres.vivant$Id_plac <- as.character(arbres.vivant$Id_plac)
 arbres.vivant$Cod_ess <- as.character(arbres.vivant$Cod_ess)
 
-
-
-
-# ------> transformer tous les feuillus en chene ou hetre selon l'abondance de l'espèce sur la placette (prorata G)
-#  idem pour les résineux
-
-
+# group Oaks together (CHS CHE CHP)
+arbres.vivant[arbres.vivant$Cod_ess %in% c('CHE', 'CHP'), 'Cod_ess'] <- 'CHS'
 
 # calculate basal area for each protest plot
 protestG <- ddply(arbres.vivant, .(Id_plac), summarise, G = sum(g))
@@ -182,15 +177,106 @@ protestGSpProp <- merge(protestGSp, protestG, by = "Id_plac")
 protestGSpProp$prop <- protestGSpProp$Gsp * 100 / protestGSpProp$G
 protestGSpProp <- protestGSpProp[order(protestGSpProp$Id_plac, protestGSpProp$prop, decreasing = TRUE),]
 
+# transform all deciduous into Oak and Beech depending on the proportion of
+# Oak and Beech in the plot
+# same for coniferous with Fir and Spruce
+
+# species not studied
+deciduousSp <- c("CHA", "FRE", "CHT", "MER", "ERO", "TIL", "BOU", "TRE", "ERS",
+                 "CHE", "ALB", "ERC", "SOR", "ROB", "ORM", "ERP", "SAU", "ALT",
+                 "NOC", "NR", "CHP", "PEU", "SAM", "ERA", "A.F")
+coniferousSp <- c("MEE", "P.S", "IFS","P.X")
+
+# species of interest
+spInterestD <- c("HET", "CHS")
+spInterestC <- c("S.P", "EPC")
+
+protestNewSp <- data.frame(matrix(ncol = ncol(protestGSpProp), nrow = 0))
+colnames(protestNewSp) <- colnames(protestGSpProp)
+for (i in unique(protestGSpProp$Id_plac)){
+  plac <- protestGSpProp[protestGSpProp$Id_plac == i,]
+
+  # if there are some deciduous species (not studied) -------------------------------------------
+  if (sum(plac$Cod_ess %in% c(deciduousSp)) > 0){
+    # 1st possibility: there is 1 deciduous species of interest
+    if (sum(plac$Cod_ess %in% c(spInterestD)) == 1){
+      # -> assign the basal area of the deciduous species (not of interest)
+      # to the deciduous species of interest
+      plac[plac$Cod_ess %in% spInterestD, "Gsp"] <- sum(plac[plac$Cod_ess %in% deciduousSp, "Gsp"],
+                                                        plac[plac$Cod_ess %in% spInterestD, "Gsp"])
+      plac[plac$Cod_ess %in% spInterestD, "prop"] <- sum(plac[plac$Cod_ess %in% deciduousSp, "prop"],
+                                                        plac[plac$Cod_ess %in% spInterestD, "prop"])
+      plac <- plac[!(plac$Cod_ess %in% deciduousSp),]
+    }
+    # 2nd possibility: there are 2 deciduous species of interest
+    if (sum(plac$Cod_ess %in% c(spInterestD)) == 2){
+      # 1 - calculate the relative proportion of each species of interest
+      propCHS <- plac[plac$Cod_ess == "CHS", "Gsp"] / (plac[plac$Cod_ess == "CHS", "Gsp"] + plac[plac$Cod_ess == "HET", "Gsp"])
+      propHET <- 1 - propCHS
+      # 2 - assign the basal area of the deciduous species (not of interest)
+      # to the deciduous species of interest depending on the proportion of
+      # each species of interest
+      plac[plac$Cod_ess == "CHS", "Gsp"] <- sum(plac[plac$Cod_ess %in% deciduousSp, "Gsp"]*propCHS,
+                                                        plac[plac$Cod_ess == "CHS", "Gsp"])
+      plac[plac$Cod_ess == "HET", "Gsp"] <- sum(plac[plac$Cod_ess %in% deciduousSp, "Gsp"]*propHET,
+                                                        plac[plac$Cod_ess == "HET", "Gsp"])
+      #
+      plac[plac$Cod_ess == "CHS", "prop"] <- sum(plac[plac$Cod_ess %in% deciduousSp, "prop"]*propCHS,
+                                                        plac[plac$Cod_ess == "CHS", "prop"])
+      plac[plac$Cod_ess == "HET", "prop"] <- sum(plac[plac$Cod_ess %in% deciduousSp, "prop"]*propHET,
+                                                        plac[plac$Cod_ess == "HET", "prop"])
+      plac <- plac[!(plac$Cod_ess %in% deciduousSp),]
+    }
+    # 3rd possibility: there are NO deciduous species of interest
+    # --> next step
+  }
+
+  # if there are some coniferous species (not studied) -------------------------------------------
+  if (sum(plac$Cod_ess %in% c(coniferousSp)) > 0){
+    # 1st possibility: there is 1 deciduous species of interest
+    if (sum(plac$Cod_ess %in% c(spInterestC)) == 1){
+      # -> assign the basal area of the deciduous species (not of interest)
+      # to the deciduous species of interest
+      plac[plac$Cod_ess %in% spInterestC, "Gsp"] <- sum(plac[plac$Cod_ess %in% coniferousSp, "Gsp"],
+                                                        plac[plac$Cod_ess %in% spInterestC, "Gsp"])
+      plac[plac$Cod_ess %in% spInterestC, "prop"] <- sum(plac[plac$Cod_ess %in% coniferousSp, "prop"],
+                                                        plac[plac$Cod_ess %in% spInterestC, "prop"])
+      plac <- plac[!(plac$Cod_ess %in% coniferousSp),]
+    }
+    # 2nd possibility: there are 2 deciduous species of interest
+    if (sum(plac$Cod_ess %in% c(spInterestC)) == 2){
+      # 1 - calculate the relative proportion of each species of interest
+      propEPC <- plac[plac$Cod_ess == "EPC", "Gsp"] / (plac[plac$Cod_ess == "EPC", "Gsp"] + plac[plac$Cod_ess == "HET", "Gsp"])
+      propSP <- 1 - propEPC
+      # 2 - assign the basal area of the deciduous species (not of interest)
+      # to the deciduous species of interest depending on the proportion of
+      # each species of interest
+      plac[plac$Cod_ess == "EPC", "Gsp"] <- sum(plac[plac$Cod_ess %in% coniferousSp, "Gsp"]*propEPC,
+                                                        plac[plac$Cod_ess == "EPC", "Gsp"])
+      plac[plac$Cod_ess == "S.P", "Gsp"] <- sum(plac[plac$Cod_ess %in% coniferousSp, "Gsp"]*propSP,
+                                                        plac[plac$Cod_ess == "S.P", "Gsp"])
+      #
+      plac[plac$Cod_ess == "EPC", "prop"] <- sum(plac[plac$Cod_ess %in% coniferousSp, "prop"]*propEPC,
+                                                        plac[plac$Cod_ess == "EPC", "prop"])
+      plac[plac$Cod_ess == "S.P", "prop"] <- sum(plac[plac$Cod_ess %in% coniferousSp, "prop"]*propSP,
+                                                        plac[plac$Cod_ess == "S.P", "prop"])
+      plac <- plac[!(plac$Cod_ess %in% coniferousSp),]
+    }
+    # 3rd possibility: there are NO deciduous species of interest
+    # --> next step
+  }
+  protestNewSp <- rbind(protestNewSp, plac)
+}
+
 # list of pure stands
-protestPure <- protestGSpProp[protestGSpProp$prop > 75,]
+protestPure <- protestNewSp[protestNewSp$prop > 75,]
 pureBeech <- protestPure[protestPure$Cod_ess == "HET", "Id_plac"]
 pureOak <- protestPure[protestPure$Cod_ess == "CHE" | protestPure$Cod_ess == "CHS", "Id_plac"]
 pureFir <- protestPure[protestPure$Cod_ess == "S.P", "Id_plac"]
 pureSpruce <- protestPure[protestPure$Cod_ess == "EPC", "Id_plac"]
 
 # list of mixed stands
-protestMixed <- protestGSpProp[!(protestGSpProp$Id_plac %in% protestPure$Id_plac), ]
+protestMixed <- protestNewSp[!(protestNewSp$Id_plac %in% protestPure$Id_plac), ]
 # keep only the two most abundant species on the plots
 protestMixedProp <- data.frame(matrix(ncol = ncol(protestMixed), nrow = 0))
 colnames(protestMixedProp) <- colnames(protestMixed)
@@ -268,6 +354,7 @@ table(forestPlotsDf[forestPlotsDf$CODE_TF == "FF1-00-00","compoSp"], forestPlots
 
 
 
+# ----> surface par composition
 
 
 
