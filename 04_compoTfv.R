@@ -49,8 +49,8 @@ protestPlots <- SpatialPointsDataFrame(coords = xy, data = placette.mes, proj4st
 protestPlots <- intersect(protestPlots, forestPlots)
 
 # plot
-plot(forestPlots, col = forestPlots$CODE_TF, border = forestPlots$CODE_TF)
-points(protestPlots, asp = 1, pch = 16, col = 'red')
+# plot(forestPlots, col = forestPlots$CODE_TF, border = forestPlots$CODE_TF)
+# points(protestPlots, asp = 1, pch = 16, col = 'red')
 
 ###############################################################
 # surface of each TFV types
@@ -75,7 +75,6 @@ protestPtSurfTfv <- protestPtSurfTfv[order(protestPtSurfTfv$surface, decreasing 
 
 # plot
 bp <- barplot(protestPtSurfTfv$surface, names.arg = protestPtSurfTfv$tfv, las = 2, ylim = c(-1000, 20000), main = "Surface (ha) and number of\ninventory points for each TFV type")
-barplot(protestPtSurfTfv$surface, names.arg = protestPtSurfTfv$tfv, las = 2, ylim = c(-1000, 20000), main = "Surface (ha) and number of\ninventory points for each TFV type")
 text(bp, protestPtSurfTfv$surface + 500, label = protestPtSurfTfv$points, cex = 1, col = 'red')
 text(bp, protestPtSurfTfv$surface - 500, label = round(protestPtSurfTfv$surface), cex = 1, col = 'black')
 legend("topright", legend = c("nb protest pt", 'surface'), fill = c("red", 'black'), col = c('red'))
@@ -135,6 +134,9 @@ protestPlotsDf$CODE_TF <- as.character(protestPlotsDf$CODE_TF)
 protestPlotsDf <- groupTfv(protestPlotsDf)
 
 # forestPlotsDf
+# convert to be able to export to ggplot
+forestPlots@data$id <- c(1:nrow(forestPlots@data))
+forestPlots@data$area <- area(forestPlots)
 forestPlotsDf <- forestPlots@data
 forestPlotsDf$CODE_TF <- as.character(forestPlotsDf$CODE_TF)
 forestPlotsDf <- groupTfv(forestPlotsDf)
@@ -347,14 +349,64 @@ for (i in unique(forestPlotsDf$CODE_TF)){
                 & forestPlotsDf$CODE_TF == i, 'compoSp'] <- distribM[round(runif(nbM, min = 1, max = length(distribM)))]
 }
 
+# remove those plots for which we do not have any composition
+forestPlotsDf <- forestPlotsDf[!is.na(forestPlotsDf$compoSp), ]
 
-# test
+###############################################################
+# Plots and verifications
+###############################################################
+
+# verifications
 table(forestPlotsDf[forestPlotsDf$CODE_TF == "FF1-00-00","compoSp"], forestPlotsDf[forestPlotsDf$CODE_TF == "FF1-00-00","compoDCM"])
+table(forestPlotsDf[forestPlotsDf$compoDCM == "D", 'compoSp'])
+table(forestPlotsDf[forestPlotsDf$compoDCM == "C", 'compoSp'])
+table(forestPlotsDf[forestPlotsDf$compoDCM == "MDC", 'compoSp'])
+
+# plot area for each type of composition
+surfaceCompoSp <- ddply(forestPlotsDf, .(compoSp), summarise, area = sum(area))
+surfaceCompoSp$area <- surfaceCompoSp$area / 10000
+surfaceCompoSp <- surfaceCompoSp[order(surfaceCompoSp$area, decreasing = TRUE),]
+bp <- barplot(surfaceCompoSp$area, names.arg = surfaceCompoSp$compoSp, las = 2, main = "Surface (ha) covered by each composition")
+text(bp, surfaceCompoSp$area - 500, label = round(surfaceCompoSp$area,1), cex = 1, col = 'red')
+
+# composition map
+# put back compositions in the SpatialPolygonDataframe
+forestPlots@data <- merge(forestPlots@data, forestPlotsDf[, c('id', 'compoDCM', 'compoSp')], by = 'id', all = TRUE)
+forestPlots <- forestPlots[!is.na(forestPlots$compoSp), ]
+# convert for ggplot
+forestPlotsPts <- fortify(forestPlots, region="id")
+forestNewSp <- join(forestPlotsPts, forestPlots@data, by="id")
+# plot
+pdf(file="C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/mapCompo.pdf", width = 20, height = 10)
+ggplot() +
+  geom_polygon(data = forestNewSp, aes(long,lat,group=group,fill=compoSp)) +
+  coord_equal() +
+  # scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(forestDf$pot), name = "fertility\nindex\n(modeled)") +
+  ggtitle("stand composition") +
+  # guides(fill = guide_colourbar(title.position="top", title.hjust = 0.5, barwidth = 0.75, barheight = 15)) +
+  guides(fill = guide_legend(title="")) +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5), legend.position ="right",
+          axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+          axis.text.y = element_blank(), axis.ticks.y = element_blank(),
+          axis.title.x = element_blank(), axis.title.y = element_blank())
+dev.off()
 
 
 
 
-# ----> surface par composition
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
