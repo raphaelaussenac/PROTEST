@@ -301,6 +301,7 @@ mixedFirSpruce <- protestMixed[!is.na(protestMixed$S.P) & !is.na(protestMixed$EP
 # assign a composition to each protest plot
 ###############################################################
 
+# species composition
 protestPlotsDf$compoSp <- NA
 protestPlotsDf[protestPlotsDf$Id_plac %in% pureBeech, "compoSp"] <- "beech"
 protestPlotsDf[protestPlotsDf$Id_plac %in% pureOak, "compoSp"] <- "oak"
@@ -352,6 +353,11 @@ for (i in unique(forestPlotsDf$CODE_TF)){
 # remove those plots for which we do not have any composition
 forestPlotsDf <- forestPlotsDf[!is.na(forestPlotsDf$compoSp), ]
 
+# 'mixture composition' --> pure / mixed
+forestPlotsDf$compo <- NA
+forestPlotsDf[forestPlotsDf$compoSp %in% c('beech', 'oak', 'spruce', 'fir'), 'compo'] <- 'pure'
+forestPlotsDf[forestPlotsDf$compoSp %in% c('beech-fir', 'beech-spruce', 'fir-spruce'), 'compo'] <- 'mixed'
+
 ###############################################################
 # Plots and verifications
 ###############################################################
@@ -391,113 +397,3 @@ ggplot() +
           axis.text.y = element_blank(), axis.ticks.y = element_blank(),
           axis.title.x = element_blank(), axis.title.y = element_blank())
 dev.off()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-###############################################################
-# Dg calculation
-###############################################################
-
-forestPlotsDf$dg <- NA
-
-# 1 - First case: pure stands
-# --> nothing to do, dgPred is available
-forestPlotsDf[forestPlotsDf$compoSp == 'pure' & !is.na(forestPlotsDf$p100gfP), "Dg"] <-
-                          forestPlotsDf[forestPlotsDf$compoSp == 'pure' & !is.na(forestPlotsDf$p100gfP), "dgPred"]
-
-# 2 - Second case: deciduous - conifer mixture
-    # 2a - G deciduous and G conifers calculation (with gPred and p100gfP)
-forestPlotsDf$Gsp1 <- NA
-forestPlotsDf[forestPlotsDf$compoDCM == 'MDC' & !is.na(forestPlotsDf$p100gfP), "Gsp1"] <-
-                          forestPlotsDf[forestPlotsDf$compoDCM == 'MDC' & !is.na(forestPlotsDf$p100gfP), "gPred"] *
-                          forestPlotsDf[forestPlotsDf$compoDCM == 'MDC' & !is.na(forestPlotsDf$p100gfP), "p100gfP"] / 100
-forestPlotsDf$Gsp2 <- NA
-forestPlotsDf[forestPlotsDf$compoDCM == 'MDC' & !is.na(forestPlotsDf$p100gfP), "Gsp2"] <-
-                          forestPlotsDf[forestPlotsDf$compoDCM == 'MDC' & !is.na(forestPlotsDf$p100gfP), "gPred"] -
-                          forestPlotsDf[forestPlotsDf$compoDCM == 'MDC' & !is.na(forestPlotsDf$p100gfP), "Gsp1"]
-
-    # 2b - calculate Dg deciduous and Dg coniferous on each protest plot
-protestPlotsDf$compoSp <- NA
-protestPlotsDf$sp1 <- NA
-protestPlotsDf$sp2 <- NA
-protestPlotsDf$dgSp1 <- NA
-protestPlotsDf$dgSp2 <- NA
-protestPlotsDf$diffDg <- NA
-
-    # retrieve protest points for each sp combination obtained on the study area
-couples <- unique(paste(forestPlotsDf[forestPlotsDf$compoSp == 'mixte' & !is.na(forestPlotsDf$p100gfP), "sp1"],
-                      forestPlotsDf[forestPlotsDf$compoSp == 'mixte' & !is.na(forestPlotsDf$p100gfP), "sp2"]))
-
-plotListCouples <- data.frame(matrix(nrow = length(unique(arbres.vivant$Id_plac)), ncol = length(couples)))
-colnames(plotListCouples) <- couples
-plotListCouples$plot <- unique(arbres.vivant$Id_plac)
-for (c in 1:length(couples)){
-  for (i in unique(arbres.vivant$Id_plac)){
-    plac <- arbres.vivant[arbres.vivant$Id_plac == i, ]
-    sp1 <- substr(couples[c], 1, 3)
-    sp2 <- substr(couples[c], 5, 7)
-    # if both sp are present -> calculate sum of basal area
-    if (sum(plac$Cod_ess == sp1) > 0 & sum(plac$Cod_ess == sp2) > 0){
-      gTot <- sum(plac$g)
-      gSp1Sp2 <- sum(plac[plac$Cod_ess == sp1 | plac$Cod_ess == sp2, "g"])
-      # if both sp represent > 75% of G
-      if (gSp1Sp2/gTot >= 0.75){
-        # -> save plot ID
-        plotListCouples[plotListCouples$plot == i, couples[c]] <- i
-        # -> asign compoSp = mixte to protestPlotsDf
-        protestPlotsDf[protestPlotsDf$Id_plac == i, "compoSp"] <- "mixte"
-        # -> asign species name
-        protestPlotsDf[protestPlotsDf$Id_plac == i, "sp1"] <- sp1
-        protestPlotsDf[protestPlotsDf$Id_plac == i, "sp2"] <- sp2
-        # -> calculate Dg deciduous and Dg coniferous
-        dgSp1 <- sqrt(sum((plac[plac$Cod_ess == sp1, "Diam"])^2) / nrow(plac))
-        dgSp2 <- sqrt(sum((plac[plac$Cod_ess == sp2, "Diam"])^2) / nrow(plac))
-        diffDg <- dgSp1 - dgSp2
-        protestPlotsDf[protestPlotsDf$Id_plac == i, "dgSp1"] <- dgSp1
-        protestPlotsDf[protestPlotsDf$Id_plac == i, "dgSp2"] <- dgSp2
-        protestPlotsDf[protestPlotsDf$Id_plac == i, "diffDg"] <- diffDg
-      }
-    }
-  }
-}
-
-listTest <- plotListCouples[!is.na(plotListCouples[,1]),1]
-length(listTest)
-modTab <- protestPlotsDf[protestPlotsDf$Id_plac %in% listTest, ]
-plot(modTab$dgSp1, modTab$dgSp2)
-mod <- lm(diffDg ~ gPred + dgPred + alti + slope + expoNS + expoEW + ph + rum, data = modTab)
-summary(mod)
-
-
-
-
-
-# # 3 - Third case: deciduous - deciduous or conifer - conifer mixtures
-# ----> ?????
-
-
-
-
-nrow(plotListCouples[!is.na(plotListCouples[,1]),])
-
-nrow(forestPlotsDf[forestPlotsDf$sp1 == "EPC" & forestPlotsDf$sp2 == "S.P", ])
-
-
-# todo: add ifn points in the process (wherever protest points are used)
