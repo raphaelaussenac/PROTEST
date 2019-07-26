@@ -1,5 +1,5 @@
 ###############################################################
-# model difference dgSp1 - dgSp2 for each mixture
+# difference dgSp1 - dgSp2 for each mixture
 ###############################################################
 
 # retrieve list of TRUE mixed stands (i.e. where the two most abundant species
@@ -27,48 +27,56 @@ trueMixedBeechFir <- tabMixed[!is.na(tabMixed$HET) & !is.na(tabMixed$S.P), "Id_p
 trueMixedBeechSpruce <- tabMixed[!is.na(tabMixed$HET) & !is.na(tabMixed$EPC), "Id_plac"]
 trueMixedFirSpruce <- tabMixed[!is.na(tabMixed$S.P) & !is.na(tabMixed$EPC), "Id_plac"]
 
-
 # calculate differenc dgsp1 - dgsp2
 diffDg <- function(plotList, sp1, sp2){
+  # for each mixture type
   tmbf <- arbres.vivant[arbres.vivant$Id_plac %in% plotList, ]
   plotDgbf <- data.frame(matrix(ncol = 3, nrow = length(plotList)))
   colnames(plotDgbf) <- c('Id_plac', 'dgSp1', 'dgSp2')
   plotDgbf$Id_plac <- plotList
   for (i in unique(tmbf$Id_plac)){
+    # for each plot
     plac <- tmbf[tmbf$Id_plac == i,]
+    # dg calculation
     plotDgbf[plotDgbf$Id_plac == i, 'dgSp1'] <- sqrt(sum((plac[plac$Cod_ess == sp1, "Diam"]/100)^2) / nrow(plac[plac$Cod_ess == sp1,]))
     plotDgbf[plotDgbf$Id_plac == i, 'dgSp2'] <- sqrt(sum((plac[plac$Cod_ess == sp2, "Diam"]/100)^2) / nrow(plac[plac$Cod_ess == sp2,]))
   }
+  # dg difference and ratio
   plotDgbf$diffDg <- - plotDgbf$dgSp1 - plotDgbf$dgSp2
-  plotDgbf$ratDg <- - plotDgbf$dgSp1 / plotDgbf$dgSp2
+  plotDgbf$ratDg <- plotDgbf$dgSp1 / plotDgbf$dgSp2
   plotDgbf <- merge(plotDgbf, protestPlotsDf, by = 'Id_plac', all.x = TRUE, all.y = FALSE)
   return(plotDgbf)
 }
 
+###############################################################
+# model difference dgSp1 - dgSp2 for each mixture
+###############################################################
 
-
-
-
-######## Beech - Fir
+# Beech - Fir
 diffDgBeechFir <- diffDg(trueMixedBeechFir, 'HET', 'S.P')
 # m0 --> diffDg ~ alti + slope + expoNS + expoEW + dgPred
                 # + I(CODE_TF == 'FF31') + I(CODE_TF == "FF32") + I(CODE_TF == "FF1-09-09")
                 # + I(CODE_TF == "FF2G61-61") + I(CODE_TF == "FF1-00-00")
-mod <- lm(diffDg ~  alti + slope + expoNS + expoEW + dgPred
-                + I(CODE_TF == 'FF31') + I(CODE_TF == "FF32") + I(CODE_TF == "FF1-09-09")
-                + I(CODE_TF == "FF2G61-61") + I(CODE_TF == "FF1-00-00"), data = diffDgBeechFir)
-summary(mod)
+modBeechFir <- lm(diffDg ~ slope + I(dgPred^2), data = diffDgBeechFir)
+summary(modBeechFir)
 
+# Beech - Spruce
+diffDgBeechSpruce <- diffDg(trueMixedBeechSpruce, 'HET', 'EPC')
+# m0 --> diffDg ~ alti + slope + expoNS + expoEW + dgPred
+                # + I(CODE_TF == 'FF31') + I(CODE_TF == "FF32") + I(CODE_TF == "FF1-09-09")
+                # + I(CODE_TF == "FF2G61-61") + I(CODE_TF == "FF1-00-00")
+modBeechSpruce <- lm(diffDg ~ I(dgPred^2) + I(CODE_TF == 'FF31')
+                    + I(CODE_TF == "FF32") + I(CODE_TF == "FF1-09-09")
+                    + I(CODE_TF == "FF2G61-61"), data = diffDgBeechSpruce)
+summary(modBeechSpruce)
 
-
---> deux autres mélanges
---> essayer ausssi modele complet avec ratio Dg
-
-
-
-
-
-
+# Fir - Spruce
+diffDgFirSpruce <- diffDg(trueMixedFirSpruce, 'S.P', 'EPC')
+# m0 --> diffDg ~ alti + slope + expoNS + expoEW + dgPred
+                # + I(CODE_TF == 'FF31') + I(CODE_TF == "FF32") + I(CODE_TF == "FF1-09-09")
+                # + I(CODE_TF == "FF2G61-61") + I(CODE_TF == "FF1-00-00")
+modFirSpruce <- lm(diffDg ~ dgPred + I(CODE_TF == "FF32") + I(alti^2), data = diffDgFirSpruce)
+summary(modFirSpruce)
 
 
 
