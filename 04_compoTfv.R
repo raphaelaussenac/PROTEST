@@ -170,6 +170,9 @@ arbres.vivant$Cod_ess <- as.character(arbres.vivant$Cod_ess)
 # group Oaks together (CHS CHE CHP)
 arbres.vivant[arbres.vivant$Cod_ess %in% c('CHE', 'CHP'), 'Cod_ess'] <- 'CHS'
 
+# transform NR (non-reconnu) into A.F
+arbres.vivant[arbres.vivant$Cod_ess == 'NR', 'Cod_ess'] <- 'A.F'
+
 # calculate basal area for each protest plot
 protestG <- ddply(arbres.vivant, .(Id_plac), summarise, G = sum(g))
 # calculate species basal area for each protest plot
@@ -273,7 +276,7 @@ for (i in unique(protestGSpProp$Id_plac)){
 # list of pure stands
 protestPure <- protestNewSp[protestNewSp$prop > 75,]
 pureBeech <- protestPure[protestPure$Cod_ess == "HET", "Id_plac"]
-pureOak <- protestPure[protestPure$Cod_ess == "CHE" | protestPure$Cod_ess == "CHS", "Id_plac"]
+pureOak <- protestPure[protestPure$Cod_ess == "CHS", "Id_plac"]
 pureFir <- protestPure[protestPure$Cod_ess == "S.P", "Id_plac"]
 pureSpruce <- protestPure[protestPure$Cod_ess == "EPC", "Id_plac"]
 
@@ -315,7 +318,7 @@ protestPlotsDf[protestPlotsDf$Id_plac %in% mixedFirSpruce, "compoSp"] <- "fir-sp
 protestPlotsDf <- protestPlotsDf[!is.na(protestPlotsDf$compoSp),]
 
 ###############################################################
-# retrieve species composition within each TFV types
+# retrieve PROTEST plot species composition within each TFV types
 # and assign (draw) composition to each forest plot
 ###############################################################
 
@@ -385,7 +388,8 @@ forestNewSp <- join(forestPlotsPts, forestPlots@data, by="id")
 # plot
 pdf(file="C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/mapCompo.pdf", width = 20, height = 10)
 ggplot() +
-  geom_polygon(data = forestNewSp, aes(long,lat,group=group,fill=compoSp)) +
+  geom_polygon(data = forestNewSp[forestNewSp$compoSp == 'spruce',], aes(long,lat,group=group,fill=compoSp)) +
+  geom_polygon(data = forestNewSp, aes(long,lat,group=group,fill=greco), alpha = 0.3) +
   coord_equal() +
   # scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(forestDf$pot), name = "fertility\nindex\n(modeled)") +
   ggtitle("stand composition") +
@@ -397,3 +401,8 @@ ggplot() +
           axis.text.y = element_blank(), axis.ticks.y = element_blank(),
           axis.title.x = element_blank(), axis.title.y = element_blank())
 dev.off()
+
+
+
+
+# -----> ajouter points TRUE chene / hetre / mélanges...???

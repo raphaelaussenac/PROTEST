@@ -1,5 +1,45 @@
 ###############################################################
-# difference dgSp1 - dgSp2 for each mixture
+# assign species G to all forest plots
+###############################################################
+
+forestPlotsDf$gBeech <- NA
+forestPlotsDf$gOak <- NA
+forestPlotsDf$gFir <- NA
+forestPlotsDf$gSpruce <- NA
+
+# 1 - First case: pure stands
+# --> nothing to calculate, gPred is available
+# beech
+forestPlotsDf[forestPlotsDf$compoSp == 'beech', "gBeech"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech', "gPred"]
+# oak
+forestPlotsDf[forestPlotsDf$compoSp == 'oak', "gOak"] <- forestPlotsDf[forestPlotsDf$compoSp == 'oak', "gPred"]
+# fir
+forestPlotsDf[forestPlotsDf$compoSp == 'fir', "gFir"] <- forestPlotsDf[forestPlotsDf$compoSp == 'fir', "gPred"]
+# spruce
+forestPlotsDf[forestPlotsDf$compoSp == 'spruce', "gSpruce"] <- forestPlotsDf[forestPlotsDf$compoSp == 'spruce', "gPred"]
+
+# 2 - Second case: deciduous - coniferous mixtures
+# g deciduous and g coniferous are available
+# beech - fir
+forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "gBeech"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "gPred"] *
+                                                                      forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "p100gfP"] / 100
+forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "gFir"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "gPred"] *
+                                                                      (100 - forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "p100gfP"]) / 100
+# beech - spruce
+forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "gBeech"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "gPred"] *
+                                                                      forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "p100gfP"] / 100
+forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "gSpruce"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "gPred"] *
+                                                                      (100 - forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "p100gfP"]) / 100
+
+# 3 - Third case: coniferous - coniferous mixtures
+# g deciduous and g coniferous are not available
+# fir - spruce
+
+--> ratio G1/G2
+
+
+###############################################################
+# retrieve Dg1 and Dg2 of "TRUE" mixtures from PROTEST PLOTS
 ###############################################################
 
 # retrieve list of TRUE mixed stands (i.e. where the two most abundant species
@@ -27,7 +67,7 @@ trueMixedBeechFir <- tabMixed[!is.na(tabMixed$HET) & !is.na(tabMixed$S.P), "Id_p
 trueMixedBeechSpruce <- tabMixed[!is.na(tabMixed$HET) & !is.na(tabMixed$EPC), "Id_plac"]
 trueMixedFirSpruce <- tabMixed[!is.na(tabMixed$S.P) & !is.na(tabMixed$EPC), "Id_plac"]
 
-# calculate differenc dgsp1 - dgsp2
+# calculate link dgsp1 - dgsp2
 diffDg <- function(plotList, sp1, sp2){
   # for each mixture type
   tmbf <- arbres.vivant[arbres.vivant$Id_plac %in% plotList, ]
@@ -42,41 +82,53 @@ diffDg <- function(plotList, sp1, sp2){
     plotDgbf[plotDgbf$Id_plac == i, 'dgSp2'] <- sqrt(sum((plac[plac$Cod_ess == sp2, "Diam"]/100)^2) / nrow(plac[plac$Cod_ess == sp2,]))
   }
   # dg difference and ratio
-  plotDgbf$diffDg <- - plotDgbf$dgSp1 - plotDgbf$dgSp2
+  plotDgbf$diffDg <- plotDgbf$dgSp1 - plotDgbf$dgSp2
   plotDgbf$ratDg <- plotDgbf$dgSp1 / plotDgbf$dgSp2
   plotDgbf <- merge(plotDgbf, protestPlotsDf, by = 'Id_plac', all.x = TRUE, all.y = FALSE)
   return(plotDgbf)
 }
 
 ###############################################################
-# model difference dgSp1 - dgSp2 for each mixture
+# model Dg1/Dg2 ratio from available variables
 ###############################################################
 
 # Beech - Fir
 diffDgBeechFir <- diffDg(trueMixedBeechFir, 'HET', 'S.P')
-# m0 --> diffDg ~ alti + slope + expoNS + expoEW + dgPred
+# m0 --> diffDg ~ alti + slope + expoNS + expoEW + dgPred + gPred
                 # + I(CODE_TF == 'FF31') + I(CODE_TF == "FF32") + I(CODE_TF == "FF1-09-09")
                 # + I(CODE_TF == "FF2G61-61") + I(CODE_TF == "FF1-00-00")
-modBeechFir <- lm(diffDg ~ slope + I(dgPred^2), data = diffDgBeechFir)
+modBeechFir <- lm(ratDg ~ slope + I(dgPred^2), data = diffDgBeechFir)
 summary(modBeechFir)
 
 # Beech - Spruce
 diffDgBeechSpruce <- diffDg(trueMixedBeechSpruce, 'HET', 'EPC')
-# m0 --> diffDg ~ alti + slope + expoNS + expoEW + dgPred
+# m0 --> diffDg ~ alti + slope + expoNS + expoEW + dgPred + gPred
                 # + I(CODE_TF == 'FF31') + I(CODE_TF == "FF32") + I(CODE_TF == "FF1-09-09")
                 # + I(CODE_TF == "FF2G61-61") + I(CODE_TF == "FF1-00-00")
-modBeechSpruce <- lm(diffDg ~ I(dgPred^2) + I(CODE_TF == 'FF31')
+modBeechSpruce <- lm(ratDg ~ I(dgPred^2) + I(CODE_TF == 'FF31')
                     + I(CODE_TF == "FF32") + I(CODE_TF == "FF1-09-09")
                     + I(CODE_TF == "FF2G61-61"), data = diffDgBeechSpruce)
 summary(modBeechSpruce)
 
 # Fir - Spruce
 diffDgFirSpruce <- diffDg(trueMixedFirSpruce, 'S.P', 'EPC')
-# m0 --> diffDg ~ alti + slope + expoNS + expoEW + dgPred
+# m0 --> diffDg ~ alti + slope + expoNS + expoEW + dgPred + gPred
                 # + I(CODE_TF == 'FF31') + I(CODE_TF == "FF32") + I(CODE_TF == "FF1-09-09")
                 # + I(CODE_TF == "FF2G61-61") + I(CODE_TF == "FF1-00-00")
-modFirSpruce <- lm(diffDg ~ dgPred + I(CODE_TF == "FF32") + I(alti^2), data = diffDgFirSpruce)
+modFirSpruce <- lm(ratDg ~ dgPred + I(CODE_TF == "FF32") + I(alti^2), data = diffDgFirSpruce)
 summary(modFirSpruce)
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -88,22 +140,66 @@ summary(modFirSpruce)
 # Dg calculation
 ###############################################################
 
-
-# --> objectif: 1 G et 1 Dg par espece et par parcelle
-forestPlotsDf$dgSp1 <- NA
-forestPlotsDf$dgSp2 <- NA
-forestPlotsDf$gSp1 <- NA
-forestPlotsDf$gSp2 <- NA
-
-
-
-
-
-
+# --> objective: 1 G and 1 Dg per species and per plot
+forestPlotsDf$dgBeech <- NA
+forestPlotsDf$dgOak <- NA
+forestPlotsDf$dgFir <- NA
+forestPlotsDf$dgSpruce <- NA
+forestPlotsDf$gBeech <- NA
+forestPlotsDf$gOak <- NA
+forestPlotsDf$gFir <- NA
+forestPlotsDf$gSpruce <- NA
 
 # 1 - First case: pure stands
-# --> nothing to do, dgPred is available
-forestPlotsDf[forestPlotsDf$compo == 'pure', "dgSp1"] <- forestPlotsDf[forestPlotsDf$compo == 'pure', "dgPred"]
+# --> nothing to calculate, gPred and dgPred are available
+# beech
+forestPlotsDf[forestPlotsDf$compoSp == 'beech', "dgBeech"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech', "dgPred"]
+forestPlotsDf[forestPlotsDf$compoSp == 'beech', "gBeech"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech', "gPred"]
+# oak
+forestPlotsDf[forestPlotsDf$compoSp == 'aok', "dgOak"] <- forestPlotsDf[forestPlotsDf$compoSp == 'aok', "dgPred"]
+forestPlotsDf[forestPlotsDf$compoSp == 'aok', "gOak"] <- forestPlotsDf[forestPlotsDf$compoSp == 'aok', "gPred"]
+# fir
+forestPlotsDf[forestPlotsDf$compoSp == 'fir', "dgFir"] <- forestPlotsDf[forestPlotsDf$compoSp == 'fir', "dgPred"]
+forestPlotsDf[forestPlotsDf$compoSp == 'fir', "gFir"] <- forestPlotsDf[forestPlotsDf$compoSp == 'fir', "gPred"]
+# spruce
+forestPlotsDf[forestPlotsDf$compoSp == 'spruce', "dgSpruce"] <- forestPlotsDf[forestPlotsDf$compoSp == 'spruce', "dgPred"]
+forestPlotsDf[forestPlotsDf$compoSp == 'spruce', "gSpruce"] <- forestPlotsDf[forestPlotsDf$compoSp == 'spruce', "gPred"]
+
+# 2 - Second case: deciduous - conifer mixture (beech - fir, beech - spruce)
+
+# g deciduous and g coniferous are available
+# beech - fir
+forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "gBeech"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "gPred"] *
+                                                                      forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "p100gfP"] / 100
+forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "gFir"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "gPred"] *
+# beech - spruce
+forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "gBeech"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "gPred"] *
+                                                                      forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "p100gfP"] / 100
+forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "gSpruce"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "gPred"] *
+                                                                      (100 - forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "p100gfP"]) / 100
+
+# dg deciduous and dg coniferous must be calculated
+# beech - fir
+aBeechFir <- predict(modBeechFir, newdata = forestPlotsDf)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
