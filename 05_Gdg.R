@@ -1,5 +1,6 @@
 ###############################################################
-# retrieve Dg1 and Dg2 of "TRUE" mixtures from PROTEST PLOTS
+# retrieve Gsp1, Gsp2, Dgsp1 and Dgsp2 of "TRUE" mixtures
+# from PROTEST PLOTS
 ###############################################################
 
 # retrieve list of TRUE mixed stands (i.e. where the two most abundant species
@@ -28,7 +29,7 @@ trueMixedBeechSpruce <- tabMixed[!is.na(tabMixed$HET) & !is.na(tabMixed$EPC), "I
 trueMixedFirSpruce <- tabMixed[!is.na(tabMixed$S.P) & !is.na(tabMixed$EPC), "Id_plac"]
 
 # calculate link dgsp1 / dgsp2 & gFir / gSpruce
-diffDg <- function(plotList, sp1, sp2){
+ratGDg <- function(plotList, sp1, sp2){
   # for each mixture type
   tmbf <- arbres.vivant[arbres.vivant$Id_plac %in% plotList, ]
   plotDgbf <- data.frame(matrix(ncol = 3, nrow = length(plotList)))
@@ -89,11 +90,12 @@ forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "gSpruce"] <- forestPlots
 # g deciduous and g coniferous are not available
 # fir - spruce
 # model Gfir / Gspruce ratio
-ratgFirSpruce <- diffDg(trueMixedBeechFir, 'S.P', 'EPC')
-# m0 --> diffDg ~ alti + slope + expoNS + expoEW + dgPred + gPred
-                # + I(CODE_TF == 'FF31') + I(CODE_TF == "FF32") + I(CODE_TF == "FF1-09-09")
-                # + I(CODE_TF == "FF2G61-61") + I(CODE_TF == "FF1-00-00")
-modgFirSpruce <- lm(ratDg ~ expoNS, data = ratgFirSpruce)
+ratGFirSpruce <- ratGDg(trueMixedFirSpruce, 'S.P', 'EPC')
+# complete model: alti + slope + rum + ph + expoNS + expoEW + dgPred + gPred +
+                  # I(greco == "H") + I(greco == "C") + I(Code_hydro == "0") + I(Code_hydro == "1") +
+                  # I(Code_hydro == "2") + I(Code_hydro == "3") + I(Code_carbonate == "0") +
+                  # I(Code_carbonate == "1") + I(Code_carbonate == "2") + I(Code_carbonate == "3")
+modgFirSpruce <- lm(ratG ~ slope, data = ratGFirSpruce)
 summary(modgFirSpruce)
 
 # b + rnorm(sd(residuals))
@@ -106,35 +108,37 @@ forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gSpruce"] <- forestPlotsDf
                                                                    (1 + forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "b"])
 forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gFir"] <- forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gPred"] /
                                                                    (1 + (1 / forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "b"]) )
-# test G
-forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gSpruce"] + forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gFir"] - forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gPred"]
 
 ###############################################################
 # model Dg1/Dg2 ratio with available variables
 ###############################################################
 
 # Beech - Fir
-ratDgBeechFir <- diffDg(trueMixedBeechFir, 'HET', 'S.P')
-# m0 --> diffDg ~ alti + slope + expoNS + expoEW + dgPred + gPred
-                # + I(CODE_TF == 'FF31') + I(CODE_TF == "FF32") + I(CODE_TF == "FF1-09-09")
-                # + I(CODE_TF == "FF2G61-61") + I(CODE_TF == "FF1-00-00")
-modBeechFir <- lm(ratDg ~ 1, data = ratDgBeechFir)
+ratDgBeechFir <- ratGDg(trueMixedBeechFir, 'HET', 'S.P')
+# complete model: alti + slope + rum + ph + expoNS + expoEW + dgPred + gPred +
+                  # I(greco == "H") + I(greco == "C") + I(Code_hydro == "0") + I(Code_hydro == "1") +
+                  # I(Code_hydro == "2") + I(Code_hydro == "3") + I(Code_carbonate == "0") +
+                  # I(Code_carbonate == "1") + I(Code_carbonate == "2") + I(Code_carbonate == "3")
+modBeechFir <- lm(ratDg ~ I(Code_hydro == "1"), data = ratDgBeechFir)
 summary(modBeechFir)
 
 # Beech - Spruce
-ratDgBeechSpruce <- diffDg(trueMixedBeechSpruce, 'HET', 'EPC')
-# m0 --> diffDg ~ alti + slope + expoNS + expoEW + dgPred + gPred
-                # + I(CODE_TF == 'FF31') + I(CODE_TF == "FF32") + I(CODE_TF == "FF1-09-09")
-                # + I(CODE_TF == "FF2G61-61") + I(CODE_TF == "FF1-00-00")
-modBeechSpruce <- lm(ratDg ~ 1, data = ratDgBeechSpruce)
+ratDgBeechSpruce <- ratGDg(trueMixedBeechSpruce, 'HET', 'EPC')
+# complete model: alti + slope + rum + ph + expoNS + expoEW + dgPred + gPred +
+                  # I(greco == "H") + I(greco == "C") + I(Code_hydro == "0") + I(Code_hydro == "1") +
+                  # I(Code_hydro == "2") + I(Code_hydro == "3") + I(Code_carbonate == "0") +
+                  # I(Code_carbonate == "1") + I(Code_carbonate == "2") + I(Code_carbonate == "3")
+modBeechSpruce <- lm(ratDg ~ alti + slope + expoNS +
+                  I(Code_hydro == "2") + I(Code_carbonate == "0"), data = ratDgBeechSpruce)
 summary(modBeechSpruce)
 
 # Fir - Spruce
-ratDgFirSpruce <- diffDg(trueMixedFirSpruce, 'S.P', 'EPC')
-# m0 --> diffDg ~ alti + slope + expoNS + expoEW + dgPred + gPred
-                # + I(CODE_TF == 'FF31') + I(CODE_TF == "FF32") + I(CODE_TF == "FF1-09-09")
-                # + I(CODE_TF == "FF2G61-61") + I(CODE_TF == "FF1-00-00")
-modFirSpruce <- lm(ratDg ~ expoNS + I(CODE_TF == "FF2G61-61"), data = ratDgFirSpruce)
+ratDgFirSpruce <- ratGDg(trueMixedFirSpruce, 'S.P', 'EPC')
+# complete model: alti + slope + rum + ph + expoNS + expoEW + dgPred + gPred +
+                  # I(greco == "H") + I(greco == "C") + I(Code_hydro == "0") + I(Code_hydro == "1") +
+                  # I(Code_hydro == "2") + I(Code_hydro == "3") + I(Code_carbonate == "0") +
+                  # I(Code_carbonate == "1") + I(Code_carbonate == "2") + I(Code_carbonate == "3")
+modFirSpruce <- lm(ratDg ~ expoNS + expoEW + I(Code_hydro == "1"), data = ratDgFirSpruce)
 summary(modFirSpruce)
 
 ###############################################################
@@ -214,6 +218,7 @@ forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "dgSpruce"] <- forestPlotsD
 
 forestPlotsDf$dTot <- NA
 
+# closing the balance of Dg
 # Beech - Fir
 a <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "gBeech"]
 b <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "gFir"]
@@ -238,12 +243,18 @@ d <- forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "dgSpruce"]^2
 forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "dTot"] <- (a + b) / ((a / c) + (b / d))
 hist(sqrt(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "dTot"]) - forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "dgPred"])
 
-
-
+# closing the balance of G (fir - spruce mixtures)
+hist(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gSpruce"] + forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gFir"] - forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gPred"])
 
 
 
 
 ---> G / Dg a 7.5 vec JMM
 ---> ajouter greco, code hydro / carbonate... dans les modèles complets
----> true mélange > 75. réaffecter les autres espèces ?
+
+
+---> true mixture > 75
+    --> réaffecter G aux deux espèces
+    --> on ne reaffecte pas les dg des autres espèces dans les dg des deux
+        espèce (on ne veut pas biaiser l'ontogénie des 2 sp). JMM --> calibration
+        des Dg seulement sur les sp cibles.
