@@ -39,8 +39,20 @@ ratGDg <- function(plotList, sp1, sp2){
     # for each plot
     plac <- tmbf[tmbf$Id_plac == i,]
     # g calculation
-    plotDgbf[plotDgbf$Id_plac == i, 'gSp1'] <- sum(plac[plac$Cod_ess == sp1, "g"])
-    plotDgbf[plotDgbf$Id_plac == i, 'gSp2'] <- sum(plac[plac$Cod_ess == sp2, "g"])
+    # assign the G of other species to the target species depending on the
+    # proportion of the target species
+    gTot <- unique(protestGSpProp[protestGSpProp$Id_plac == i, "G"])
+    gSp1 <- protestGSpProp[protestGSpProp$Id_plac == i & protestGSpProp$Cod_ess == sp1, "Gsp"]
+    gSp2 <- protestGSpProp[protestGSpProp$Id_plac == i & protestGSpProp$Cod_ess == sp2, "Gsp"]
+    propSp1 <- gSp1 / (gSp1 + gSp2)
+    propSp2 <- gSp2 / (gSp1 + gSp2)
+    gRemain <- gTot - gSp1 - gSp2
+    if (gRemain > 0){
+      gSp1 <- gSp1 + gRemain * propSp1
+      gSp2 <- gSp2 + gRemain * propSp2
+    }
+    plotDgbf[plotDgbf$Id_plac == i, 'gSp1'] <- gSp1
+    plotDgbf[plotDgbf$Id_plac == i, 'gSp2'] <- gSp2
     # dg calculation
     plotDgbf[plotDgbf$Id_plac == i, 'dgSp1'] <- sqrt(sum((plac[plac$Cod_ess == sp1, "Diam"]/100)^2) / nrow(plac[plac$Cod_ess == sp1,]))
     plotDgbf[plotDgbf$Id_plac == i, 'dgSp2'] <- sqrt(sum((plac[plac$Cod_ess == sp2, "Diam"]/100)^2) / nrow(plac[plac$Cod_ess == sp2,]))
@@ -250,11 +262,11 @@ hist(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gSpruce"] + forestPlo
 
 
 ---> G / Dg a 7.5 vec JMM
----> ajouter greco, code hydro / carbonate... dans les modèles complets
-
 
 ---> true mixture > 75
     --> réaffecter G aux deux espèces
     --> on ne reaffecte pas les dg des autres espèces dans les dg des deux
         espèce (on ne veut pas biaiser l'ontogénie des 2 sp). JMM --> calibration
         des Dg seulement sur les sp cibles.
+
+---> D'où viennent les NaN dans les vérif?
