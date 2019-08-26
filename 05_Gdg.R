@@ -69,6 +69,12 @@ ratGDg <- function(plotList, sp1, sp2){
 # assign species G to all forest plots
 ###############################################################
 
+# remove forest plots where gPred == 0
+forestPlotsDf <- forestPlotsDf[forestPlotsDf$gPred > 0, ]
+
+# remove forest plots where gelNttn == "hydro"
+forestPlotsDf <- forestPlotsDf[forestPlotsDf$gelNttn != "hydro", ]
+
 forestPlotsDf$gBeech <- NA
 forestPlotsDf$gOak <- NA
 forestPlotsDf$gFir <- NA
@@ -110,15 +116,38 @@ ratGFirSpruce <- ratGDg(trueMixedFirSpruce, 'S.P', 'EPC')
 modgFirSpruce <- lm(ratG ~ slope, data = ratGFirSpruce)
 summary(modgFirSpruce)
 
-# b + rnorm(sd(residuals))
-forestPlotsDf$b <- NA
-forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "b"] <- predict(modgFirSpruce, newdata = forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce',]) +
-                                                            rnorm(nrow(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce',]), 0, sd(residuals(modgFirSpruce)))
+# b <- b + rnorm(sd(residuals))
+# set the minimum proportion of G for a species in the mixture
+minP <- 0.25
+# minP / (1 - minP) < b < (1-minP) / minP
+forestPlotsDf$b <- -999
+# keep generating b until all b values are in the range (minP / (1 - minP)) < b < ((1-minP) / minP)
+while(sum(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "b"] < (minP / (1 - minP)) | forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "b"] > ((1-minP) / minP)) > 0){
+  forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce' & forestPlotsDf$b < (minP / (1 - minP)) | forestPlotsDf$b > ((1-minP) / minP), "b"] <- predict(modgFirSpruce, newdata = forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce' & forestPlotsDf$b < (minP / (1 - minP)) | forestPlotsDf$b > ((1-minP) / minP),]) +
+                                                              rnorm(nrow(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce' & forestPlotsDf$b < (minP / (1 - minP)) | forestPlotsDf$b > ((1-minP) / minP),]), 0, sd(residuals(modgFirSpruce)))
+  print(sum(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "b"] < (minP / (1 - minP)) | forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "b"] > ((1-minP) / minP)))
+}
+hist(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "b"] )
 
-# g
-forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gSpruce"] <- forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gPred"] /
+# gSpruce
+gpred <- 12
+curve(gpred / (1 + x), from = -10, to = 10, col = 'red')
+abline(h = gpred, col = 'black')
+abline(h = 0, col = 'grey', lty = 2)
+abline(v = 0, col = 'grey', lty = 2)
+curve( (gpred*0.75) / (1 + x), add = TRUE, col = 'green')
+abline(h = gpred*0.75, col = 'grey')
+forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gSpruce"] <- (forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gPred"]) /
                                                                    (1 + forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "b"])
-forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gFir"] <- forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gPred"] /
+# gFir
+gpred <- 12
+curve(gpred / (1 + (1/x)), from = -10, to = 10, col = 'red')
+abline(h = gpred, col = 'black')
+abline(h = 0, col = 'grey', lty = 2)
+abline(v = 0, col = 'grey', lty = 2)
+curve( (gpred*0.75) / (1 + (1/x)), add = TRUE, col = 'green')
+abline(h = gpred*0.75, col = 'grey')
+forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gFir"] <- (forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gPred"]) /
                                                                    (1 + (1 / forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "b"]) )
 
 ###############################################################
@@ -258,15 +287,15 @@ hist(sqrt(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "dTot"]) - forest
 # closing the balance of G (fir - spruce mixtures)
 hist(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gSpruce"] + forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gFir"] - forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gPred"])
 
+# G proportion of species (mist be between 0.25 and 0.75)
+range(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gFir"] / forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gPred"])
+range(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gSpruce"] / forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gPred"])
 
 
-
----> G / Dg a 7.5 vec JMM
-
----> true mixture > 75
-    --> réaffecter G aux deux espèces
-    --> on ne reaffecte pas les dg des autres espèces dans les dg des deux
-        espèce (on ne veut pas biaiser l'ontogénie des 2 sp). JMM --> calibration
-        des Dg seulement sur les sp cibles.
-
----> D'où viennent les NaN dans les vérif?
+# ---> G / Dg a 7.5 vec JMM
+#
+# ---> true mixture > 75
+#     --> réaffecter G aux deux espèces
+#     --> on ne reaffecte pas les dg des autres espèces dans les dg des deux
+#         espèce cibles (on ne veut pas biaiser l'ontogénie des 2 sp). JMM --> calibration
+#         des Dg seulement sur les sp cibles?
