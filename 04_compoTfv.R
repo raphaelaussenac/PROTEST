@@ -123,7 +123,6 @@ E <- 'FF1-09-09' #: Forêt fermée de hêtre pur
 # FF2-52-52: Forêt fermée de pin sylvestre pur -------------> B
 # FF0: Forêt fermée sans couvert arboré --------------------> remove
 
-
 groupTfv <- function(df){
   df <- df[!(df$CODE_TF %in% c('FO0', 'FF0')),]
   df[df$CODE_TF == "FO1", "CODE_TF"] <- A
