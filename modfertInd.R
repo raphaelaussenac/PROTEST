@@ -21,12 +21,13 @@ bdBauges$ifnPt <- "NFI points"
 
 classGeol <- read.csv("classificationGeol.csv", header = TRUE, sep = ";")
 classGeol <- classGeol[, c('NOTATION', 'Code_carbonate', 'Code_hydro')]
+colnames(classGeol) <- c('NOTATION', 'Cd_crbn', 'Cd_hydr')
 
-classGeol$rocheCalc <- 0
-classGeol[classGeol$Code_carbonate > 0, 'rocheCalc'] <- 1
-classGeol$Code_carbonate <- as.factor(classGeol$Code_carbonate)
-classGeol$Code_hydro <- as.factor(classGeol$Code_hydro)
-classGeol$rocheCalc <- as.factor(classGeol$rocheCalc)
+classGeol$rochClc <- 0
+classGeol[classGeol$Cd_crbn > 0, 'rochClc'] <- 1
+classGeol$Cd_crbn <- as.factor(classGeol$Cd_crbn)
+classGeol$Cd_hydr <- as.factor(classGeol$Cd_hydr)
+classGeol$rochClc <- as.factor(classGeol$rochClc)
 bdBauges <- merge(bdBauges, classGeol, by.x = 'gelNttn', by.y = 'NOTATION', all.x = TRUE)
 
 ###############################################################
@@ -40,7 +41,7 @@ predFert <- function(mod, modData, sp, mode, method){
   } else if (method == "knPa-unPa"){
     if (sp == '03'){
       modData$knPa <- 0
-      modData[modData$rocheCalc == 1, "knPa"] <- -11.097
+      modData[modData$rochClc == 1, "knPa"] <- -11.097
     } else if (sp == '09'){
       modData$knPa <- -0.0083 * modData$alti + -0.086 * modData$slope
     } else if (sp == '61'){
@@ -48,7 +49,7 @@ predFert <- function(mod, modData, sp, mode, method){
       modData[modData$greco =="H", "knPa"] <- -11.56
     } else if (sp == '62'){
       modData$knPa <- 0
-      modData[modData$rocheCalc == 1, "knPa"] <- -8.100
+      modData[modData$rochClc == 1, "knPa"] <- -8.100
       modData$continuousknPa2 <- -0.255 * modData$slope + -3.705 * modData$expoNS
       modData$knPa <- modData$knPa + modData$continuousknPa2
     }
@@ -110,7 +111,7 @@ varPar <- function(mod, modData, sp){
 ###############################################################
 
 # known variables:   - GRECO D        # unknown variables: - Intercept
-#                    - rocheCalc      #                    - tmin_12
+#                    - rochClc      #                    - tmin_12
 #                                     #                    - CN_decor
 #                                     #                    - de_7
 #                                     #                    - swhc
@@ -120,17 +121,17 @@ bdBauges03 <- bdBauges
 
 # model
 # complete model: alti + slope + rum + ph + expoNS + expoEW +
-# I(greco == "H") + I(greco == "C") + I(Code_hydro == "0") + I(Code_hydro == "1") +
-# I(Code_hydro == "2") + I(Code_hydro == "3") + I(Code_carbonate == "0") +
-# I(Code_carbonate == "1") + I(Code_carbonate == "2") + I(Code_carbonate == "3") +
-# I(rocheCalc == "0") + I(rocheCalc == "1")
+# I(greco == "H") + I(greco == "C") + I(Cd_hydr == "0") + I(Cd_hydr == "1") +
+# I(Cd_hydr == "2") + I(Cd_hydr == "3") + I(Cd_crbn == "0") +
+# I(Cd_crbn == "1") + I(Cd_crbn == "2") + I(Cd_crbn == "3") +
+# I(rochClc == "0") + I(rochClc == "1")
 if (chosenMethod == 'direct'){
   modUnPa03 <- lm(ptnt_03 ~ slope + rum + I(alti^2) + I(ph^2) +
   I(greco == "H") +
-  I(Code_carbonate == "0") +
-  I(Code_carbonate == "1") + I(Code_carbonate == "2"), data = bdBauges03) #
+  I(Cd_crbn == "0") +
+  I(Cd_crbn == "1") + I(Cd_crbn == "2"), data = bdBauges03) #
 } else if (chosenMethod == 'knPa-unPa'){
-  modUnPa03 <- lm(unknP03 ~ alti + rum + I(rum^2) + Code_carbonate + Code_hydro, data = bdBauges03)
+  modUnPa03 <- lm(unknP03 ~ alti + rum + I(rum^2) + Cd_crbn + Cd_hydr, data = bdBauges03)
 }
 summary(modUnPa03)
 
@@ -154,14 +155,14 @@ bdBauges09 <- bdBauges[!is.na(bdBauges$ptnt_09), ]
 
 # model
 # complete model: alti + slope + rum + ph + expoNS + expoEW +
-# I(greco == "H") + I(greco == "C") + I(Code_hydro == "0") + I(Code_hydro == "1") +
-# I(Code_hydro == "2") + I(Code_hydro == "3") + I(Code_carbonate == "0") +
-# I(Code_carbonate == "1") + I(Code_carbonate == "2") + I(Code_carbonate == "3") +
-# I(rocheCalc == "0") + I(rocheCalc == "1")
+# I(greco == "H") + I(greco == "C") + I(Cd_hydr == "0") + I(Cd_hydr == "1") +
+# I(Cd_hydr == "2") + I(Cd_hydr == "3") + I(Cd_crbn == "0") +
+# I(Cd_crbn == "1") + I(Cd_crbn == "2") + I(Cd_crbn == "3") +
+# I(rochClc == "0") + I(rochClc == "1")
 if (chosenMethod == 'direct'){
   modUnPa09 <- lm(ptnt_09 ~ alti + slope + expoNS + I(rum^2), data = bdBauges09) #
 } else if (chosenMethod == 'knPa-unPa'){
-  modUnPa09 <- lm(unknP09 ~ alti + rum + I(rum^2) + Code_carbonate + Code_hydro, data = bdBauges09)
+  modUnPa09 <- lm(unknP09 ~ alti + rum + I(rum^2) + Cd_crbn + Cd_hydr, data = bdBauges09)
 }
 summary(modUnPa09)
 
@@ -185,15 +186,15 @@ bdBauges61 <- bdBauges
 
 # model
 # complete model: alti + slope + rum + ph + expoNS + expoEW +
-# I(greco == "H") + I(greco == "C") + I(Code_hydro == "0") + I(Code_hydro == "1") +
-# I(Code_hydro == "2") + I(Code_hydro == "3") + I(Code_carbonate == "0") +
-# I(Code_carbonate == "1") + I(Code_carbonate == "2") + I(Code_carbonate == "3") +
-# I(rocheCalc == "0") + I(rocheCalc == "1")
+# I(greco == "H") + I(greco == "C") + I(Cd_hydr == "0") + I(Cd_hydr == "1") +
+# I(Cd_hydr == "2") + I(Cd_hydr == "3") + I(Cd_crbn == "0") +
+# I(Cd_crbn == "1") + I(Cd_crbn == "2") + I(Cd_crbn == "3") +
+# I(rochClc == "0") + I(rochClc == "1")
 if (chosenMethod == 'direct'){
   modUnPa61 <- lm(ptnt_61 ~ alti + expoEW + I(rum^2) +
-  I(greco == "H") + I(Code_carbonate == "0"), data = bdBauges61) #
+  I(greco == "H") + I(Cd_crbn == "0"), data = bdBauges61) #
 } else if (chosenMethod == 'knPa-unPa'){
-  modUnPa61 <- lm(unknP61 ~ alti + rum + I(rum^2) + Code_carbonate + Code_hydro, data = bdBauges61)
+  modUnPa61 <- lm(unknP61 ~ alti + rum + I(rum^2) + Cd_crbn + Cd_hydr, data = bdBauges61)
 }
 summary(modUnPa61)
 
@@ -209,7 +210,7 @@ varPar61 <- varPar(modUnPa61, bdBauges61, "61")
 
 # known variables:   - slope          # unknown variables: - Intercept
 #                    - expoNS         #                    - tmin_2
-#                    - rocheCalc      #                    - swhc_A
+#                    - rochClc      #                    - swhc_A
 #                                     #                    - bhc_5
 #                                     #                    - C/N
 
@@ -218,15 +219,15 @@ bdBauges62 <- bdBauges[!is.na(bdBauges$ptnt_62), ]
 
 # model
 # complete model: alti + slope + rum + ph + expoNS + expoEW +
-# I(greco == "H") + I(greco == "C") + I(Code_hydro == "0") + I(Code_hydro == "1") +
-# I(Code_hydro == "2") + I(Code_hydro == "3") + I(Code_carbonate == "0") +
-# I(Code_carbonate == "1") + I(Code_carbonate == "2") + I(Code_carbonate == "3") +
-# I(rocheCalc == "0") + I(rocheCalc == "1")
+# I(greco == "H") + I(greco == "C") + I(Cd_hydr == "0") + I(Cd_hydr == "1") +
+# I(Cd_hydr == "2") + I(Cd_hydr == "3") + I(Cd_crbn == "0") +
+# I(Cd_crbn == "1") + I(Cd_crbn == "2") + I(Cd_crbn == "3") +
+# I(rochClc == "0") + I(rochClc == "1")
 if (chosenMethod == 'direct'){
   modUnPa62 <- lm(ptnt_62 ~ slope + expoEW + I(slope^2) + I(rum^2) +
-  I(greco == "H") + I(Code_carbonate == "0"), data = bdBauges62) #
+  I(greco == "H") + I(Cd_crbn == "0"), data = bdBauges62) #
 } else if (chosenMethod == 'knPa-unPa'){
-  modUnPa62 <- lm(unknP62 ~ alti + rum + I(rum^2) + Code_carbonate + Code_hydro, data = bdBauges62)
+  modUnPa62 <- lm(unknP62 ~ alti + rum + I(rum^2) + Cd_crbn + Cd_hydr, data = bdBauges62)
 }
 summary(modUnPa62)
 

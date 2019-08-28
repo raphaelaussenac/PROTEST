@@ -372,5 +372,20 @@ forestPlots@data <- cbind(forestPlots@data, grecoExtDf, elevExtDf, sloExtDf,
                       ggbPredExtDf, nPredExtDf, p100gfPredExtDf, phExtDf,
                       rumExtDf, kExtDf, lsExtDf, pExtDf, rExtDf)
 
+###############################################################
+# load geol classification
+###############################################################
+
+classGeol <- read.csv("classificationGeol.csv", header = TRUE, sep = ";")
+classGeol <- classGeol[, c('NOTATION', 'Code_carbonate', 'Code_hydro')]
+classGeol$rocheCalc <- 0
+classGeol[classGeol$Code_carbonate > 0, 'rocheCalc'] <- 1
+classGeol$Code_carbonate <- as.factor(classGeol$Code_carbonate)
+classGeol$Code_hydro <- as.factor(classGeol$Code_hydro)
+classGeol$rocheCalc <- as.factor(classGeol$rocheCalc)
+
+# insert geol classification in forestPlots
+forestPlots <- merge(forestPlots, classGeol, by.x = "geolNotation", by.y = 'NOTATION', all.x = TRUE)
+
 # save
 shapefile(forestPlots, filename = 'forestPlots3Ha', overwrite = TRUE)

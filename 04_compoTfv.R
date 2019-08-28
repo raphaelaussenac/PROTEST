@@ -27,19 +27,6 @@ protestPt <- load(file = "Z:/Private/protestPt.rda")
 # load BDforet
 forestPlots <- readOGR(dsn = "C:/Users/raphael.aussenac/Documents/GitHub/PROTEST", layer = "forestPlots3Ha", encoding = "UTF-8", use_iconv = TRUE)
 
-# load geol data
-classGeol <- read.csv("classificationGeol.csv", header = TRUE, sep = ";")
-classGeol <- classGeol[, c('NOTATION', 'Code_carbonate', 'Code_hydro')]
-
-classGeol$rocheCalc <- 0
-classGeol[classGeol$Code_carbonate > 0, 'rocheCalc'] <- 1
-classGeol$Code_carbonate <- as.factor(classGeol$Code_carbonate)
-classGeol$Code_hydro <- as.factor(classGeol$Code_hydro)
-classGeol$rocheCalc <- as.factor(classGeol$rocheCalc)
-
-# insert geol data in forestPlots
-forestPlots <- merge(forestPlots, classGeol, by.x = 'gelNttn', by.y = 'NOTATION', all.x = TRUE)
-
 ###############################################################
 # retrieve code TFV for all NFI points within the study area
 ###############################################################

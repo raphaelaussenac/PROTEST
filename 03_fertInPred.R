@@ -34,12 +34,9 @@ forestPlots@data <- cbind(forestPlots@data, coord)
 # remove polygones with geol == 'hydro' (== lac, river)
 forestPlots <- forestPlots[forestPlots$gelNttn != 'hydro', ]
 
-# load geol classification
-forestPlots@data <- merge(forestPlots@data, classGeol, by.x = 'gelNttn', by.y = 'NOTATION', all.x = TRUE)
-
 # create df with variables used in the models
 modDf <- forestPlots@data
-modDf <- modDf[, c("alti", "slope", "greco", "expoNS", "expoEW", "ph", "rum", 'gelNttn' ,'Code_carbonate', 'Code_hydro', 'rocheCalc', 'X', 'Y')]
+modDf <- modDf[, c("alti", "slope", "greco", "expoNS", "expoEW", "ph", "rum", 'gelNttn' ,'Cd_crbn', 'Cd_hydr', 'rochClc', 'X', 'Y')]
 
 # max slope = 200 --> remove cliff effect
 modDf[modDf$slope > 200, "slope"] <- 200
