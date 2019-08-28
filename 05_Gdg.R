@@ -54,8 +54,8 @@ ratGDg <- function(plotList, sp1, sp2){
     plotDgbf[plotDgbf$Id_plac == i, 'gSp1'] <- gSp1
     plotDgbf[plotDgbf$Id_plac == i, 'gSp2'] <- gSp2
     # dg calculation
-    plotDgbf[plotDgbf$Id_plac == i, 'dgSp1'] <- sqrt(sum((plac[plac$Cod_ess == sp1, "Diam"])^2) / nrow(plac[plac$Cod_ess == sp1,]))
-    plotDgbf[plotDgbf$Id_plac == i, 'dgSp2'] <- sqrt(sum((plac[plac$Cod_ess == sp2, "Diam"])^2) / nrow(plac[plac$Cod_ess == sp2,]))
+    plotDgbf[plotDgbf$Id_plac == i, 'dgSp1'] <- sqrt(sum((plac[plac$Cod_ess == sp1, "Diam"]/100)^2) / nrow(plac[plac$Cod_ess == sp1,]))
+    plotDgbf[plotDgbf$Id_plac == i, 'dgSp2'] <- sqrt(sum((plac[plac$Cod_ess == sp2, "Diam"]/100)^2) / nrow(plac[plac$Cod_ess == sp2,]))
     # verify Gtot
     plotDgbf[plotDgbf$Id_plac == i, 'gTot'] <- gTot
   }
@@ -115,7 +115,7 @@ ratGFirSpruce <- ratGDg(trueMixedFirSpruce, 'S.P', 'EPC')
                   # I(greco == "H") + I(greco == "C") + I(Cd_hydr == "0") + I(Cd_hydr == "1") +
                   # I(Cd_hydr == "2") + I(Cd_hydr == "3") + I(Cd_crbn == "0") +
                   # I(Cd_crbn == "1") + I(Cd_crbn == "2") + I(Cd_crbn == "3")
-modgFirSpruce <- lm(ratG ~ expoNS + I(dgPred^2) + I(Cd_crbn == "3"), data = ratGFirSpruce)
+modgFirSpruce <- lm(ratG ~ 1, data = ratGFirSpruce) # expoNS + I(dgPred^2) + I(Cd_crbn == "3")
 summary(modgFirSpruce)
 
 # b <- b + rnorm(sd(residuals))
@@ -148,7 +148,7 @@ ratDgBeechFir <- ratGDg(trueMixedBeechFir, 'HET', 'S.P')
                   # I(greco == "H") + I(greco == "C") + I(Cd_hydr == "0") + I(Cd_hydr == "1") +
                   # I(Cd_hydr == "2") + I(Cd_hydr == "3") + I(Cd_crbn == "0") +
                   # I(Cd_crbn == "1") + I(Cd_crbn == "2") + I(Cd_crbn == "3")
-modBeechFir <- lm(ratDg ~ I(Cd_hydr == "1"), data = ratDgBeechFir)
+modBeechFir <- lm(ratDg ~ I(Cd_hydr == "1"), data = ratDgBeechFir) # I(Cd_hydr == "1")
 summary(modBeechFir)
 
 # Beech - Spruce
@@ -158,7 +158,7 @@ ratDgBeechSpruce <- ratGDg(trueMixedBeechSpruce, 'HET', 'EPC')
                   # I(Cd_hydr == "2") + I(Cd_hydr == "3") + I(Cd_crbn == "0") +
                   # I(Cd_crbn == "1") + I(Cd_crbn == "2") + I(Cd_crbn == "3")
 modBeechSpruce <- lm(ratDg ~ alti + slope + expoNS +
-                  I(Cd_hydr == "2") + I(Cd_crbn == "0"), data = ratDgBeechSpruce)
+                  I(Cd_hydr == "2") + I(Cd_crbn == "0"), data = ratDgBeechSpruce) # alti + slope + expoNS + I(Cd_hydr == "2") + I(Cd_crbn == "0")
 summary(modBeechSpruce)
 
 # Fir - Spruce
@@ -167,7 +167,7 @@ ratDgFirSpruce <- ratGDg(trueMixedFirSpruce, 'S.P', 'EPC')
                   # I(greco == "H") + I(greco == "C") + I(Cd_hydr == "0") + I(Cd_hydr == "1") +
                   # I(Cd_hydr == "2") + I(Cd_hydr == "3") + I(Cd_crbn == "0") +
                   # I(Cd_crbn == "1") + I(Cd_crbn == "2") + I(Cd_crbn == "3")
-modFirSpruce <- lm(ratDg ~ expoNS + expoEW + I(Cd_hydr == "1"), data = ratDgFirSpruce)
+modFirSpruce <- lm(ratDg ~ expoNS + expoEW + I(Cd_hydr == "1"), data = ratDgFirSpruce) # expoNS + expoEW + I(Cd_hydr == "1")
 summary(modFirSpruce)
 
 ###############################################################
@@ -281,27 +281,25 @@ range(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gSpruce"] / forestPl
 
 # density plot of prediction vs protest plots
 # beech - spruce
-plot(density(ratDgBeechSpruce$dgSp1), col = 'green', xlim = c(0, 60))
+plot(density(ratDgBeechSpruce$dgSp1), col = 'green', ylim = c(0, 10))
 lines(density(forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', 'dgBeech']))
 
-plot(density(ratDgBeechSpruce$dgSp2), col = 'green', xlim = c(0, 60), ylim = c(0, 0.1))
-lines(density(forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', 'dgSpruce']))
+plot(density(ratDgBeechSpruce$dgSp2, bw = 0.1), col = 'green', xlim = c(0, 15), ylim = c(0, 20))
+lines(density(forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', 'dgSpruce'], bw = 0.1))
 
 # beech - fir
-plot(density(ratDgBeechFir$dgSp1), col = 'green', xlim = c(0, 60), ylim = c(0, 0.08))
+plot(density(ratDgBeechFir$dgSp1), col = 'green', xlim = c(0, 1), ylim = c(0, 10))
 lines(density(forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', 'dgBeech']))
 
-plot(density(ratDgBeechFir$dgSp2), col = 'green', xlim = c(0, 60), ylim = c(0, 0.05))
+plot(density(ratDgBeechFir$dgSp2), col = 'green', xlim = c(0, 1), ylim = c(0, 10))
 lines(density(forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', 'dgFir']))
 
 # fir - spruce
 # dg
-plot(density(ratDgFirSpruce$dgSp1), col = 'green', xlim = c(0, 70))
+plot(density(ratDgFirSpruce$dgSp1), col = 'green', xlim = c(0, 1))
 lines(density(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', 'dgFir']))
 
-
-hist(ratDgFirSpruce$dgSp1)
-plot(density(ratDgFirSpruce$dgSp2), col = 'green', xlim = c(0, 60))
+plot(density(ratDgFirSpruce$dgSp2), col = 'green', xlim = c(0, 1), ylim = c(0, 10))
 lines(density(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', 'dgSpruce']))
 
 # g
@@ -324,3 +322,8 @@ lines(density(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', 'gSpruce'] / 
 #     --> on ne reaffecte pas les dg des autres espèces dans les dg des deux
 #         espèce cibles (on ne veut pas biaiser l'ontogénie des 2 sp). JMM --> calibration
 #         des Dg seulement sur les sp cibles?
+
+
+
+-- > valeurs extremes de Dg pour (notamment beech - spruce)
+---> selection de variables model G
