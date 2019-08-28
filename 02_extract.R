@@ -66,6 +66,7 @@ forProtec <- raster('Z:/Private/rasterVanneck/forProtec.tif')
 # Dg_pred
 dgPred <- raster('X:/ProjetsCommuns/PROTEST/T5/Livrables/T1/model_pnr_bauges_73_74/raster/Dg_pred.tif')
 crs(dgPred) <- crs(pnr)
+dgPred <- dgPred / 100 # cm to m
 
 # G_pred
 gPred <- raster('X:/ProjetsCommuns/PROTEST/T5/Livrables/T1/model_pnr_bauges_73_74/raster/G_pred.tif')
@@ -82,6 +83,11 @@ crs(nPred) <- crs(pnr)
 # p100GF_pred
 p100gfPred <- raster('X:/ProjetsCommuns/PROTEST/T5/Livrables/T1/model_pnr_bauges_73_74/raster/p100GF_pred.tif')
 crs(p100gfPred) <- crs(pnr)
+
+# calculate N from g and dg (more reliable than N_pred)
+ni <- (4*gPred) / (pi*dgPred^2)
+# calculate N from g and dg (more reliable than N_pred)
+niDgi2 <- ni * dgPred^2
 
 ###############################################################
 # SILVAE data
@@ -181,7 +187,8 @@ sloVr <- velox(slo)
 orienVr <- velox(orien)
 grecoVr <- velox(grecoRaster)
 forProtecVr <- velox(forProtec)
-dgPredVr <- velox(dgPred)
+niVr <- velox(ni)
+niDgi2Vr <- velox(niDgi2)
 gPredVr <- velox(gPred)
 ggbPredVr <- velox(ggbPred)
 nPredVr <- velox(nPred)
@@ -281,11 +288,17 @@ rumExt <- rumVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE
 
 # extract dendro
 forProtecExt <- forProtecVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
-dgPredExt <- dgPredVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
 gPredExt <- gPredVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
 ggbPredExt <- ggbPredVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
 nPredExt <- nPredVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
 p100gfPredExt <- p100gfPredVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+
+# dg extraction
+# dg = sqrt(sum(Ni*Dgi^2) / sum(Ni))
+# calculate sum(Ni)
+niExt <- niVr$extract(sp = forestPlots, fun = function(x) sum(x, na.rm = TRUE), small = TRUE)
+# calculate sum(Ni*Dgi^2)
+niDgi2Ext <- niDgi2Vr$extract(sp = forestPlots, fun = function(x) sum(x, na.rm = TRUE), small = TRUE)
 
 # extract USLE parameters
 kExt <- kVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
@@ -314,7 +327,11 @@ orienExtDf <- data.frame(orienExt)
 colnames(orienExtDf) <- "orient"
 forProtecExtDf <- data.frame(forProtecExt)
 colnames(forProtecExtDf) <- "forProtec"
-dgPredExtDf <- data.frame(dgPredExt)
+niExtDf <- data.frame(niExt)
+colnames(niExtDf) <- "sumNi"
+niDgi2ExtDf <- data.frame(niDgi2Ext)
+colnames(niDgi2ExtDf) <- "sumNiDgi2"
+dgPredExtDf <- sqrt(niDgi2ExtDf / niExtDf)
 colnames(dgPredExtDf) <- "dgPred"
 gPredExtDf <- data.frame(gPredExt)
 colnames(gPredExtDf) <- "gPred"
