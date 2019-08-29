@@ -192,12 +192,21 @@ forestPlotsDf[forestPlotsDf$compoSp == 'spruce', "dgSpruce"] <- forestPlotsDf[fo
 
 ################################### 2 - Second case: mixed stands
 
-forestPlotsDf$a <- NA
+forestPlotsDf$a <- -999
 
 # Beech - Fir
-# a + rnorm(sd(residuals))
-forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "a"] <- predict(modBeechFir, newdata = forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir',]) +
-                                                            rnorm(nrow(forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir',]), 0, sd(residuals(modBeechFir)))
+# condition: a values are in the range of a values obtained with protest plots
+# # keep generating a until all a values are in the range of a value obtained with protest plots
+minA <- min(ratDgBeechFir$dgSp1 / ratDgBeechFir$dgSp2)
+maxA <- max(ratDgBeechFir$dgSp1 / ratDgBeechFir$dgSp2)
+while(sum(forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "a"] < minA | forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "a"] > maxA) > 0){
+  forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir' & forestPlotsDf$a < minA, 'a'] <- predict(modBeechFir, newdata = forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir' & forestPlotsDf$a < minA,]) +
+                                                              rnorm(nrow(forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir' & forestPlotsDf$a < minA,]), 0, sd(residuals(modBeechFir)))
+  forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir' & forestPlotsDf$a > maxA, 'a'] <- predict(modBeechFir, newdata = forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir' & forestPlotsDf$a > maxA,]) +
+                                                            rnorm(nrow(forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir' & forestPlotsDf$a > maxA,]), 0, sd(residuals(modBeechFir)))
+  print(sum(forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "a"] < minA | forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "a"] > maxA))
+}
+
 # Dg Beech
 forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "dgBeech"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "dgPred"] *
                                                               sqrt((forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "gBeech"] +
@@ -208,11 +217,20 @@ forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "dgBeech"] <- forestPlotsDf[
 # Dg Fir
 forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "dgFir"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "dgBeech"] /
                                                               forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "a"]
-#
+
 # Beech - Spruce
-# a + rnorm(sd(residuals))
-forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "a"] <- predict(modBeechSpruce, newdata = forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce',]) +
-                                                            rnorm(nrow(forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce',]), 0, sd(residuals(modBeechSpruce)))
+# condition: a values are in the range of a values obtained with protest plots
+# # keep generating a until all a values are in the range of a value obtained with protest plots
+minA <- min(ratDgBeechSpruce$dgSp1 / ratDgBeechSpruce$dgSp2)
+maxA <- max(ratDgBeechSpruce$dgSp1 / ratDgBeechSpruce$dgSp2)
+while(sum(forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "a"] < minA | forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "a"] > maxA) > 0){
+  forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce' & forestPlotsDf$a < minA, 'a'] <- predict(modBeechSpruce, newdata = forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce' & forestPlotsDf$a < minA,]) +
+                                                              rnorm(nrow(forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce' & forestPlotsDf$a < minA,]), 0, sd(residuals(modBeechSpruce)))
+  forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce' & forestPlotsDf$a > maxA, 'a'] <- predict(modBeechSpruce, newdata = forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce' & forestPlotsDf$a > maxA,]) +
+                                                            rnorm(nrow(forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce' & forestPlotsDf$a > maxA,]), 0, sd(residuals(modBeechSpruce)))
+  print(sum(forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "a"] < minA | forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "a"] > maxA))
+}
+
 # Dg Beech
 forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "dgBeech"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "dgPred"] *
                                                               sqrt((forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "gBeech"] +
@@ -224,11 +242,20 @@ forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "dgBeech"] <- forestPlots
 # Dg Spruce
 forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "dgSpruce"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "dgBeech"] /
                                                               forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "a"]
-#
+
 # Fir - Spruce
-# a + rnorm(sd(residuals))
-forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "a"] <- predict(modFirSpruce, newdata = forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce',]) +
-                                                            rnorm(nrow(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce',]), 0, sd(residuals(modFirSpruce)))
+# condition: a values are in the range of a values obtained with protest plots
+# # keep generating a until all a values are in the range of a value obtained with protest plots
+minA <- min(ratDgFirSpruce$dgSp1 / ratDgFirSpruce$dgSp2)
+maxA <- max(ratDgFirSpruce$dgSp1 / ratDgFirSpruce$dgSp2)
+while(sum(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "a"] < minA | forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "a"] > maxA) > 0){
+  forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce' & forestPlotsDf$a < minA, 'a'] <- predict(modFirSpruce, newdata = forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce' & forestPlotsDf$a < minA,]) +
+                                                              rnorm(nrow(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce' & forestPlotsDf$a < minA,]), 0, sd(residuals(modFirSpruce)))
+  forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce' & forestPlotsDf$a > maxA, 'a'] <- predict(modFirSpruce, newdata = forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce' & forestPlotsDf$a > maxA,]) +
+                                                            rnorm(nrow(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce' & forestPlotsDf$a > maxA,]), 0, sd(residuals(modFirSpruce)))
+  print(sum(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "a"] < minA | forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "a"] > maxA))
+}
+
 # Dg Fir
 forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "dgFir"] <- forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "dgPred"] *
                                                               sqrt((forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gFir"] +
@@ -239,7 +266,6 @@ forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "dgFir"] <- forestPlotsDf[f
 # Dg Spruce
 forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "dgSpruce"] <- forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "dgFir"] /
                                                               forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "a"]
-#
 
 ###############################################################
 # test
@@ -284,11 +310,11 @@ range(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gSpruce"] / forestPl
 plot(density(ratDgBeechSpruce$dgSp1), col = 'green', ylim = c(0, 10))
 lines(density(forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', 'dgBeech']))
 
-plot(density(ratDgBeechSpruce$dgSp2, bw = 0.1), col = 'green', xlim = c(0, 15), ylim = c(0, 20))
-lines(density(forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', 'dgSpruce'], bw = 0.1))
+plot(density(ratDgBeechSpruce$dgSp2, n = 100), col = 'green', ylim = c(0, 20))
+lines(density(forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', 'dgSpruce']))
 
 # beech - fir
-plot(density(ratDgBeechFir$dgSp1), col = 'green', xlim = c(0, 1), ylim = c(0, 10))
+plot(density(ratDgBeechFir$dgSp1), col = 'green', ylim = c(0, 10))
 lines(density(forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', 'dgBeech']))
 
 plot(density(ratDgBeechFir$dgSp2), col = 'green', xlim = c(0, 1), ylim = c(0, 10))
@@ -326,4 +352,14 @@ lines(density(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', 'gSpruce'] / 
 
 
 -- > valeurs extremes de Dg pour (notamment beech - spruce)
----> selection de variables model G
+
+
+
+
+hist(forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce' , 'a'], breaks = 100)
+hist(ratDgBeechSpruce$dgSp1 / ratDgBeechSpruce$dgSp2, add = TRUE, col ='red')
+
+
+
+range(forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce' , 'a'])
+range(ratDgBeechSpruce$dgSp1 / ratDgBeechSpruce$dgSp2)
