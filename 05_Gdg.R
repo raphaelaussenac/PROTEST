@@ -463,11 +463,3 @@ range(ratDgFirSpruce$dgSp1 / ratDgFirSpruce$dgSp2)
 #     --> on ne reaffecte pas les dg des autres espèces dans les dg des deux
 #         espèce cibles (on ne veut pas biaiser l'ontogénie des 2 sp). JMM --> calibration
 #         des Dg seulement sur les sp cibles?
-
-
----> checker RDI
-----> unit
-G  -> m2
-dg -> m
-compo -> beech-spruce
-fert ->
