@@ -1,0 +1,220 @@
+\documentclass[a4paper]{article}
+
+%% Language and font encodings
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{times}
+
+%% Sets page size and margins
+\usepackage[a4paper,top=3cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+
+%% Useful packages
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{xcolor}
+
+%% multiline equations
+\usepackage{amsmath}
+
+%% line number
+\usepackage[left]{lineno}
+\linenumbers
+
+%% double space (with \doublespacing)
+\usepackage{setspace}
+\doublespacing
+
+%% citation / bibliography
+\usepackage[round,authoryear]{natbib}
+
+
+\usepackage{authblk}
+
+\title{PROTEST}
+
+\author[1]{Raphaël Aussenac}
+\author[1]{Patrick Vallet}
+\author[1]{Jean-Matthieu Monnet}
+\author[2]{Thomas Carrette}
+\author[3]{Pierre Paccard}
+\author[4]{Arnaud Sergent}
+\author[5]{Catherine Riond}
+\author[6]{Raphaël Bondu}
+\author[1]{Vanneck Nzeta Kenne}
+
+\affil[1]{IRSTEA grenoble}
+\affil[2]{FCBA grenoble}
+\affil[3]{PNR Bauges}
+\affil[4]{IRSTEA Bordeaux}
+\affil[5]{ONF}
+\affil[6]{???}
+
+
+\date{}
+
+\begin{document}
+\maketitle
+
+\section*{Abstract}
+
+\section*{Journal}
+\begin{itemize}
+    \item Environmental Modelling \& Software (suggestion Patrick)
+    \item Agricultural and Forest Meteorology (Coupling transversal and longitudinal models to better predict Quercus petraea and Pinus sylvestris stand growth under climate change)
+    \item Forest Ecology and Management
+    \item Annals of Forest Science (Capsis: an open software framework and communityfor forest growth modelling)
+    \item Journal of Environmental Management
+\end{itemize}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{Introduction}
+
+\citep{cardinale2012biodiversity}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{Materials and Methods}
+
+\subsection*{Geological classification - Raphaël Bondu}
+
+Description de la variable “code carbonate”:
+
+Cette variable décrit la teneur en minéraux carbonatés de la roche-mère suivant 4 catégories :
+0  Pas à peu de carbonates (ex. schiste)
+1  Présence modérée de carbonates (ex. marne)
+2  Riche en carbonates (ex. calcaire argileux)
+3  Carbonates quasi-purs (ex. calcaire lithographique)
+Lorsque les ensembles géologiques regroupent des formations variées du point de vue lithologique, la valeur assignée a tenté de tenir compte de l’épaisseur de chacune des formations.
+Cette classification est basée sur les informations qualitatives tirées des documents du Bureau de Recherche Géologique et Minière (BRGM) suivants : 
+Doudoux B., Barféty J.C., Vivier G., Carfantan J.C., Nicoud G., Tardy M., avec la collaboration de Monjuvent G., Debon F., Menot R.-P., Aprahamian J. (1999) - Notice explicative, Carte géol. France (1/50 000), feuille Albertville (726). Orléans : BRGM, 119 p. Carte géologique par B. Doudoux, J.-C. Barféty, G. Vivier, J.-C. Carfantan, G. Nicoud, B. Colletta, M. Tardy (1999).
+F. Cagnard (2008) – Carte géologique harmonisée du département de la Haute-Savoie. BRGM/RP-5 59 30 -FR, 329 p.,7 fig., 2 tab., 3 pl. Hors-texte.
+
+\noindent Description de la variable “code hydro”:
+
+Cette variable décrit la perméabilité potentielle de la roche-mère en fonction de sa nature minéralogique suivant 4 catégories : 
+0  Fortement perméable (ex. calcaire massif karstifié)
+1  Perméable (ex. calcaire argileux)
+2  Peu perméable (ex. alternance marne et calcaire)
+3  Imperméable ou quasi-imperméable (ex. argile)
+Cette classification est basée sur les informations qualitatives tirées des documents du Bureau de Recherche Géologique et Minière (BRGM) suivants : 
+Doudoux B., Barféty J.C., Vivier G., Carfantan J.C., Nicoud G., Tardy M., avec la collaboration de Monjuvent G., Debon F., Menot R.-P., Aprahamian J. (1999) - Notice explicative, Carte géol. France (1/50 000), feuille Albertville (726). Orléans : BRGM, 119 p. Carte géologique par B. Doudoux, J.-C. Barféty, G. Vivier, J.-C. Carfantan, G. Nicoud, B. Colletta, M. Tardy (1999).
+F. Cagnard (2008) – Carte géologique harmonisée du département de la Haute-Savoie. BRGM/RP-5 59 30 -FR, 329 p.,7 fig., 2 tab., 3 pl. hors-texte.
+
+\subsection*{Landscape initialisation}
+To run SIMMEM simulations, the following variables must be available for each forest plot:
+\begin{itemize}
+    \item site index
+    \item composition
+    \item species basal area
+    \item species quadratic diameter
+\end{itemize}
+
+\subsection*{Site index}
+\begin{enumerate}
+    \item modeled from available variables (see "complete model" in code):
+    \begin{equation}\label{si}
+    si = \alpha + \beta_1 alti + \beta_2 pH +\beta_3 rum +\beta_4 slope +\beta_5 rocheCalc+...+\varepsilon \end{equation}
+    \item variable selection procedure:
+    \begin{enumerate}
+        \item remove (one by one) the less significant variables untill all variables are significant
+        \item add a quadratic effect on all variables ($\beta_1alti + \beta_1alti^2 + \beta_2slope + \beta_2slope^2...$)
+        \item remove (one by one) the variables that became non-significant following the addition of the quadratic effect starting with the least significant ones  untill all variables are significant
+\end{enumerate}
+    \item assign site index to forest plots: predict $si$ with model and add random noise   [rnorm(nrow(modData), 0, sd(residuals(mod)))]
+\end{enumerate}
+
+\subsection*{Composition initialisation}
+
+\begin{enumerate}
+    \item We grouped TFV types together. In fact, 5 TFV types represent more than 96\% of the forest area. The remaining 3\% belong to 15 different TFV types. These under-represented types have either been removed or integrated into one of the 5 main TFV types (see R code).
+    \item The plots were classified into three types of composition: deciduous, coniferous or mixed. For that we used the proportion of deciduous basal area obtained from the LIDAR surveys. Plots in which deciduous trees accounted for more than 75\% of the total basal area were classified as deciduous. Plots in which deciduous trees accounted for less than 25\% of the total basal area were classified as coniferous. The remaining plots were classified as mixed.
+    \item Simultaneously, the PROTEST plots were classified into 7 types of composition (corresponding to the composition that will be simulated): pure (beech, oak, fir, spruce; when these species represented more than 75\% of the plot total basal area) and mixed (beech - fir, beech - spruce, fir - spruce; when these species were the 2 most abundant on the plot and represented (combined) more than 75\% of the total basal area). However, since our model only covers 4 species, and because there are many species (see annex species composition) in the study area, species had to be grouped together:
+    \begin{enumerate}
+        \item When deciduous species (other than oak and beech) were present on a PROTEST plot, their basal area were assigned to oak and/or beech (depending on the proportion of the basal area of these two species).
+        \item Similarly, when coniferous species (other than fir and spruce) were present on a PROTEST plot, their basal area were assigned to fir and/or spruce (depending on the proportion of the basal area of these two species).
+        \item Plots whose composition was not among the 7 expected compositions (e.g. pure ash stand or fir - maple mixture) were dropped at this stage (see table xxx)
+    \end{enumerate}
+    \item Then we retrieved the list of compositions observed in the PROTEST plots within each TFV type. This list could contain repetitions (because the same composition could be observed several times within a single TFV type)
+    \item Finally, to assign a composition to a forest plot located in a specific TFV type, we randomly selected a composition from the list of compositions associated to this TFV type.
+\end{enumerate}
+
+
+---> chênes CHE CHP CHS sont groupés
+
+
+\subsection*{Basal area}
+
+\noindent We relied on two LIDAR measures to assign species basal area values ($G_{sp}$) to each forest stand: the total basal area ($G_t$) and the proportion of deciduous basal area ($P_{Gd}$). $G_{sp}$ in pure stands and deciduous-coniferous mixtures was directly derived from these measures. In the case of coniferous mixtures, $G_{sp}$ could not be directly derived from LIDAR mesaures. We therefore ...modeled the ratio...
+
+
+\subsection*{Quadratic diameter}
+
+We calculated species quadratic diameter in different ways depending on the stand type:
+
+\begin{enumerate}
+    \item In the case of pure stands, the total quadratic diameter ($Dg_t$) measured by LIDAR was directly used.
+    
+    \item In the case of mixed stands, we adopted a XXX-step procedure:
+    \begin{enumerate}
+        \item We first modeled the link between the species quadratic diameters in each mixture as follows:
+        
+            \begin{equation}\label{}
+            \frac{Dg_1}{Dg_2} = a = \alpha + \beta_1 alti + \beta_2 pH +\beta_3 rum +\beta_4 slope +\beta_5 rocheCalc+...+\varepsilon
+             \end{equation}
+           where $Dg_1$ and $Dg_2$ are the quadratic diameters of species 1 and 2.
+           
+           --> data: true mixtures from protest plots (i.e. Gsp1 + Gsp2 > 0.75Gt)
+           --> variable selection
+           --> see final models in SI
+        
+        \item We then calculated the quadratic diameter for one species from a set of two equations linking species basal area to species quadratic diameter:
+        
+        \begin{equation}\label{}
+      G_i = \frac{n_i\pi D_i^2}{4}
+        \end{equation}
+        where $G_i$, $D_i^2$ and $n_i$ are the basal area, the quadratic diameter and the number of individuals of species $i$, respectively. $G_i$ is directly obtained from LIDAR measures.
+
+        \begin{equation}\label{}
+        D_t^2 = \frac{n_1Dg_1^2 + n_2Dg_2^2}{n_1 + n_2}
+        \end{equation}
+        where $D_t^2$ is the total quadratic diamater of the stand (obtained from LIDAR measures). $n_1$ and $n_2$ correspond to the number of individuals of species 1 and 2, respectively.
+
+\noindent solution--> see proof i annexe
+        
+        \item We finally calculated the species quadratic diameter for the second species
+    \end{enumerate}
+\end{enumerate}
+
+
+Here, we relied on a single LIDAR measure to assign species quadratic diameter values to each forest stand: the total quadratic diameter ($Dg_t$).
+    
+
+
+
+---> calibration
+---> prédiction + random dans (var(epsi)
+
+
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{Results}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{Discussion}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{Authors' Contributions}
+
+\section*{Data Accessibility}
+
+\bibliographystyle{abbrvnat}
+\bibliography{sample}
+
+\end{document}
+
+
