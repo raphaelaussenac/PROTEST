@@ -9,14 +9,16 @@ rm(list = ls())
 library(ggplot2)
 library(plyr)
 library(reshape2)
+library(rgdal)
+library(raster)
 
 # set work directory
 setwd("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST")
 
 # load NFI points within the study area (bdBauges)
 # set model method
-chosenMethod <- 'direct' # 'knPa-unPa' or 'direct'
-source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/modfertInd.R')
+# chosenMethod <- 'direct' # 'knPa-unPa' or 'direct'
+# source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/modfertInd.R')
 
 # load correspondence NFI point / code BDforet
 correspond <- read.csv("Z:/Private/croisementIfn.csv", header = TRUE, sep = ";")
