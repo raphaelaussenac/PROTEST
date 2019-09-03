@@ -115,7 +115,7 @@ forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "gSpruce"] <- forestPlots
 ################################### 3 - Third case: coniferous - coniferous mixtures
 # g deciduous and g coniferous are not available
 # fir - spruce
-# model Gfir / Gspruce ratio
+# model Gfir / GTot ratio
 ratGFirSpruce <- ratGDg(trueMixedFirSpruce, 'S.P', 'EPC')
 # complete model: alti + slope + rum + ph + expoNS + expoEW + dgPred + gPred +
                   # I(greco == "H") + I(greco == "C") + I(Cd_hydr == "0") + I(Cd_hydr == "1") +

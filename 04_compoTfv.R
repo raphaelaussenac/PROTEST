@@ -184,8 +184,8 @@ protestGSpProp <- merge(protestGSp, protestG, by = "Id_plac")
 protestGSpProp$prop <- protestGSpProp$Gsp * 100 / protestGSpProp$G
 protestGSpProp <- protestGSpProp[order(protestGSpProp$Id_plac, protestGSpProp$prop, decreasing = TRUE),]
 
-# transform all deciduous into Oak and Beech depending on the proportion of
-# Oak and Beech in the plot
+# transform all deciduous into Oak and Beech depending on the relative
+# proportion of Oak and Beech in the plot
 # same for coniferous with Fir and Spruce
 
 # species not studied
@@ -203,26 +203,26 @@ colnames(protestNewSp) <- colnames(protestGSpProp)
 for (i in unique(protestGSpProp$Id_plac)){
   plac <- protestGSpProp[protestGSpProp$Id_plac == i,]
 
-  # if there are some deciduous species (not studied) -------------------------------------------
+  # if there are some non-target deciduous species -------------------------------------------
   if (sum(plac$Cod_ess %in% c(deciduousSp)) > 0){
-    # 1st possibility: there is 1 deciduous species of interest
+    # 1st case: there is 1 target deciduous species
     if (sum(plac$Cod_ess %in% c(spInterestD)) == 1){
-      # -> assign the basal area of the deciduous species (not of interest)
-      # to the deciduous species of interest
+      # -> assign the basal area of the non-target deciduous species
+      # to the target deciduous species
       plac[plac$Cod_ess %in% spInterestD, "Gsp"] <- sum(plac[plac$Cod_ess %in% deciduousSp, "Gsp"],
                                                         plac[plac$Cod_ess %in% spInterestD, "Gsp"])
       plac[plac$Cod_ess %in% spInterestD, "prop"] <- sum(plac[plac$Cod_ess %in% deciduousSp, "prop"],
                                                         plac[plac$Cod_ess %in% spInterestD, "prop"])
       plac <- plac[!(plac$Cod_ess %in% deciduousSp),]
     }
-    # 2nd possibility: there are 2 deciduous species of interest
+    # 2nd case: there are 2 target deciduous species
     if (sum(plac$Cod_ess %in% c(spInterestD)) == 2){
-      # 1 - calculate the relative proportion of each species of interest
+      # 1 - calculate the relative proportion of each target species
       propCHS <- plac[plac$Cod_ess == "CHS", "Gsp"] / (plac[plac$Cod_ess == "CHS", "Gsp"] + plac[plac$Cod_ess == "HET", "Gsp"])
       propHET <- 1 - propCHS
-      # 2 - assign the basal area of the deciduous species (not of interest)
-      # to the deciduous species of interest depending on the proportion of
-      # each species of interest
+      # 2 - assign the basal area of the non-target deciduous species
+      # to the target deciduous species depending on the proportion of
+      # each deciduous target species
       plac[plac$Cod_ess == "CHS", "Gsp"] <- sum(plac[plac$Cod_ess %in% deciduousSp, "Gsp"]*propCHS,
                                                         plac[plac$Cod_ess == "CHS", "Gsp"])
       plac[plac$Cod_ess == "HET", "Gsp"] <- sum(plac[plac$Cod_ess %in% deciduousSp, "Gsp"]*propHET,
@@ -234,30 +234,30 @@ for (i in unique(protestGSpProp$Id_plac)){
                                                         plac[plac$Cod_ess == "HET", "prop"])
       plac <- plac[!(plac$Cod_ess %in% deciduousSp),]
     }
-    # 3rd possibility: there are NO deciduous species of interest
+    # 3rd case: there are NO target deciduous species
     # --> next step
   }
 
-  # if there are some coniferous species (not studied) -------------------------------------------
+  # if there are some non-target coniferous species -------------------------------------------
   if (sum(plac$Cod_ess %in% c(coniferousSp)) > 0){
-    # 1st possibility: there is 1 deciduous species of interest
+    # 1st case: there is 1 target coniferous species
     if (sum(plac$Cod_ess %in% c(spInterestC)) == 1){
-      # -> assign the basal area of the deciduous species (not of interest)
-      # to the deciduous species of interest
+      # -> assign the basal area of the non-target coniferous species
+      # to the target coniferous species
       plac[plac$Cod_ess %in% spInterestC, "Gsp"] <- sum(plac[plac$Cod_ess %in% coniferousSp, "Gsp"],
                                                         plac[plac$Cod_ess %in% spInterestC, "Gsp"])
       plac[plac$Cod_ess %in% spInterestC, "prop"] <- sum(plac[plac$Cod_ess %in% coniferousSp, "prop"],
                                                         plac[plac$Cod_ess %in% spInterestC, "prop"])
       plac <- plac[!(plac$Cod_ess %in% coniferousSp),]
     }
-    # 2nd possibility: there are 2 deciduous species of interest
+    # 2nd case: there are 2 target coniferous species
     if (sum(plac$Cod_ess %in% c(spInterestC)) == 2){
-      # 1 - calculate the relative proportion of each species of interest
+      # 1 - calculate the relative proportion of each target species
       propEPC <- plac[plac$Cod_ess == "EPC", "Gsp"] / (plac[plac$Cod_ess == "EPC", "Gsp"] + plac[plac$Cod_ess == "HET", "Gsp"])
       propSP <- 1 - propEPC
-      # 2 - assign the basal area of the deciduous species (not of interest)
-      # to the deciduous species of interest depending on the proportion of
-      # each species of interest
+      # 2 - assign the basal area of the non-target coniferous species
+      # to the target coniferous species depending on the relative proportion of
+      # each target species
       plac[plac$Cod_ess == "EPC", "Gsp"] <- sum(plac[plac$Cod_ess %in% coniferousSp, "Gsp"]*propEPC,
                                                         plac[plac$Cod_ess == "EPC", "Gsp"])
       plac[plac$Cod_ess == "S.P", "Gsp"] <- sum(plac[plac$Cod_ess %in% coniferousSp, "Gsp"]*propSP,
@@ -269,7 +269,7 @@ for (i in unique(protestGSpProp$Id_plac)){
                                                         plac[plac$Cod_ess == "S.P", "prop"])
       plac <- plac[!(plac$Cod_ess %in% coniferousSp),]
     }
-    # 3rd possibility: there are NO deciduous species of interest
+    # 3rd case: there are NO target coniferous species
     # --> next step
   }
   protestNewSp <- rbind(protestNewSp, plac)

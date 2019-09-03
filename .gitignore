@@ -9,3 +9,11 @@
 output
 notes.R
 *.xlsx
+*.aux
+*.bbl
+*.blg
+*.fdb*
+*.fls
+*.log
+*.pdf
+*.gz
