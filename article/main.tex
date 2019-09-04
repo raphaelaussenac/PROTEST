@@ -175,7 +175,7 @@ We assigned a composition to all forest plots over the study area following a fo
 
   \noindent where $\alpha$ and $\beta_{1-X}$ are parameters to estmiate and $\varepsilon$, the model residuals. We applied the same variable selection procedure as the one we applied to the site index model (see final model in SI). Here, we used the $G_{fir}$ and $G_{spruce}$ obtained after the grouping of species (i.e. after having assigned the basal area of non-target species to the target species; see the \textit{composition initialisation} section).
 
-  \item We then calculated the proportion of $G_{fir}$ for all conifer mixtures over the study area by adding to the model predictions a random number drawn from the normal distribution $\mathcal{N} (0, \sigma_\varepsilon)$, with $\sigma_\varepsilon$ being the standard deviation of the model residuals. $G_{spruce}$ was obtained by substracting $G_{fir}$ to $G_t$.
+  \item We then calculated $P_{Gfir}$, the proportion of $G_{fir}$ for all conifer mixtures over the study area by adding to the model predictions a random number drawn from the normal distribution $\mathcal{N} (0, \sigma_\varepsilon)$, with $\sigma_\varepsilon$ being the standard deviation of the model residuals. We made sure that $0.25 < P_{Gfir} < 0.75$ to comply with the definition of mixture that we use in this study. Another random number was drawn and added to the model prediction until this condition was met. $G_{spruce}$ was then obtained by substracting $G_{fir}$ to $G_t$.
 
 \end{enumerate}
 
@@ -193,9 +193,9 @@ We assigned species quadratic diameter ($Dg_{sp}$) in different ways depending o
     \frac{Dg_i}{Dg_j} = \alpha + \beta_1 alti + \beta_2 pH +\beta_3 rum +\beta_4 slope +\beta_5 rocheCalc+...+\varepsilon
   \end{equation}
 
-  where $Dg_i$ and $Dg_j$ are the quadratic diameters of species $i$ and $j$; $\alpha$ and $\beta_{1-X}$, parameters to estmiate and $\varepsilon$, the model residuals. Here, we used $Dg_i$ and $Dg_j$ obtained from "true mixtures", i.e. PROTEST plots where the two mixed species represented more than 75\% of the total basal area, and this, before the grouping of species. We applied the same variable selection procedure as the one we applied to the site index model (see the three final models in SI).
+  where $Dg_i$ and $Dg_j$ are the quadratic diameters of species $i$ and $j$; $\alpha$ and $\beta_{1-X}$, parameters to estmiate; and $\varepsilon$, the model residuals. Here, we used $Dg_i$ and $Dg_j$ obtained from "true mixtures", i.e. PROTEST plots where the two mixed species represented more than 75\% of the total basal area, and this, before the grouping of species. We applied the same variable selection procedure as the one we applied to the site index model (see the three final models in SI).
 
-  \item We then calculated $r_{Dg}$, the $Dg_i / Dg_j$ ratios for all mixed stand over the study area by adding to the models predictions a random number drawn from the normal distribution $\mathcal{N} (0, \sigma_\varepsilon)$, with $\sigma_\varepsilon$ being the standard deviation of the models residuals.
+  \item We then calculated $r_{Dg}$, the $Dg_i / Dg_j$ ratios for all mixed stand over the study area by adding to the models predictions a random number drawn from the normal distribution $\mathcal{N} (0, \sigma_\varepsilon)$, with $\sigma_\varepsilon$ being the standard deviation of the models residuals. We made sure that $r_{Dg}$ falled in the range of the $Dg_i / Dg_j$ ratio values directly measured in the PROTEST "true mixtures" to avoid producing stands with unbalanced diameters for both species. Another random number was drawn and added to the models predictions until this condition was met.
 
   \item We then calculated the species quadratic diameter using two equations linking species basal area to species quadratic diameter:
 
@@ -218,18 +218,10 @@ We assigned species quadratic diameter ($Dg_{sp}$) in different ways depending o
   where $G_i$ and $G_j$ are the species basal area (see proof in SI). We finally calculated $Dg_j$ as follows:
 
   \begin{equation}\label{}
-    Dg_j = \frac{Dg_i}{a}
+    Dg_j = \frac{Dg_i}{r_{Dg}}
   \end{equation}
 
 \end{enumerate}
-
-
-
-
---> on s'est assuré que les a et b soient dans un interval de valeur défini
-
-
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
