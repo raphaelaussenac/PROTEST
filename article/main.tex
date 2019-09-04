@@ -64,8 +64,8 @@
     \item Forest Ecology and Management
     \item Annals of Forest Science (Capsis: an open software framework and communityfor forest growth modelling)
     \item Journal of Environmental Management
+    \item Methods in ecology and evolution (papier sur méthode d'initialisation)
 \end{itemize}
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section*{Introduction}
@@ -110,7 +110,7 @@ To run SIMMEM simulations, the following variables must be available for each fo
     \item site index
     \item composition
     \item species basal area
-    \item species quadratic diameter
+    \item number of trees per species (species quadratic diameter must be calculated for that)
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -119,7 +119,8 @@ To run SIMMEM simulations, the following variables must be available for each fo
 \begin{enumerate}
     \item modeled from environmental variables (see "complete model" in code):
     \begin{equation}\label{si}
-    si = \alpha + \beta_1 alti + \beta_2 pH +\beta_3 rum +\beta_4 slope +\beta_5 rocheCalc+...+\varepsilon \end{equation}
+      si = \alpha + \beta_1 alti + \beta_2 pH +\beta_3 rum +\beta_4 slope +\beta_5 rocheCalc+...+\varepsilon
+    \end{equation}
     where $\alpha$ and $\beta_{1-X}$ are parameters to estmiate and $\varepsilon$, the model residuals.
     \item variable selection procedure:
     \begin{enumerate}
@@ -132,9 +133,9 @@ To run SIMMEM simulations, the following variables must be available for each fo
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\subsection*{Composition initialisation}
+\subsection*{Composition}
 
-We assigned a composition to all forest plots over the study area following a five-step procedure:
+We assigned a composition to all forest plots over the study area following a four-step procedure:
 
 \begin{enumerate}
 
@@ -150,7 +151,7 @@ We assigned a composition to all forest plots over the study area following a fi
 
     Plots whose composition was not among the 7 expected compositions were dropped at this stage.
 
-    \item We then classified all the forest plots over the study area into 3 composition types: deciduous, coniferous or deciduous-coniferous mixture. For that we used a LIDAR-derived measure: the proportion of deciduous basal area ($P_{Gd}$). Plots in which the deciduous basal area accounted for more than 75\% of the total basal area were classified as deciduous. Conversely, plots in which the deciduous basal area accounted for less than 25\% of the total basal area were classified as coniferous. The remaining plots were classified as deciduous-coniferous mixture.
+    \item We then classified all the forest plots over the study area into 3 composition types: deciduous, coniferous or deciduous-coniferous mixture. For that we used the proportion of deciduous basal area ($P_{Gd}$) calculated from LIDAR data. Plots in which the deciduous basal area accounted for more than 75\% of the total basal area were classified as deciduous. Conversely, plots in which the deciduous basal area accounted for less than 25\% of the total basal area were classified as coniferous. The remaining plots were classified as deciduous-coniferous mixture.
 
     \item Thereafter, we retrieved the list of compositions observed of the PROTEST plots within each vegetation type (i.e. TFV type). This list could contain repetitions (because the same composition could be observed several times within a single TFV type). However, because 5 TFV types represented more than 96\% of the forest area and because the remaining 3\% belonged to 15 different TFV types, we previously grouped some TFV types together. The 15 under-represented TFV types have either been removed or integrated into one of the 5 main TFV types (see SI).
 
@@ -160,73 +161,79 @@ We assigned a composition to all forest plots over the study area following a fi
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\subsection*{Basal area}
+\subsection*{Species basal area}
 
-\noindent We relied on two LIDAR-derived measures to assign species basal area values ($G_{sp}$) to each forest stand: the stand total basal area ($G_t$) and the proportion of deciduous basal area ($P_{Gd}$). $G_{sp}$ could directly be derived from these measures for pure stands and deciduous-coniferous mixtures (i.e. beech-fir and beech-spruce stands). We developped a two-step procedure to assign $G_{sp}$ to conifer mixtures (i.e. fir - spruce mixtures):
+\noindent We assigned species basal area values ($G_{sp}$) to each forest stand using the stand total basal area ($G_t$) and the proportion of deciduous basal area ($P_{Gd}$) calculated from LIDAR data. $G_{sp}$ could directly be derived from these measures for pure stands and deciduous-coniferous mixtures (i.e. beech-fir and beech-spruce stands). We developed a two-step procedure to assign $G_{sp}$ to conifer mixtures (i.e. fir - spruce mixtures):
 
 \begin{enumerate}
 
-  \item We first modeled the proportion of $G_{fir}$ in the PROTEST plots, from environmental variables and LIDAR-derived measures (and modeled site index???) as follows:
+  \item We first modeled the proportion of $G_{fir}$ in the PROTEST plots from environmental variables and LIDAR-derived measures (and modeled site index???) as follows:
 
   \begin{equation}\label{gfir-spruce}
-  \frac{G_{fir}}{G_{fir} + G_{spruce}} = \alpha + \beta_1 alti + \beta_2 pH +\beta_3 rum +\beta_4 slope +\beta_5 rocheCalc+...+ \varepsilon \end{equation}
+    \frac{G_{fir}}{G_{fir} + G_{spruce}} = \alpha + \beta_1 alti + \beta_2 pH +\beta_3 rum +\beta_4 slope +\beta_5 rocheCalc+...+ \varepsilon
+  \end{equation}
 
-  \noindent where $\alpha$ and $\beta_{1-X}$ were parameters to estmiate and $\varepsilon$, the model residuals. We applied the same variable selection procedure as the one we applied to the site index model (see final model in SI). Here, we used the $G_{fir}$ and $G_{spruce}$ obtained after the grouping of species (i.e. after having assigned the basal area of non-target species to the target species; see the \textit{composition initialisation} section).
+  \noindent where $\alpha$ and $\beta_{1-X}$ are parameters to estmiate and $\varepsilon$, the model residuals. We applied the same variable selection procedure as the one we applied to the site index model (see final model in SI). Here, we used the $G_{fir}$ and $G_{spruce}$ obtained after the grouping of species (i.e. after having assigned the basal area of non-target species to the target species; see the \textit{composition initialisation} section).
 
-  \item We then calculated the proportion of $G_{fir}$ for all conifer mixtures over the study area by adding to the model prediction a random number drawn from the normal distribution $\mathcal{N} (0, \sigma_\varepsilon)$, with $\sigma_\varepsilon$ being the standard deviation of the model residuals. $G_{spruce}$ was obtained by substracting $G_{fir}$ to $G_t$.
+  \item We then calculated the proportion of $G_{fir}$ for all conifer mixtures over the study area by adding to the model predictions a random number drawn from the normal distribution $\mathcal{N} (0, \sigma_\varepsilon)$, with $\sigma_\varepsilon$ being the standard deviation of the model residuals. $G_{spruce}$ was obtained by substracting $G_{fir}$ to $G_t$.
 
 \end{enumerate}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\subsection*{Quadratic diameter}
+\subsection*{Species quadratic diameter}\label{Dg}
 
-We calculated species quadratic diameter in different ways depending on the stand type:
+We assigned species quadratic diameter ($Dg_{sp}$) in different ways depending on the stand composition. In the case of pure stands, we directly used the total quadratic diameter ($Dg_t$) calculated from LIDAR data. We developed a three-step procedure for mixed stands:
 
 \begin{enumerate}
-    \item In the case of pure stands, the total quadratic diameter ($Dg_t$) measured by LIDAR was directly used.
 
-    \item In the case of mixed stands, we adopted a XXX-step procedure:
-    \begin{enumerate}
-        \item We first modeled the link between the species quadratic diameters in each mixture as follows:
+  \item We first modeled the species quadratic diameters ratio in the PROTEST plots (separately for each mixture, i.e. beech-fir, beech-spruce and fir-spruce) from environmental variables and LIDAR-derived measures (and modeled site index???) as follows:
 
-            \begin{equation}\label{}
-            \frac{Dg_1}{Dg_2} = a = \alpha + \beta_1 alti + \beta_2 pH +\beta_3 rum +\beta_4 slope +\beta_5 rocheCalc+...+\varepsilon
-             \end{equation}
-           where $Dg_1$ and $Dg_2$ are the quadratic diameters of species 1 and 2.
+  \begin{equation}\label{DgModel}
+    \frac{Dg_i}{Dg_j} = \alpha + \beta_1 alti + \beta_2 pH +\beta_3 rum +\beta_4 slope +\beta_5 rocheCalc+...+\varepsilon
+  \end{equation}
 
-           --> data: true mixtures from protest plots (i.e. Gsp1 + Gsp2 > 0.75Gt)
-           --> variable selection
-           --> see final models in SI
+  where $Dg_i$ and $Dg_j$ are the quadratic diameters of species $i$ and $j$; $\alpha$ and $\beta_{1-X}$, parameters to estmiate and $\varepsilon$, the model residuals. Here, we used $Dg_i$ and $Dg_j$ obtained from "true mixtures", i.e. PROTEST plots where the two mixed species represented more than 75\% of the total basal area, and this, before the grouping of species. We applied the same variable selection procedure as the one we applied to the site index model (see the three final models in SI).
 
-        \item We then calculated the quadratic diameter for one species from a set of two equations linking species basal area to species quadratic diameter:
+  \item We then calculated $r_{Dg}$, the $Dg_i / Dg_j$ ratios for all mixed stand over the study area by adding to the models predictions a random number drawn from the normal distribution $\mathcal{N} (0, \sigma_\varepsilon)$, with $\sigma_\varepsilon$ being the standard deviation of the models residuals.
 
-        \begin{equation}\label{}
-      G_i = \frac{n_i\pi D_i^2}{4}
-        \end{equation}
-        where $G_i$, $D_i^2$ and $n_i$ are the basal area, the quadratic diameter and the number of individuals of species $i$, respectively. $G_i$ is directly obtained from LIDAR measures.
+  \item We then calculated the species quadratic diameter using two equations linking species basal area to species quadratic diameter:
 
-        \begin{equation}\label{}
-        D_t^2 = \frac{n_1Dg_1^2 + n_2Dg_2^2}{n_1 + n_2}
-        \end{equation}
-        where $D_t^2$ is the total quadratic diamater of the stand (obtained from LIDAR measures). $n_1$ and $n_2$ correspond to the number of individuals of species 1 and 2, respectively.
+  \begin{equation}\label{}
+    G_{sp} = \frac{n_{sp}\pi Dg_{sp}^2}{4}
+  \end{equation}
 
-\noindent solution--> see proof i annexe
+  where $G_{sp}$, $D_{sp}$ and $n_{sp}$ are the basal area, the quadratic diameter and the number of individuals of a species, respectively; and
 
-        \item We finally calculated the species quadratic diameter for the second species
-    \end{enumerate}
+  \begin{equation}\label{}
+    Dg_t^2 = \frac{n_iDg_i^2 + n_jDg_j^2}{n_i + n_j}
+  \end{equation}
+
+  where $Dg_t$ is the total quadratic diamater of a stand; $Dg_i$ and $Dg_j$, the quadratic diameters of species $i$ and $j$; and $n_i$ and $n_j$, the number of individuals of species $i$ and $j$. $Dg_i$ could therefore be expressed as:
+
+  \begin{equation}\label{}
+    Dg_i = Dg_t\sqrt{\frac{G_i + r_{Dg}^2G_j}{G_i + G_j}}
+  \end{equation}
+
+  where $G_i$ and $G_j$ are the species basal area (see proof in SI). We finally calculated $Dg_j$ as follows:
+
+  \begin{equation}\label{}
+    Dg_j = \frac{Dg_i}{a}
+  \end{equation}
+
 \end{enumerate}
 
 
-Here, we relied on a single LIDAR measure to assign species quadratic diameter values to each forest stand: the total quadratic diameter ($Dg_t$).
+
+
+--> on s'est assuré que les a et b soient dans un interval de valeur défini
 
 
 
 
----> calibration
----> prédiction + random dans (var(epsi)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
+\subsection*{Number of trees per species}
 
 
 
@@ -246,5 +253,69 @@ Here, we relied on a single LIDAR measure to assign species quadratic diameter v
 
 \bibliographystyle{abbrvnat}
 \bibliography{sample}
+
+\clearpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{SUPPORTING INFORMATION}
+
+
+\clearpage
+
+\noindent Proof: calculating species quadratic diameters from a set of three equations
+
+\noindent The three starting equations are as follows
+
+\begin{equation}\label{one}\tag{1}
+  \bullet G_{sp} = \frac{n_{sp}\pi Dg_{sp}^2}{4}
+\end{equation}
+
+\noindent where $G_{sp}$, $D_{sp}$ and $n_{sp}$ are the basal area, the quadratic diameter and the number of individuals of a species, respectively.
+
+\begin{equation}\label{}\tag{2}
+  \bullet Dg_t^2 = \frac{n_iDg_i^2 + n_jDg_j^2}{n_i + n_j}
+\end{equation}
+
+\noindent where $Dg_t$ is the total quadratic diamater of a stand; $Dg_i$ and $Dg_j$, the quadratic diameters of species $i$ and $j$; and $n_i$ and $n_j$, the number of individuals of species $i$ and $j$.
+
+\begin{equation}\label{three}\tag{3}
+  \bullet \frac{Dg_i}{Dg_j} = r_{Dg}
+\end{equation}
+
+\noindent where $r_{Dg}$ is calculated by adding to the models predictions (described at eqn \ref{DgModel}) a random number (see the \textit{Species quadratic diameter} section).
+
+\hfill
+
+\noindent Using equation \ref{one}, $Dg_t^2$ can be expressed as:
+
+\begin{equation*}\label{}
+  Dg_t^2 = \frac{\frac{4}{\pi}G_i + \frac{4}{\pi}G_j}{\frac{4G_i}{\pi Dg_i^2} + \frac{4G_j}{\pi Dg_j^2}}
+\end{equation*}
+
+\begin{equation*}\label{}
+  Dg_t^2 = \frac{G_i + G_j} {\frac{G_i}{Dg_i^2} + \frac{G_j}{Dg_j^2}}
+\end{equation*}
+
+\begin{equation*}\label{}
+  Dg_t^2(\frac{G_i}{Dg_i^2} + \frac{G_j}{Dg_j^2})= G_i + G_j
+\end{equation*}
+
+\begin{equation*}\label{}
+  Dg_t^2(G_i + \frac{Dg_i^2}{Dg_j^2}G_j^2)= Dg_i^2(G_i + G_j)
+\end{equation*}
+
+\noindent Using equation \ref{three}, $Dg_i^2 / Dg_j^2$ can be replaced by $r_{Dg}^2$:
+
+\begin{equation*}\label{}
+  Dg_t^2(G_i + r_{Dg}^2G_j^2)= Dg_i^2(G_i + G_j)
+\end{equation*}
+
+\noindent hence:
+
+\begin{equation*}\label{}
+  Dg_i = Dg_t\sqrt{\frac{G_i + r_{Dg}^2G_j}{G_i + G_j}}
+\end{equation*}
+
+
 
 \end{document}
