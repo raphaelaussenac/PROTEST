@@ -116,19 +116,30 @@ To run SIMMEM simulations, the following variables must be available for each fo
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsection*{Site index}
+
+\noindent We assigned a species-specific site index ($si$) to all forest plots over the study area following a two-step procedure:
+
 \begin{enumerate}
-    \item modeled from environmental variables (see "complete model" in code):
+    \item Because not all the variables required to calculate $si$ were available at all locations over the study area, we first modeled the available $si$ at the NFI plots from available environmental variables and LIDAR-derived measures as follows:
+
     \begin{equation}\label{si}
       si = \alpha + \beta_1 alti + \beta_2 pH +\beta_3 rum +\beta_4 slope +\beta_5 rocheCalc+...+\varepsilon
     \end{equation}
-    where $\alpha$ and $\beta_{1-X}$ are parameters to estmiate and $\varepsilon$, the model residuals.
-    \item variable selection procedure:
+
+    where $\alpha$ and $\beta_{1-X}$ are parameters to estmiate and $\varepsilon$, the models residuals. We then applied to the models the following variable selection procedure:
+
     \begin{enumerate}
-        \item remove (one by one) the less significant variables untill all variables are significant
-        \item add a quadratic effect on all variables ($\beta_1alti + \beta_1alti^2 + \beta_2slope + \beta_2slope^2...$)
-        \item remove (one by one) the variables that became non-significant following the addition of the quadratic effect starting with the least significant ones  untill all variables are significant
-\end{enumerate}
-    \item assign site index to forest plots: predict $si$ with model and add random noise   [rnorm(nrow(modData), 0, sd(residuals(mod)))]
+
+        \item We first removed (one by one) the variables whose effect were non-significant starting with the least significant ones untill all variables were significant.
+
+        \item We then added a quadratic effect to all remaining variables (e.g. $\beta_1alti + \beta_1alti^2$).
+
+        \item Finally, we remove (one by one) the variables whose effect became non-significant following the addition of the quadratic effects starting with the least significant ones untill all variables were significant (see the four final species-specific models in SI).
+
+  \end{enumerate}
+
+    \item We then calculated $si$ for all forest plots over the study area by adding to the models predictions a random number drawn from the normal distribution $\mathcal{N} (0, \sigma_\varepsilon)$, with $\sigma_\varepsilon$ being the standard deviation of the models residuals.
+
 \end{enumerate}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -199,7 +210,7 @@ We assigned species quadratic diameter ($Dg_{sp}$) in different ways depending o
 
   \item We then calculated the species quadratic diameter using two equations linking species basal area to species quadratic diameter:
 
-  \begin{equation}\label{}
+  \begin{equation}\label{Gsp}
     G_{sp} = \frac{n_{sp}\pi Dg_{sp}^2}{4}
   \end{equation}
 
@@ -227,9 +238,13 @@ We assigned species quadratic diameter ($Dg_{sp}$) in different ways depending o
 
 \subsection*{Number of trees per species}
 
+\noindent We assigned a number of trees to each species ($n_{sp}$) and on each forest plot by transforming equation \ref{Gsp} as follows:
 
+\begin{equation}\label{}
+  n_{sp} = \frac{4G_{sp}}{\pi Dg_{sp}^2}
+\end{equation}
 
-
+\noindent where $G_{sp}$ and $Dg_{sp}$ are the species basal area and quadratic diameter obtained from the procedures detailed above.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section*{Results}
@@ -258,19 +273,19 @@ We assigned species quadratic diameter ($Dg_{sp}$) in different ways depending o
 
 \noindent The three starting equations are as follows
 
-\begin{equation}\label{one}\tag{1}
+\begin{equation}\label{one}\tag{a}
   \bullet G_{sp} = \frac{n_{sp}\pi Dg_{sp}^2}{4}
 \end{equation}
 
 \noindent where $G_{sp}$, $D_{sp}$ and $n_{sp}$ are the basal area, the quadratic diameter and the number of individuals of a species, respectively.
 
-\begin{equation}\label{}\tag{2}
+\begin{equation}\label{two}\tag{b}
   \bullet Dg_t^2 = \frac{n_iDg_i^2 + n_jDg_j^2}{n_i + n_j}
 \end{equation}
 
 \noindent where $Dg_t$ is the total quadratic diamater of a stand; $Dg_i$ and $Dg_j$, the quadratic diameters of species $i$ and $j$; and $n_i$ and $n_j$, the number of individuals of species $i$ and $j$.
 
-\begin{equation}\label{three}\tag{3}
+\begin{equation}\label{three}\tag{c}
   \bullet \frac{Dg_i}{Dg_j} = r_{Dg}
 \end{equation}
 
@@ -278,7 +293,7 @@ We assigned species quadratic diameter ($Dg_{sp}$) in different ways depending o
 
 \hfill
 
-\noindent Using equation \ref{one}, $Dg_t^2$ can be expressed as:
+\noindent Using equation \ref{one}, $Dg_t^2$ in equation \ref{two} can be expressed as:
 
 \begin{equation*}\label{}
   Dg_t^2 = \frac{\frac{4}{\pi}G_i + \frac{4}{\pi}G_j}{\frac{4G_i}{\pi Dg_i^2} + \frac{4G_j}{\pi Dg_j^2}}
