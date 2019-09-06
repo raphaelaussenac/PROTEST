@@ -134,7 +134,7 @@ To run SIMMEM simulations, the following variables must be available for each fo
 
         \item We then added a quadratic effect to all remaining variables (e.g. $\beta_1alti + \beta_1alti^2$).
 
-        \item Finally, we remove (one by one) the variables whose effect became non-significant following the addition of the quadratic effects starting with the least significant ones untill all variables were significant (see the four final species-specific models in SI).
+        \item Finally, we removed (one by one) the variables whose effect became non-significant following the addition of the quadratic effects starting with the least significant ones untill all variables were significant (see the four final species-specific models in SI).
 
   \end{enumerate}
 
@@ -150,7 +150,7 @@ We assigned a composition to all forest plots over the study area following a fo
 
 \begin{enumerate}
 
-    \item First we classified the PROTEST plots into 7 compositions (corresponding to the compositions that will be simulated): 4 pure compositions (beech, oak, fir, spruce; when these species represented more than 75\% of the plots total basal area) and 3 mixed compositions (beech-fir, beech-spruce, fir-spruce; when these species were the 2 most abundant on the plots and represented (together) more than 75\% of the plots total basal area). However, because other species than our 4 target species were present on the study area (ref composition / species abundance?), we previously grouped some species together:
+    \item First we classified the PROTEST plots into 7 compositions (corresponding to the compositions that will be simulated): 4 pure compositions (beech, oak, fir, spruce; when these species represented more than 75\% of the plots total basal area) and 3 mixed compositions (beech-fir, beech-spruce, fir-spruce; when these species were the 2 most abundant on the plots and represented (together) more than 75\% of the plots total basal area). However, because other species than our 4 target species were present on the study area (ref composition / species abundance?), we previously grouped some species together as follows:
 
     \begin{enumerate}
 
@@ -166,7 +166,7 @@ We assigned a composition to all forest plots over the study area following a fo
 
     \item Thereafter, we retrieved the list of compositions observed of the PROTEST plots within each vegetation type (i.e. TFV type). This list could contain repetitions (because the same composition could be observed several times within a single TFV type). However, because 5 TFV types represented more than 96\% of the forest area and because the remaining 3\% belonged to 15 different TFV types, we previously grouped some TFV types together. The 15 under-represented TFV types have either been removed or integrated into one of the 5 main TFV types (see SI).
 
-    \item Finally, to assign a composition to a forest plot located in a specific TFV type, we randomly selected a composition from the list of compositions associated to this TFV type while complying with the composition type allready assigned to the plot (i.e. deciduous, coniferous or deciduous-coniferous mixture). Thus plots classified as deciduous could be assign 2 compositions: beech or oak; plots classified as coniferous could be assign 3 compositions: fir, spruce or fir-spruce mixture; and plots classified as deciduous-coniferous mixture could be assign 2 compositions: beech-fir or beech-spruce.
+    \item Finally, to assign a composition to a forest plot located in a specific TFV type, we randomly selected a composition from the list of compositions associated to this TFV type while complying with the composition type allready assigned to the plot (i.e. deciduous, coniferous or deciduous-coniferous mixture). Thus plots classified as deciduous could be assigned 2 compositions: beech or oak; plots classified as coniferous could be assigned 3 compositions: fir, spruce or fir-spruce mixture; and plots classified as deciduous-coniferous mixture could be assigned 2 compositions: beech-fir or beech-spruce.
 
 \end{enumerate}
 
@@ -174,7 +174,7 @@ We assigned a composition to all forest plots over the study area following a fo
 
 \subsection*{Species basal area}
 
-\noindent We assigned species basal area values ($G_{sp}$) to each forest stand using the stand total basal area ($G_t$) and the proportion of deciduous basal area ($P_{Gd}$) calculated from LIDAR data. $G_{sp}$ could directly be derived from these measures for pure stands and deciduous-coniferous mixtures (i.e. beech-fir and beech-spruce stands). We developed a two-step procedure to assign $G_{sp}$ to conifer mixtures (i.e. fir - spruce mixtures):
+\noindent We assigned species basal area values ($G_{sp}$) to each forest plot using the stand total basal area ($G_t$) and the proportion of deciduous basal area ($P_{Gd}$) calculated from LIDAR data. $G_{sp}$ could directly be derived from these measures for pure stands and deciduous-coniferous mixtures (i.e. beech-fir and beech-spruce stands). We developed a two-step procedure to assign $G_{sp}$ to conifer mixtures (i.e. fir-spruce mixtures):
 
 \begin{enumerate}
 
@@ -184,9 +184,9 @@ We assigned a composition to all forest plots over the study area following a fo
     \frac{G_{fir}}{G_{fir} + G_{spruce}} = \alpha + \beta_1 alti + \beta_2 pH +\beta_3 rum +\beta_4 slope +\beta_5 rocheCalc+...+ \varepsilon
   \end{equation}
 
-  \noindent where $\alpha$ and $\beta_{1-X}$ are parameters to estmiate and $\varepsilon$, the model residuals. We applied the same variable selection procedure as the one we applied to the site index model (see final model in SI). Here, we used the $G_{fir}$ and $G_{spruce}$ obtained after the grouping of species (i.e. after having assigned the basal area of non-target species to the target species; see the \textit{composition initialisation} section).
+  \noindent where $\alpha$ and $\beta_{1-X}$ are parameters to estmiate and $\varepsilon$, the model residuals. We applied the same variable selection procedure as the one we applied to the site index model (see final model in SI). Here, we used $G_{fir}$ and $G_{spruce}$ obtained from "true fir-spruce mixtures" and after having assigned the basal area of non-target species to the target species (see the \textit{composition initialisation} section). "True mixtures" were PROTEST plots where the two mixed species represented more than 75\% of the total basal area before the grouping of species.
 
-  \item We then calculated $P_{Gfir}$, the proportion of $G_{fir}$ for all conifer mixtures over the study area by adding to the model predictions a random number drawn from the normal distribution $\mathcal{N} (0, \sigma_\varepsilon)$, with $\sigma_\varepsilon$ being the standard deviation of the model residuals. We made sure that $0.25 < P_{Gfir} < 0.75$ to comply with the definition of mixture that we use in this study. Another random number was drawn and added to the model prediction until this condition was met. $G_{spruce}$ was then obtained by substracting $G_{fir}$ to $G_t$.
+  \item We then calculated $P_{Gfir}$, the proportion of $G_{fir}$ for all conifer mixtures over the study area by adding to the model predictions a random number drawn from the normal distribution $\mathcal{N} (0, \sigma_\varepsilon)$, with $\sigma_\varepsilon$ being the standard deviation of the model residuals. We made sure that $0.25 < P_{Gfir} < 0.75$ to comply with the definition of mixture that we use in this study. Another random number was drawn and added to the model prediction until this condition was met. $G_{fir}$ and $G_{spruce}$ could then be calculated from $P_{Gfir}$ and $G_t$.
 
 \end{enumerate}
 
@@ -194,7 +194,7 @@ We assigned a composition to all forest plots over the study area following a fo
 
 \subsection*{Species quadratic diameter}\label{Dg}
 
-We assigned species quadratic diameter ($Dg_{sp}$) in different ways depending on the stand composition. In the case of pure stands, we directly used the total quadratic diameter ($Dg_t$) calculated from LIDAR data. We developed a three-step procedure for mixed stands:
+We assigned species quadratic diameter ($Dg_{sp}$) to each forest plot in different ways depending on the stand composition. In the case of pure stands, we directly used the total quadratic diameter ($Dg_t$) calculated from LIDAR data. We developed a three-step procedure for mixed stands:
 
 \begin{enumerate}
 
@@ -204,9 +204,9 @@ We assigned species quadratic diameter ($Dg_{sp}$) in different ways depending o
     \frac{Dg_i}{Dg_j} = \alpha + \beta_1 alti + \beta_2 pH +\beta_3 rum +\beta_4 slope +\beta_5 rocheCalc+...+\varepsilon
   \end{equation}
 
-  where $Dg_i$ and $Dg_j$ are the quadratic diameters of species $i$ and $j$; $\alpha$ and $\beta_{1-X}$, parameters to estmiate; and $\varepsilon$, the model residuals. Here, we used $Dg_i$ and $Dg_j$ obtained from "true mixtures", i.e. PROTEST plots where the two mixed species represented more than 75\% of the total basal area, and this, before the grouping of species. We applied the same variable selection procedure as the one we applied to the site index model (see the three final models in SI).
+  where $Dg_i$ and $Dg_j$ are the quadratic diameters of species $i$ and $j$; $\alpha$ and $\beta_{1-X}$, parameters to estmiate; and $\varepsilon$, the model residuals. Here, we used $Dg_i$ and $Dg_j$ obtained from "true mixtures", i.e. PROTEST plots where the two mixed species represented more than 75\% of the total basal area, and this, before the grouping of species. We applied the same variable selection procedure as the one we applied to the site index model (see the three mixture-specific final models in SI).
 
-  \item We then calculated $r_{Dg}$, the $Dg_i / Dg_j$ ratios for all mixed stand over the study area by adding to the models predictions a random number drawn from the normal distribution $\mathcal{N} (0, \sigma_\varepsilon)$, with $\sigma_\varepsilon$ being the standard deviation of the models residuals. We made sure that $r_{Dg}$ falled in the range of the $Dg_i / Dg_j$ ratio values directly measured in the PROTEST "true mixtures" to avoid producing stands with unbalanced diameters for both species. Another random number was drawn and added to the models predictions until this condition was met.
+  \item We then calculated $r_{Dg}$, the $Dg_i / Dg_j$ ratios for all mixed stand over the study area by adding to the models predictions a random number drawn from the normal distribution $\mathcal{N} (0, \sigma_\varepsilon)$, with $\sigma_\varepsilon$ being the standard deviation of the models residuals. We made sure that $r_{Dg}$ falled in the range of the $Dg_i / Dg_j$ ratio values directly measured in the PROTEST "true mixtures" to avoid producing stands with excessively unbalanced diameters for both species. Another random number was drawn and added to the models predictions until this condition was met.
 
   \item We then calculated the species quadratic diameter using two equations linking species basal area to species quadratic diameter:
 
@@ -271,7 +271,7 @@ We assigned species quadratic diameter ($Dg_{sp}$) in different ways depending o
 
 \noindent Proof: calculating species quadratic diameters from a set of three equations
 
-\noindent The three starting equations are as follows
+\noindent The three starting equations are as follows:
 
 \begin{equation}\label{one}\tag{a}
   \bullet G_{sp} = \frac{n_{sp}\pi Dg_{sp}^2}{4}
@@ -289,7 +289,7 @@ We assigned species quadratic diameter ($Dg_{sp}$) in different ways depending o
   \bullet \frac{Dg_i}{Dg_j} = r_{Dg}
 \end{equation}
 
-\noindent where $r_{Dg}$ is calculated by adding to the models predictions (described at eqn \ref{DgModel}) a random number (see the \textit{Species quadratic diameter} section).
+\noindent where $r_{Dg}$ is calculated by adding to the models predictions (models described at eqn \ref{DgModel}) a random number drawn from the normal distribution $\mathcal{N} (0, \sigma_\varepsilon)$, with $\sigma_\varepsilon$ being the standard deviation of the models residuals (see the \textit{Species quadratic diameter} section).
 
 \hfill
 
