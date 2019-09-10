@@ -144,19 +144,6 @@ forestPlotsDf$CODE_TF <- as.character(forestPlotsDf$CODE_TF)
 forestPlotsDf <- groupTfv(forestPlotsDf)
 
 ###############################################################
-# Define whether the plot is composed of deciduous and / or conifers
-# base on the basal area proportion of each (threshold = 75%)
-###############################################################
-
-# forestPlots
-forestPlotsDf$compoDCM <- NA
-forestPlotsDf[forestPlotsDf$p100gfP > 75 & !is.na(forestPlotsDf$p100gfP), 'compoDCM'] <- 'D' # deciduous
-forestPlotsDf[forestPlotsDf$p100gfP < 25 & !is.na(forestPlotsDf$p100gfP), 'compoDCM'] <- 'C' # conifers
-forestPlotsDf[forestPlotsDf$p100gfP >= 25 & forestPlotsDf$p100gfP <= 75 & !is.na(forestPlotsDf$p100gfP), 'compoDCM'] <- 'MDC' # mixte
-# prepare columns to assign species to each forest plot
-forestPlotsDf$compoSp <- NA
-
-###############################################################
 # Classsify protest plots in one of those composition
 # hêtre
 # chêne
@@ -169,18 +156,68 @@ forestPlotsDf$compoSp <- NA
 arbres.vivant$Id_plac <- as.character(arbres.vivant$Id_plac)
 arbres.vivant$Cod_ess <- as.character(arbres.vivant$Cod_ess)
 
-# group Oaks together (CHS CHE CHP)
+# group oaks together (CHS CHE CHP)
 arbres.vivant[arbres.vivant$Cod_ess %in% c('CHE', 'CHP'), 'Cod_ess'] <- 'CHS'
 
 # transform NR (non-reconnu) into A.F
 arbres.vivant[arbres.vivant$Cod_ess == 'NR', 'Cod_ess'] <- 'A.F'
 
 # calculate basal area for each protest plot
-protestG <- ddply(arbres.vivant, .(Id_plac), summarise, G = sum(g))
+# total BA of saplings
+gPerches <- placette.mes[, c('Id_plac', 'Brin_taill', 'pch.cl15.F', 'pch.cl15.R', 'perch.nv')]
+gPerches$Brin_taill <- as.numeric(as.character(gPerches$Brin_taill))
+gPerches$pch.cl15.F <- as.numeric(as.character(gPerches$pch.cl15.F))
+gPerches$pch.cl15.R <- as.numeric(as.character(gPerches$pch.cl15.R))
+gPerches$perch.nv <- as.numeric(as.character(gPerches$perch.nv))
+# saplings are considered all similar: diameter = 0.125m.
+# they are multiplied by their number for each category (taill, cl15.F...)
+# they are multiplied by 2.25 --> because they were measured on a plot
+# of r = 10m (while trees were measured on a plot of r = 15 --> 2.25 greater)
+gPerches$gBrin_taill <- ((pi*0.125^2)/4) * gPerches$Brin_taill * 2.25
+gPerches$gpch.cl15.F <- ((pi*0.125^2)/4) * gPerches$pch.cl15.F * 2.25
+gPerches$gpch.cl15.R <- ((pi*0.125^2)/4) * gPerches$pch.cl15.R * 2.25
+gPerches$gperch.nv <- ((pi*0.125^2)/4) * gPerches$perch.nv * 2.25
+gPerches$gPerches <- apply(gPerches[,c('gBrin_taill', 'gpch.cl15.F', 'gpch.cl15.R', 'gperch.nv')], 1, sum)
+# total BA of trees
+protestG <- ddply(arbres.vivant, .(Id_plac), summarise, Gtot = sum(g))
+# merge
+protestG <- merge(protestG, gPerches[, c('Id_plac', 'gPerches')], by = 'Id_plac')
+protestG$G <- apply(protestG[,c('Gtot', 'gPerches')], 1, sum)
+protestG[, c('Gtot', 'gPerches')] <- NULL
+
 # calculate species basal area for each protest plot
+# BA of deciduous saplings
+gPerches$F <- apply(gPerches[,c('gBrin_taill', 'gpch.cl15.F')], 1, sum)
+# proportion of deciduous saplings G
+gPerches$pF <- gPerches$F / (gPerches$F + gPerches$gpch.cl15.R)
+# assign "species" (i.e. deciduous or coniferous) to gperch.nv depending on
+# the proportion of deciduous and coniferous sapling G
+gPerches$Fnv <- gPerches$gperch.nv * gPerches$pF
+gPerches$Rnv <- gPerches$gperch.nv * (1 - gPerches$pF)
+# total BA of deciduous and coniferous saplings
+gPerches$F <- gPerches$F + gPerches$Fnv
+gPerches$R <- gPerches$gpch.cl15.R + gPerches$Rnv
+# BA area of tree species
 protestGSp <- ddply(arbres.vivant, .(Id_plac, Cod_ess), summarise, Gsp = sum(g))
+
+# merge
+for (i in unique(protestGSp$Id_plac)){
+  if (!is.na(gPerches[gPerches$Id_plac == i, 'F'])){
+    if (gPerches[gPerches$Id_plac == i, 'F'] > 0){
+      protestGSp <- rbind(protestGSp, c(i, 'APF', gPerches[gPerches$Id_plac == i, 'F']))
+    }
+  }
+  if (!is.na(gPerches[gPerches$Id_plac == i, 'R'])){
+    if (gPerches[gPerches$Id_plac == i, 'R'] > 0){
+      protestGSp <- rbind(protestGSp, c(i, 'APR', gPerches[gPerches$Id_plac == i, 'R']))
+    }
+  }
+}
+protestGSp <- protestGSp[order(protestGSp$Id_plac), ]
+
 # calculate species proportion
 protestGSpProp <- merge(protestGSp, protestG, by = "Id_plac")
+protestGSpProp$Gsp <- as.numeric(protestGSpProp$Gsp)
 protestGSpProp$prop <- protestGSpProp$Gsp * 100 / protestGSpProp$G
 protestGSpProp <- protestGSpProp[order(protestGSpProp$Id_plac, protestGSpProp$prop, decreasing = TRUE),]
 
@@ -191,8 +228,8 @@ protestGSpProp <- protestGSpProp[order(protestGSpProp$Id_plac, protestGSpProp$pr
 # species not studied
 deciduousSp <- c("CHA", "FRE", "CHT", "MER", "ERO", "TIL", "BOU", "TRE", "ERS",
                  "CHE", "ALB", "ERC", "SOR", "ROB", "ORM", "ERP", "SAU", "ALT",
-                 "NOC", "NR", "CHP", "PEU", "SAM", "ERA", "A.F")
-coniferousSp <- c("MEE", "P.S", "IFS","P.X")
+                 "NOC", "NR", "CHP", "PEU", "SAM", "ERA", "A.F", 'APF') # [A]utre [P]erche [F]euillue
+coniferousSp <- c("MEE", "P.S", "IFS","P.X", 'A.R', 'APR') # [A]utre [P]erche [R]ésineux
 
 # species of interest
 spInterestD <- c("HET", "CHS")
@@ -316,8 +353,18 @@ protestPlotsDf[protestPlotsDf$Id_plac %in% mixedBeechFir, "compoSp"] <- "beech-f
 protestPlotsDf[protestPlotsDf$Id_plac %in% mixedBeechSpruce, "compoSp"] <- "beech-spruce"
 protestPlotsDf[protestPlotsDf$Id_plac %in% mixedFirSpruce, "compoSp"] <- "fir-spruce"
 
-# remove plots for which we do not have any composition (compoSp)
-protestPlotsDf <- protestPlotsDf[!is.na(protestPlotsDf$compoSp),]
+###############################################################
+# Define whether the forest plot is composed of deciduous and / or conifers
+# base on the basal area proportion of each (threshold = 75%)
+###############################################################
+
+# forestPlots
+forestPlotsDf$compoDCM <- NA
+forestPlotsDf[forestPlotsDf$p100gfP > 75 & !is.na(forestPlotsDf$p100gfP), 'compoDCM'] <- 'D' # deciduous
+forestPlotsDf[forestPlotsDf$p100gfP < 25 & !is.na(forestPlotsDf$p100gfP), 'compoDCM'] <- 'C' # conifers
+forestPlotsDf[forestPlotsDf$p100gfP >= 25 & forestPlotsDf$p100gfP <= 75 & !is.na(forestPlotsDf$p100gfP), 'compoDCM'] <- 'MDC' # mixte
+# prepare columns to assign species to each forest plot
+forestPlotsDf$compoSp <- NA
 
 ###############################################################
 # retrieve PROTEST plot species composition within each TFV types
@@ -331,7 +378,7 @@ mixed <- c('beech-fir', 'beech-spruce')
 
 for (i in unique(forestPlotsDf$CODE_TF)){
   # retrieve distribution of composition in a specific TFV type
-  distrib <- protestPlotsDf[protestPlotsDf$CODE_TF == i, "compoSp"]
+  distrib <- protestPlotsDf[protestPlotsDf$CODE_TF == i & !is.na(protestPlotsDf$compoSp), "compoSp"]
   # split species distribution into a deciduous part a coniferous part
   # and a mied part
   distribD <- as.character(distrib[distrib %in% deciduous])

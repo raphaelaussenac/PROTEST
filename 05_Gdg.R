@@ -10,11 +10,18 @@ source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/04_compoTfv.R')
 ###############################################################
 
 # retrieve list of TRUE mixed stands (i.e. where the two most abundant species
-# represent > 75 % of the total basal area, and that, before the grouping of species)
+# represent > 75 % of the basal area (d > 175), and that, before the grouping of species)
 
-# first remove TRUE (i.e. before the grouping of species) pure stands
-listPure <- protestGSpProp[protestGSpProp$prop > 75, "Id_plac"]
-protestGSpPropMixed <- protestGSpProp[!(protestGSpProp$Id_plac %in% listPure), ]
+# First calculate sp proportion in the canopy
+protestGSpCanopy <- ddply(arbres.vivant, .(Id_plac, Cod_ess), summarise, Gsp = sum(g))
+protestGCanopy <- ddply(arbres.vivant, .(Id_plac), summarise, G = sum(g))
+protestGSpPropCanopy <- merge(protestGSpCanopy, protestGCanopy, by = "Id_plac")
+protestGSpPropCanopy$prop <- protestGSpPropCanopy$Gsp * 100 / protestGSpPropCanopy$G
+protestGSpPropCanopy <- protestGSpPropCanopy[order(protestGSpPropCanopy$Id_plac, protestGSpPropCanopy$prop, decreasing = TRUE),]
+
+# then remove TRUE pure stands (i.e. before the grouping of species)
+listPure <- protestGSpPropCanopy[protestGSpPropCanopy$prop > 75, "Id_plac"]
+protestGSpPropMixed <- protestGSpPropCanopy[!(protestGSpPropCanopy$Id_plac %in% listPure), ]
 
 # keep only the two most abundant species on the PROTEST plots
 tabMixed <- data.frame(matrix(ncol = ncol(protestGSpPropMixed), nrow = 0))
@@ -37,13 +44,13 @@ trueMixedFirSpruce <- tabMixed[!is.na(tabMixed$S.P) & !is.na(tabMixed$EPC), "Id_
 # calculate link dgsp1 / dgsp2 & gFir / gSpruce
 ratGDg <- function(plotList, sp1, sp2){
   # for each mixture type
-  tmbf <- arbres.vivant[arbres.vivant$Id_plac %in% plotList, ]
-  plotDgbf <- data.frame(matrix(ncol = 3, nrow = length(plotList)))
-  colnames(plotDgbf) <- c('Id_plac', 'dgSp1', 'dgSp2')
-  plotDgbf$Id_plac <- plotList
-  for (i in unique(tmbf$Id_plac)){
+  tm <- arbres.vivant[arbres.vivant$Id_plac %in% plotList, ]        # [t]rue [m]ixture
+  gDgDf <- data.frame(matrix(ncol = 5, nrow = length(plotList)))
+  colnames(gDgDf) <- c('Id_plac', 'dgSp1', 'dgSp2', 'gSp1', 'gSp2')
+  gDgDf$Id_plac <- plotList
+  for (i in unique(tm$Id_plac)){
     # for each plot
-    plac <- tmbf[tmbf$Id_plac == i,]
+    plac <- tm[tm$Id_plac == i,]
     # g calculation
     # assign the G of other species to the target species depending on the
     # proportion of the target species
@@ -57,20 +64,18 @@ ratGDg <- function(plotList, sp1, sp2){
       gSp1 <- gSp1 + gRemain * propSp1
       gSp2 <- gSp2 + gRemain * propSp2
     }
-    plotDgbf[plotDgbf$Id_plac == i, 'gSp1'] <- gSp1
-    plotDgbf[plotDgbf$Id_plac == i, 'gSp2'] <- gSp2
+    gDgDf[gDgDf$Id_plac == i, 'gSp1'] <- gSp1
+    gDgDf[gDgDf$Id_plac == i, 'gSp2'] <- gSp2
     # dg calculation
-    plotDgbf[plotDgbf$Id_plac == i, 'dgSp1'] <- sqrt(sum((plac[plac$Cod_ess == sp1, "Diam"]/100)^2) / nrow(plac[plac$Cod_ess == sp1,]))
-    plotDgbf[plotDgbf$Id_plac == i, 'dgSp2'] <- sqrt(sum((plac[plac$Cod_ess == sp2, "Diam"]/100)^2) / nrow(plac[plac$Cod_ess == sp2,]))
-    # verify Gtot
-    plotDgbf[plotDgbf$Id_plac == i, 'gTot'] <- gTot
+    gDgDf[gDgDf$Id_plac == i, 'dgSp1'] <- sqrt(sum((plac[plac$Cod_ess == sp1, "Diam"]/100)^2) / nrow(plac[plac$Cod_ess == sp1,]))
+    gDgDf[gDgDf$Id_plac == i, 'dgSp2'] <- sqrt(sum((plac[plac$Cod_ess == sp2, "Diam"]/100)^2) / nrow(plac[plac$Cod_ess == sp2,]))
   }
   # g1 / gtot
-  plotDgbf$ratG <- plotDgbf$gSp1 / (plotDgbf$gSp1 + plotDgbf$gSp2)
+  gDgDf$ratG <- gDgDf$gSp1 / (gDgDf$gSp1 + gDgDf$gSp2)
   # dg1 / dg2
-  plotDgbf$ratDg <- plotDgbf$dgSp1 / plotDgbf$dgSp2
-  plotDgbf <- merge(plotDgbf, protestPlotsDf, by = 'Id_plac', all.x = TRUE, all.y = FALSE)
-  return(plotDgbf)
+  gDgDf$ratDg <- gDgDf$dgSp1 / gDgDf$dgSp2
+  gDgDf <- merge(gDgDf, protestPlotsDf, by = 'Id_plac', all.x = TRUE, all.y = FALSE)
+  return(gDgDf)
 }
 
 ###############################################################
