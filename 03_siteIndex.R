@@ -215,12 +215,6 @@ pdf(file="C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/map62.pdf", 
 plotMap("62")
 dev.off()
 
-
-
-
-
-
-
 #
 # # summary(lm(residuals(modUnPa03) ~ bdBauges03[,"rum"]))
 # plot(residuals(modUnPa03) ~ bdBauges03[,"rum"], pch = 16)

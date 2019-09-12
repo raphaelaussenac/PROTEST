@@ -457,14 +457,3 @@ hist(ratDgFirSpruce$dgSp1 / ratDgFirSpruce$dgSp2, add = TRUE, col ='red')
 # range
 range(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce' , 'a'])
 range(ratDgFirSpruce$dgSp1 / ratDgFirSpruce$dgSp2)
-
-
-
-
-# ---> G / Dg a 7.5 vec JMM
-#
-# ---> true mixture > 75
-#     --> réaffecter G aux deux espèces
-#     --> on ne reaffecte pas les dg des autres espèces dans les dg des deux
-#         espèce cibles (on ne veut pas biaiser l'ontogénie des 2 sp). JMM --> calibration
-#         des Dg seulement sur les sp cibles?

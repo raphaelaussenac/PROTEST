@@ -451,7 +451,4 @@ ggplot() +
           axis.title.x = element_blank(), axis.title.y = element_blank())
 dev.off()
 
-
-
-
 # -----> ajouter points TRUE chene / hetre / mélanges...???
