@@ -14,7 +14,7 @@ library(gridExtra)
 chosenMethod <- 'direct' # 'knPa-unPa' or 'direct'
 
 # load models
-source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/modfertInd.R')
+source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/siteIndexModel.R')
 
 ###############################################################
 # prediction : assign potential index to each forest plot

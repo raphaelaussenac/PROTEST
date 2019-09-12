@@ -2,7 +2,7 @@
 # import objects from compoTfv.R
 ###############################################################
 
-source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/04_compoTfv.R')
+source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/04_composition.R')
 
 ###############################################################
 # retrieve Gsp1, Gsp2, Dgsp1 and Dgsp2 of "TRUE" mixtures
