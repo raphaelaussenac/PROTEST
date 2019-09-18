@@ -387,5 +387,28 @@ classGeol$rocheCalc <- as.factor(classGeol$rocheCalc)
 # insert geol classification in forestPlots
 forestPlots <- merge(forestPlots, classGeol, by.x = "geolNotation", by.y = 'NOTATION', all.x = TRUE)
 
+###############################################################
+# filters
+###############################################################
+
+# remove polygones with geol == 'hydro' (== lac, river)
+forestPlots <- forestPlots[forestPlots$geolNotation != 'hydro', ]
+
+# remove forest plots where gPred == 0 & NA
+forestPlots <- forestPlots[!is.na(forestPlots$gPred), ]
+forestPlots <- forestPlots[forestPlots$gPred > 0, ]
+
+# remove plot where p100gfP = NA
+forestPlots <- forestPlots[!is.na(forestPlots$p100gfPred), ]
+
+###############################################################
+# assign unique id
+###############################################################
+
+forestPlots@data$id <- c(1:nrow(forestPlots@data))
+
+###############################################################
 # save
+###############################################################
+
 shapefile(forestPlots, filename = 'forestPlots3Ha', overwrite = TRUE)

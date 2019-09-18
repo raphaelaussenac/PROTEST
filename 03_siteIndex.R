@@ -31,9 +31,6 @@ coord <- data.frame(coordinates(forestPlots))
 colnames(coord) <- c("X", "Y")
 forestPlots@data <- cbind(forestPlots@data, coord)
 
-# remove polygones with geol == 'hydro' (== lac, river)
-forestPlots <- forestPlots[forestPlots$gelNttn != 'hydro', ]
-
 # create df with variables used in the models
 modDf <- forestPlots@data
 modDf <- modDf[, c("alti", "slope", "greco", "expoNS", "expoEW", "ph", "rum", 'gelNttn' ,'Cd_crbn', 'Cd_hydr', 'rochClc', 'X', 'Y')]
@@ -61,7 +58,6 @@ forestPlots@data <- cbind(forestPlots@data, modDf[,c('pot03', 'pot03Epsilon',
                                             'pot62Epsilon')])
 
 # convert to export to ggplot
-forestPlots@data$id <- rownames(forestPlots@data)
 forestPlotsPts <- fortify(forestPlots, region="id")
 forestPlotsDf <- join(forestPlotsPts, forestPlots@data, by="id")
 
@@ -195,25 +191,28 @@ plotMap <- function(sp){
   print(grid.arrange(fert, fertE, fertRes, nrow = 1, ncol = 3))
 }
 
-# model quercus petraea (03)
-pdf(file="C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/map03.pdf", width = 20, height = 10)
-plotMap("03")
-dev.off()
+# # model quercus petraea (03)
+# pdf(file="C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/map03.pdf", width = 20, height = 10)
+# plotMap("03")
+# dev.off()
+#
+# # model fagus sylvatica  (09)
+# pdf(file="C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/map09.pdf", width = 20, height = 10)
+# plotMap("09")
+# dev.off()
+#
+# # model abies alba (61)
+# pdf(file="C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/map61.pdf", width = 20, height = 10)
+# plotMap("61")
+# dev.off()
+#
+# # model picea abies (62)
+# pdf(file="C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/map62.pdf", width = 20, height = 10)
+# plotMap("62")
+# dev.off()
 
-# model fagus sylvatica  (09)
-pdf(file="C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/map09.pdf", width = 20, height = 10)
-plotMap("09")
-dev.off()
 
-# model abies alba (61)
-pdf(file="C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/map61.pdf", width = 20, height = 10)
-plotMap("61")
-dev.off()
 
-# model picea abies (62)
-pdf(file="C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/map62.pdf", width = 20, height = 10)
-plotMap("62")
-dev.off()
 
 #
 # # summary(lm(residuals(modUnPa03) ~ bdBauges03[,"rum"]))

@@ -82,12 +82,6 @@ ratGDg <- function(plotList, sp1, sp2){
 # assign species G to all forest plots
 ###############################################################
 
-# remove forest plots where gPred == 0
-forestPlotsDf <- forestPlotsDf[forestPlotsDf$gPred > 0, ]
-
-# remove forest plots where gelNttn == "hydro"
-forestPlotsDf <- forestPlotsDf[forestPlotsDf$gelNttn != "hydro", ]
-
 forestPlotsDf$gBeech <- NA
 forestPlotsDf$gOak <- NA
 forestPlotsDf$gFir <- NA
@@ -325,6 +319,15 @@ forestPlotsDf[forestPlotsDf$compoSp == "fir-spruce", "nFir"] <- (4 * forestPlots
 forestPlotsDf[forestPlotsDf$compoSp == "fir-spruce", "nSpruce"] <- (4 * forestPlotsDf[forestPlotsDf$compoSp == "fir-spruce", "gSpruce"]) /
                                                              (pi * forestPlotsDf[forestPlotsDf$compoSp == "fir-spruce", "dgSpruce"]^2)
 #
+
+###############################################################
+# save in forestPlots object
+###############################################################
+
+# put back g Dg and N in the SpatialPolygonDataframe
+forestPlots@data <- merge(forestPlots@data, forestPlotsDf[, c('id', "gBeech", "gOak", "gFir", "gSpruce",
+                                          "dgBeech", "dgOak", "dgFir", "dgSpruce", "nBeech",
+                                          "nOak", "nFir", "nSpruce")], by = 'id', all = TRUE)
 
 ###############################################################
 # test dg

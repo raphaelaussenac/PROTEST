@@ -3,7 +3,7 @@
 ###############################################################
 
 # clean up environment
-rm(list = ls())
+# rm(list = ls())
 
 # load packages
 library(ggplot2)
@@ -137,7 +137,6 @@ protestPlotsDf <- groupTfv(protestPlotsDf)
 
 # forestPlotsDf
 # convert to be able to export to ggplot
-forestPlots@data$id <- c(1:nrow(forestPlots@data))
 forestPlots@data$area <- area(forestPlots)
 forestPlotsDf <- forestPlots@data
 forestPlotsDf$CODE_TF <- as.character(forestPlotsDf$CODE_TF)
@@ -358,11 +357,10 @@ protestPlotsDf[protestPlotsDf$Id_plac %in% mixedFirSpruce, "compoSp"] <- "fir-sp
 # base on the basal area proportion of each (threshold = 75%)
 ###############################################################
 
-# forestPlots
 forestPlotsDf$compoDCM <- NA
-forestPlotsDf[forestPlotsDf$p100gfP > 75 & !is.na(forestPlotsDf$p100gfP), 'compoDCM'] <- 'D' # deciduous
-forestPlotsDf[forestPlotsDf$p100gfP < 25 & !is.na(forestPlotsDf$p100gfP), 'compoDCM'] <- 'C' # conifers
-forestPlotsDf[forestPlotsDf$p100gfP >= 25 & forestPlotsDf$p100gfP <= 75 & !is.na(forestPlotsDf$p100gfP), 'compoDCM'] <- 'MDC' # mixte
+forestPlotsDf[forestPlotsDf$p100gfP > 75, 'compoDCM'] <- 'D' # deciduous
+forestPlotsDf[forestPlotsDf$p100gfP < 25, 'compoDCM'] <- 'C' # conifers
+forestPlotsDf[forestPlotsDf$p100gfP >= 25 & forestPlotsDf$p100gfP <= 75, 'compoDCM'] <- 'MDC' # mixte
 # prepare columns to assign species to each forest plot
 forestPlotsDf$compoSp <- NA
 
@@ -386,24 +384,21 @@ for (i in unique(forestPlotsDf$CODE_TF)){
   distribM <- as.character(distrib[distrib %in% mixed])
   # assign species to each forest plot
   # deciduous forest plots
-  nbD <- nrow(forestPlotsDf[forestPlotsDf$compoDCM == 'D' & !is.na(forestPlotsDf$compoDCM)
+  nbD <- nrow(forestPlotsDf[forestPlotsDf$compoDCM == 'D'
                 & forestPlotsDf$CODE_TF == i,])
-  forestPlotsDf[forestPlotsDf$compoDCM == 'D'  & !is.na(forestPlotsDf$compoDCM)
+  forestPlotsDf[forestPlotsDf$compoDCM == 'D'
                 & forestPlotsDf$CODE_TF == i, 'compoSp'] <- distribD[round(runif(nbD, min = 1, max = length(distribD)))]
   # coniferous forest plots
-  nbC <- nrow(forestPlotsDf[forestPlotsDf$compoDCM == 'C' & !is.na(forestPlotsDf$compoDCM)
+  nbC <- nrow(forestPlotsDf[forestPlotsDf$compoDCM == 'C'
                 & forestPlotsDf$CODE_TF == i,])
-  forestPlotsDf[forestPlotsDf$compoDCM == 'C'  & !is.na(forestPlotsDf$compoDCM)
+  forestPlotsDf[forestPlotsDf$compoDCM == 'C'
                 & forestPlotsDf$CODE_TF == i, 'compoSp'] <- distribC[round(runif(nbC, min = 1, max = length(distribC)))]
   # mixte forest plots
-  nbM <- nrow(forestPlotsDf[forestPlotsDf$compoDCM == 'MDC' & !is.na(forestPlotsDf$compoDCM)
+  nbM <- nrow(forestPlotsDf[forestPlotsDf$compoDCM == 'MDC'
                 & forestPlotsDf$CODE_TF == i,])
-  forestPlotsDf[forestPlotsDf$compoDCM == 'MDC'  & !is.na(forestPlotsDf$compoDCM)
+  forestPlotsDf[forestPlotsDf$compoDCM == 'MDC'
                 & forestPlotsDf$CODE_TF == i, 'compoSp'] <- distribM[round(runif(nbM, min = 1, max = length(distribM)))]
 }
-
-# remove those plots for which we do not have any composition
-forestPlotsDf <- forestPlotsDf[!is.na(forestPlotsDf$compoSp), ]
 
 # 'mixture composition' --> pure / mixed
 forestPlotsDf$compo <- NA
