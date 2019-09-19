@@ -429,11 +429,18 @@ forestPlots <- forestPlots[!is.na(forestPlots$compoSp), ]
 # convert for ggplot
 forestPlotsPts <- fortify(forestPlots, region="id")
 forestNewSp <- join(forestPlotsPts, forestPlots@data, by="id")
+
 # plot
+pnr <- readOGR(dsn = "Z:/Private/PNR Bauges/Sans_Trou", layer = "parc_filled", encoding = "UTF-8", use_iconv = TRUE)
+colnames(pnr@data)[colnames(pnr@data) == "ID"] <- 'id'
+pnrPts <- fortify(pnr, region="id")
+pnrNew <- join(pnrPts, pnr@data, by="id")
+
 pdf(file="C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/mapCompo.pdf", width = 20, height = 10)
 ggplot() +
-  geom_polygon(data = forestNewSp[forestNewSp$compoSp == 'spruce',], aes(long,lat,group=group,fill=compoSp)) +
-  geom_polygon(data = forestNewSp, aes(long,lat,group=group,fill=greco), alpha = 0.3) +
+  geom_polygon(data = forestNewSp, aes(long,lat,group=group,fill=compoSp)) +
+  geom_polygon(data = pnrNew, aes(long,lat,group=group), alpha = 0.3) +
+  # geom_polygon(data = forestNewSp, aes(long,lat,group=group,fill=greco), alpha = 0.3) +
   coord_equal() +
   # scale_fill_gradient2(low = "cyan", mid = "blue3", high = "purple", aesthetics = "fill", midpoint = mean(forestDf$pot), name = "fertility\nindex\n(modeled)") +
   ggtitle("stand composition") +

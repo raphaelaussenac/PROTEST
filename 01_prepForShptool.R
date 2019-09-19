@@ -11,6 +11,8 @@
 #
 # 4 - import the shp in R (click "Save...")
 #
+# 5 - a csv file is created --> make a copie of it before closing shptool
+#
 # 5 - run the "extract" script on this new shp
 #
 ###############################################################
@@ -33,6 +35,9 @@ BDforet <- readOGR(dsn = "X:/ProjetsCommuns/PROTEST/T1/Donnees_SIG/BD_Foret", la
 ###############################################################
 # create new shapefile with only ID
 ###############################################################
+
+# change column ID name to avoid conflict with shptools ID
+colnames(BDforet@data)[colnames(BDforet@data) == 'ID'] <- 'IDD'
 
 # create unique ID for each polygon
 BDforet$SuperID <- c(1:nrow(BDforet@data))

@@ -269,6 +269,8 @@ shapefile(ifnCircular, filename = 'ifnCircular', overwrite = TRUE)
 
 forestPlots <- readOGR(dsn = ".", layer = "superID_1", encoding = "UTF-8", use_iconv = TRUE)
 crs(forestPlots) <- crs(pnr)
+# add unique id
+forestPlots$id <- c(1:nrow(forestPlots@data))
 
 # extract GRECO
 grecoExt <- grecoVr$extract(sp = forestPlots, fun = getmode, small = TRUE) # works despite the error message
@@ -400,12 +402,6 @@ forestPlots <- forestPlots[forestPlots$gPred > 0, ]
 
 # remove plot where p100gfP = NA
 forestPlots <- forestPlots[!is.na(forestPlots$p100gfPred), ]
-
-###############################################################
-# assign unique id
-###############################################################
-
-forestPlots@data$id <- c(1:nrow(forestPlots@data))
 
 ###############################################################
 # save

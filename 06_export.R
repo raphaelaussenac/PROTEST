@@ -65,6 +65,13 @@ ymax <- extent(forestPlots)@ymax
 forestPlots <- forestPlots[!forestPlots$id %in% disapearedPlots, ]
 forestPlots <- forestPlots@data
 
+# import non-truncated WKT
+wkt <- read.csv("superID_1.csv", header = TRUE, sep = "\t")
+wkt$id <- c(1:nrow(wkt))
+# replace wkt in forestPlots
+forestPlots$WKT <- NULL
+forestPlots <- merge(forestPlots, wkt[, c('id', 'WKT')], by = 'id')
+
 ###############################################################
 # format
 ###############################################################
@@ -175,7 +182,10 @@ forestPlots <- forestPlots[, c('STAND_ID',	'FOREST_TYPE_CODE',	'FOREST_TYPE_NAME
                               'AGE_1',	'HDOM_1',	'DDOM_1',	'HG_1',	'DG_1',	'SITE_INDEX_2', 'NHA_2',	'AGE_2',	'HDOM_2',
                               'DDOM_2',	'HG_2',	'DG_2',	'EXPLOITABILITY',	'DOMAINE_TYPE',	'FOREST',
                               'INVENTORY_DATE',	'DEPARTMENT',	'CITY',	'COMMENT',	'WKT-GEOM')]
-#
+
+# convert dg m -> cm
+forestPlots$DG_1 <- forestPlots$DG_1 * 100
+forestPlots[forestPlots$DG_2 != -1, 'DG_2'] <- forestPlots[forestPlots$DG_2 != -1, 'DG_2']  * 100
 
 ###############################################################
 # format
@@ -190,4 +200,29 @@ cat('\nXMAX=', xmax, sep = '', file="forestPlots.txt", append=TRUE)
 cat('\nYMAX=', ymax, sep = '', file="forestPlots.txt", append=TRUE)
 cat('\n# 2. Forest Unit Level', file="forestPlots.txt", append=TRUE)
 cat('\n#', file="forestPlots.txt", append=TRUE)
-write.table(forestPlots, file="forestPlots.txt", row.names = FALSE, append=TRUE)
+write.table(forestPlots, file="forestPlots.txt", row.names = FALSE, append=TRUE, quote = FALSE, sep = '\t')
+
+
+
+
+# --> dg en cm !!
+# --> pb de WKT (manque les parenthèses finales)
+--> indice de fertilité négatifs !!
+--> refaire tourner tout depuis 01_prepFor...
+
+
+
+
+#
+# verif merge forestPlots wkt by id
+# a <- character()
+# for (i in 1:nrow(wkt)){
+#   for (j in c("CODE_TFV", "ESSENCE", "IDD", "ID_2", "ID_3", "ID_4", "INSEE_DEP", "INSEE_REG", "NOM_DEP", "SUPERID", "TFV", "TFV_G11")){
+#     a <- c(a, wkt[wkt$id == i, c('IDD')] == forestPlots@data[forestPlots$id == i, c('IDD')])
+#   }
+# }
+
+# sum(a == TRUE)
+# sum(a == FALSE)
+#
+# nrow(wkt) * length(c("CODE_TFV", "ESSENCE", "IDD", "ID_2", "ID_3", "ID_4", "INSEE_DEP", "INSEE_REG", "NOM_DEP", "SUPERID", "TFV", "TFV_G11"))
