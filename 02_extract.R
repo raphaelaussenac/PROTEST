@@ -371,7 +371,7 @@ orienExtDf <- orienExtDf[,c("expoNS", "expoEW")]
 # integrate into the shp file
 forestPlots@data <- cbind(forestPlots@data, grecoExtDf, elevExtDf, sloExtDf,
                       orienExtDf, forProtecExtDf, dgPredExtDf, gPredExtDf,
-                      ggbPredExtDf, nPredExtDf, p100gfPredExtDf, phExtDf,
+                      ggbPredExtDf, p100gfPredExtDf, phExtDf,
                       rumExtDf, kExtDf, lsExtDf, pExtDf, rExtDf)
 
 ###############################################################
@@ -400,6 +400,11 @@ forestPlots <- forestPlots[forestPlots$geolNotation != 'hydro', ]
 forestPlots <- forestPlots[!is.na(forestPlots$gPred), ]
 forestPlots <- forestPlots[forestPlots$gPred > 0, ]
 
+# convert mean BA/ha --> BA (real stock associated to each plot)
+forestPlots$area <- area(forestPlots) / 10000
+forestPlots$gPred <- forestPlots$gPred * forestPlots$area
+forestPlots$area <- NULL
+
 # remove plot where p100gfP = NA
 forestPlots <- forestPlots[!is.na(forestPlots$p100gfPred), ]
 
@@ -408,3 +413,19 @@ forestPlots <- forestPlots[!is.na(forestPlots$p100gfPred), ]
 ###############################################################
 
 shapefile(forestPlots, filename = 'forestPlots3Ha', overwrite = TRUE)
+
+
+# -----------------------------------
+#
+# hist(forestPlots$gPred)
+#
+# tab1 <- forestPlots[forestPlots$area < 10000, ]
+# hist(tab1$gPred, add = TRUE, border = 'blue')
+#
+# tab2 <- forestPlots[forestPlots$area > 10000 & forestPlots$area < 20000, ]
+# hist(tab2$gPred, add = TRUE, border = 'green')
+#
+# tab3 <- forestPlots[forestPlots$area > 25000, ]
+# hist(tab3$gPred, add = TRUE, border = 'red')
+#
+# plot(forestPlots$area, forestPlots$gPred)
