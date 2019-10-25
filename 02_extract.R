@@ -233,6 +233,7 @@ rVr <- velox(r)
 # Each plot is assigned the most represented GRECO.
 getmode <- function(x) {
    uniqv <- unique(x)
+   uniqv <- uniqv[!is.na(uniqv)]
    uniqv[which.max(tabulate(match(x, uniqv)))]
 }
 grecoExt <- grecoVr$extract(sp = ifnCircular, fun = getmode, small = TRUE)
@@ -469,3 +470,12 @@ shapefile(forestPlots, filename = 'forestPlots3Ha', overwrite = TRUE)
 plot(owner[owner$Pub_Priv == 'Public' & !is.na(owner$Pub_Priv),], col = 'red')
 plot(forestPlots[forestPlots$owner == 'Pub' & !is.na(forestPlots$owner),], col = 'red', add = TRUE)
 plot(forestPlots[forestPlots$owner == 'Priv' & !is.na(forestPlots$owner),], col = 'blue', add = TRUE)
+plot(forestPlots[is.na(forestPlots$owner),], col = 'green', add = TRUE)
+
+plot(forestPlots, col = 'cyan', add = TRUE)
+
+
+plot(owner, col = 1, add = TRUE)
+
+plot(owner[owner$Pub_Priv == 'Private' & !is.na(owner$Pub_Priv),], col = 'red')
+plot(forestPlots[is.na(forestPlots$owner),], col = 'green', border = 'green', add = TRUE)

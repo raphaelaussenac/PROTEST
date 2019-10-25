@@ -49,7 +49,7 @@ table(forestPlotsCompogDgN$CODE_TF)
 forestPlots <- merge(forestPlotsSiteIndex[, c('id', 'pot03', 'pot03Epsilon',
                                                                 'pot09', 'pot09Epsilon', 'pot61',
                                                                 'pot61Epsilon', 'pot62',
-                                                                'pot62Epsilon', 'INSEE_D')],
+                                                                'pot62Epsilon', 'INSEE_D', 'owner')],
                      forestPlotsCompogDgN[, c('id', 'compoSp', 'area', "gBeech", "gOak", "gFir", "gSpruce",
                                                                 "dgBeech", "dgOak", "dgFir", "dgSpruce", "nBeech",
                                                                 "nOak", "nFir", "nSpruce", "WKT")],
@@ -122,7 +122,7 @@ forestPlots$FOREST <- 'BAUGES'
 forestPlots$INVENTORY_DATE	 <- 2016
 
 # DOMAINE_TYPE
-forestPlots$DOMAINE_TYPE <- 'public_private'
+colnames(forestPlots)[colnames(forestPlots) == "owner"] <- 'DOMAINE_TYPE'
 
 # EXPLOITABILITY
 forestPlots$EXPLOITABILITY <- 1
@@ -192,8 +192,6 @@ forestPlots <- forestPlots[, c('STAND_ID',	'FOREST_TYPE_CODE',	'FOREST_TYPE_NAME
 # remove fertility index < 0
 forestPlots <- forestPlots[forestPlots$SITE_INDEX_1 > 0, ]
 forestPlots <- forestPlots[forestPlots$SITE_INDEX_2 > 0 | forestPlots$SITE_INDEX_2 == -1, ]
-
-# --> pas de négatif dans si2
 
 # convert dg m -> cm
 forestPlots$DG_1 <- forestPlots$DG_1 * 100

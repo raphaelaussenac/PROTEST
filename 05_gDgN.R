@@ -141,7 +141,7 @@ range(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "b"])
 forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gSpruce"] <- forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gPred"] * (1 - forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "b"])
 
 # gFir
-forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gFir"] <- forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gPred"] - forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gSpruce"]
+forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gFir"] <- forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gPred"] * forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "b"]
 
 ###############################################################
 # model Dg1/Dg2 ratio with available variables
