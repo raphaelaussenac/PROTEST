@@ -142,38 +142,44 @@ forestPlots$DG_2 <- -1
 forestPlots[forestPlots$FOREST_TYPE_CODE %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "SITE_INDEX_1"] <-
                                                   forestPlots[forestPlots$FOREST_TYPE_CODE  %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "pot09Epsilon"]
 forestPlots[forestPlots$FOREST_TYPE_CODE  %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "NHA_1"] <-
-                                                  forestPlots[forestPlots$FOREST_TYPE_CODE  %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "nBeech"]
+                                                  forestPlots[forestPlots$FOREST_TYPE_CODE  %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "nBeech"] /
+                                                  (forestPlots[forestPlots$FOREST_TYPE_CODE  %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "AREA"] / 10000)
 forestPlots[forestPlots$FOREST_TYPE_CODE  %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "DG_1"] <-
                                                   forestPlots[forestPlots$FOREST_TYPE_CODE  %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "dgBeech"]
 
 # sp1 = oak
 forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_oak", "SITE_INDEX_1"] <- forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_oak", "pot03Epsilon"]
-forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_oak", "NHA_1"] <- forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_oak", "nOak"]
+forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_oak", "NHA_1"] <- forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_oak", "nOak"] /
+                                                                     (forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_oak", "AREA"] / 10000)
 forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_oak", "DG_1"] <- forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_oak", "dgOak"]
 
 # sp1 = fir
 forestPlots[forestPlots$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "SITE_INDEX_1"] <-
                                                   forestPlots[forestPlots$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "pot61Epsilon"]
 forestPlots[forestPlots$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "NHA_1"] <-
-                                                  forestPlots[forestPlots$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "nFir"]
+                                                  forestPlots[forestPlots$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "nFir"] /
+                                                  (forestPlots[forestPlots$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "AREA"] / 10000)
 forestPlots[forestPlots$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "DG_1"] <-
                                                   forestPlots[forestPlots$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "dgFir"]
 
 # sp1 = spruce
 forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_spruce", "SITE_INDEX_1"] <- forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_spruce", "pot62Epsilon"]
-forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_spruce", "NHA_1"] <- forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_spruce", "nSpruce"]
+forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_spruce", "NHA_1"] <- forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_spruce", "nSpruce"] /
+                                                                        (forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_spruce", "AREA"] / 10000)
 forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_spruce", "DG_1"] <- forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_spruce", "dgSpruce"]
 
 # sp2 = fir
 forestPlots[forestPlots$FOREST_TYPE_CODE == 'salem_beech_fir', "SITE_INDEX_2"] <- forestPlots[forestPlots$FOREST_TYPE_CODE == 'salem_beech_fir', "pot61Epsilon"]
-forestPlots[forestPlots$FOREST_TYPE_CODE == 'salem_beech_fir', "NHA_2"] <- forestPlots[forestPlots$FOREST_TYPE_CODE == 'salem_beech_fir', "nFir"]
+forestPlots[forestPlots$FOREST_TYPE_CODE == 'salem_beech_fir', "NHA_2"] <- forestPlots[forestPlots$FOREST_TYPE_CODE == 'salem_beech_fir', "nFir"] /
+                                                                           (forestPlots[forestPlots$FOREST_TYPE_CODE == 'salem_beech_fir', "AREA"] / 10000)
 forestPlots[forestPlots$FOREST_TYPE_CODE == 'salem_beech_fir', "DG_2"] <- forestPlots[forestPlots$FOREST_TYPE_CODE == 'salem_beech_fir', "dgFir"]
 
 # sp2 = spruce
 forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "SITE_INDEX_2"] <-
                                                   forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "pot62Epsilon"]
 forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "NHA_2"] <-
-                                                  forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "nSpruce"]
+                                                  forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "nSpruce"] /
+                                                  (forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "AREA"] / 10000)
 forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "DG_2"] <-
                                                   forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "dgSpruce"]
 
@@ -183,9 +189,18 @@ forestPlots <- forestPlots[, c('STAND_ID',	'FOREST_TYPE_CODE',	'FOREST_TYPE_NAME
                               'DDOM_2',	'HG_2',	'DG_2',	'EXPLOITABILITY',	'DOMAINE_TYPE',	'FOREST',
                               'INVENTORY_DATE',	'DEPARTMENT',	'CITY',	'COMMENT',	'WKT-GEOM')]
 
+# remove fertility index < 0
+forestPlots <- forestPlots[forestPlots$SITE_INDEX_1 > 0, ]
+forestPlots <- forestPlots[forestPlots$SITE_INDEX_2 > 0 | forestPlots$SITE_INDEX_2 == -1, ]
+
+# --> pas de négatif dans si2
+
 # convert dg m -> cm
 forestPlots$DG_1 <- forestPlots$DG_1 * 100
 forestPlots[forestPlots$DG_2 != -1, 'DG_2'] <- forestPlots[forestPlots$DG_2 != -1, 'DG_2']  * 100
+
+# reduce file size
+# forestPlots <- forestPlots[20000:nrow(forestPlots),]
 
 ###############################################################
 # format
@@ -205,13 +220,9 @@ write.table(forestPlots, file="forestPlots.txt", row.names = FALSE, append=TRUE,
 
 
 
-# --> dg en cm !!
-# --> pb de WKT (manque les parenthèses finales)
---> indice de fertilité négatifs !!
---> refaire tourner tout depuis 01_prepFor...
 
 
-
+--> indice de fertilité négatifs !! due au predict + rnorm --> changer modele?
 
 #
 # verif merge forestPlots wkt by id
