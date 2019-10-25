@@ -140,6 +140,29 @@ gdalwarp('Z:/Private/rasterVanneck/Rf_gp1.tif',
 r <- raster('Z:/Private/rasterVanneck/r.tif')
 
 ###############################################################
+# land ownership
+###############################################################
+
+# BD Forêt v2 2014 par decoupage / fusion dep 73 et 74 puis union avec forets publiques
+owner <- readOGR(dsn = "X:/ProjetsCommuns/PROTEST/T1/Donnees_SIG", layer="BD.Foret.V2.2014_union_Foret.publique.2814", encoding = "UTF-8", use_iconv = TRUE)
+# ajouter champ public prive
+owner$Pub_Priv <- factor(ifelse(is.na(owner$llib_frt), "Private", "Public"))
+#
+# # convert into a Raster
+# ext <- floor(extent(elev))
+# r <- raster(ext, res=res(elev))
+# owner <- rasterize(foret, r, field="Pub_Priv")
+# crs(owner) <- crs(pnr)
+# # plot(owner)
+#
+# # save raster
+# writeRaster(owner, "ownership.tif")
+
+# load ownership raster
+ownership <- raster('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/ownership.tif')
+plot(ownership, col=colorRampPalette(c("green", "blue"))(255))
+
+###############################################################
 # prepare NFI data for extraction
 ###############################################################
 
@@ -186,6 +209,7 @@ elevVr <- velox(elev)
 sloVr <- velox(slo)
 orienVr <- velox(orien)
 grecoVr <- velox(grecoRaster)
+ownershipVr <- velox(ownership)
 forProtecVr <- velox(forProtec)
 niVr <- velox(ni)
 niDgi2Vr <- velox(niDgi2)
@@ -273,7 +297,10 @@ crs(forestPlots) <- crs(pnr)
 forestPlots$id <- c(1:nrow(forestPlots@data))
 
 # extract GRECO
-grecoExt <- grecoVr$extract(sp = forestPlots, fun = getmode, small = TRUE) # works despite the error message
+grecoExt <- grecoVr$extract(sp = forestPlots, fun = getmode, small = TRUE)
+
+# extract ownership
+ownershipExt <- ownershipVr$extract(sp = forestPlots, fun = getmode, small = TRUE)
 
 # extract elevation
 elevExt <- elevVr$extract(sp = forestPlots, fun = mean, small = TRUE)
@@ -321,6 +348,11 @@ coordForest <- intersect(coordForest, geol)
 grecoExtDf <- data.frame(grecoExt)
 colnames(grecoExtDf) <- "greco"
 grecoExtDf$greco <- greco$CODEGRECO[grecoExtDf$greco] # convert back factor numbers into GRECO letters
+ownershipExtDf <- data.frame(ownershipExt)
+colnames(ownershipExtDf) <- "owner"
+ownershipExtDf[ownershipExtDf$owner == 2 & !is.na(ownershipExtDf$owner), 'owner'] <- 'Pub'
+ownershipExtDf[ownershipExtDf$owner == 1 & !is.na(ownershipExtDf$owner), 'owner'] <- 'Priv'
+ownershipExtDf$owner <- as.factor(ownershipExtDf$owner)
 elevExtDf <- data.frame(elevExt)
 colnames(elevExtDf) <- "alti"
 sloExtDf <- data.frame(sloExt)
@@ -369,7 +401,7 @@ orienExtDf$expoEW <- sin(orienExtDf$orient*pi/180)
 orienExtDf <- orienExtDf[,c("expoNS", "expoEW")]
 
 # integrate into the shp file
-forestPlots@data <- cbind(forestPlots@data, grecoExtDf, elevExtDf, sloExtDf,
+forestPlots@data <- cbind(forestPlots@data, grecoExtDf, ownershipExtDf, elevExtDf, sloExtDf,
                       orienExtDf, forProtecExtDf, dgPredExtDf, gPredExtDf,
                       ggbPredExtDf, p100gfPredExtDf, phExtDf,
                       rumExtDf, kExtDf, lsExtDf, pExtDf, rExtDf)
@@ -429,3 +461,11 @@ shapefile(forestPlots, filename = 'forestPlots3Ha', overwrite = TRUE)
 # hist(tab3$gPred, add = TRUE, border = 'red')
 #
 # plot(forestPlots$area, forestPlots$gPred)
+
+
+
+
+
+plot(owner[owner$Pub_Priv == 'Public' & !is.na(owner$Pub_Priv),], col = 'red')
+plot(forestPlots[forestPlots$owner == 'Pub' & !is.na(forestPlots$owner),], col = 'red', add = TRUE)
+plot(forestPlots[forestPlots$owner == 'Priv' & !is.na(forestPlots$owner),], col = 'blue', add = TRUE)
