@@ -22,7 +22,7 @@ forestPlots$id <- paste(c(1:nrow(forestPlots@data)), 'id', sep = "")
 ###############################################################
 start_time <- Sys.time()
 
-# size threshold
+# size threshold (m²)
 threshold <- 10
 # list of smallPlots
 smallPlots <- forestPlots[forestPlots$area <= threshold, ]
@@ -32,47 +32,23 @@ rownames(touch) <- forestPlots$id
 colnames(touch) <- forestPlots$id
 
 # chek whether smallPlots have neighbours (conditions for main while loop)
-smallTouch <- data.frame(touch[smallPlots$id,])
+smallTouch <- touch[smallPlots$id,]
+# 1 - transform F -> 0 / T -> 1
+smallTouch[smallTouch == FALSE] <- 0
+smallTouch[smallTouch == TRUE] <- 1
+# 2 - sum lines
+smallTouch <- data.frame(smallTouch)
+smallTouch$sum <- apply(smallTouch, 1, sum)
+# 3 - keep only smallPlots with neighbours (i.e. those for which sum > 0)
+smallTouch <- smallTouch[smallTouch$sum > 0,]
+# 4- randomly select a plot with a nei (to be --> "i")
+iSmallPlot <- rownames(smallTouch)[round(runif(1, min = 1, max = nrow(smallTouch)))]
+# i <- smallPlot with neighbours
+i <- iSmallPlot
 
-# and select the first plot with a nei to be --> "i"
-if(sum(smallTouch == TRUE) > 0){
-  counter <- 1
-  while(sum(smallTouch[counter,] == TRUE) == 0){
-    counter <- counter + 1
-  }
-}
-iSmallPlot <- rownames(smallTouch[counter,])
-
-
-# nei <- data.frame(i = NA, nei = NA)
-# for (i in smallPlots$id){
-#   a <- data.frame(touch[i,])
-#   FT <- length(unique(a[,1])) # [F]ALSE [T]RUTH
-#   if(FT == 2){
-#     FT <- data.frame("i" = i, "nei" = "y")
-#   } else {
-#     FT <- data.frame("i" = i, "nei" = "n")
-#   }
-#   colnames(FT)
-#   nei <- rbind(nei, FT)
-# }
-# nei <- nei[-1,]
-
-
-
-
-
-
-
-
+ptji <- c() # [p]lots [t]o [j]oin + iSmallPlot (see below)
+rfsl <- c() # [r]emove [f]rom [s]mallPlots [l]ist (see below)
 while(sum(smallTouch == TRUE) > 0){
-
-  touch <- gTouches(forestPlots, byid = TRUE, returnDense=TRUE)
-  rownames(touch) <- forestPlots$id
-  colnames(touch) <- forestPlots$id
-
-  # i <- smallPlot with neighbours
-  i <- iSmallPlot
 
   a <- data.frame(touch[i,])
   a$nei <- rownames(a)
@@ -85,12 +61,15 @@ while(sum(smallTouch == TRUE) > 0){
     a <- a[a$plot == TRUE, ]
     lines <- rgeos::gIntersection(forestPlots[forestPlots$id == i,], forestPlots[forestPlots$id %in% c(a$nei),], byid = TRUE)
     if (class(lines)[1] == "SpatialPoints"){
-      print('SpatialPoints')
+      # remove definitely from the smallPlots List
+      rfsl <- c(rfsl, iSmallPlot) # [r]emove [f]rom [s]mallPlots [l]ist
+      print('SpatialPoints --> impossible to merge')
     } else if(class(lines)[1] == "SpatialCollections") {
-      lines <- lines@lineobj
+      rfsl <- c(rfsl, iSmallPlot) # [r]emove [f]rom [s]mallPlots [l]ist
+      # lines <- lines@lineobj
       # find a way to identify wich intersection  is/are SpatialPoints and remove
       # it from 'a' dataframe
-      print('SpatialCollections')
+      print('SpatialCollections --> impossible to merge')
     } else {
       l_lines <- sp::SpatialLinesLengths(lines)
       # plot(forestPlots[forestPlots$id %in% c(i, c(a$nei)),])
@@ -113,8 +92,13 @@ while(sum(smallTouch == TRUE) > 0){
         counter <- counter + 1
        }
       # list of plots to join
-      ptj <- a[1:nbNei, 'nei']
+      ptj <- a[1:nbNei, 'nei'] # [p]lots [t]o [j]oin
+      print(paste('merging', length(ptj)+1, 'plots together'))
       uni <- aggregate(forestPlots[forestPlots$id %in% c(i, ptj),], dissolve=TRUE)
+      ptji <- c(ptji, a[1:nbNei, 'nei'], iSmallPlot) # ptj + iSmallPlot
+      # no need to calculate a Touch matrix if the neighbours are touching a
+      # plot that was not merged because --> SpatialPoints or SpatialCollections
+      ptji <- ptji[!(ptji %in% rfsl)]
 
       # save attribute of biggest polygon in the UNION
       if(max(a[a$nei %in% ptj, 'area']) > iArea){
@@ -138,35 +122,41 @@ while(sum(smallTouch == TRUE) > 0){
 
   # create new smallPlots list
   smallPlots <- forestPlots[forestPlots$area <= threshold, ]
+  # remove plots that could not be merged because their union with their
+  # neighbours is aa SpatialPoints or a SpatialCollections
+  smallPlots <- smallPlots[!(smallPlots$id %in% rfsl),]
 
   # chek whether these new smallPlots have neighbours (conditions for main while loop)
-  smallTouch <- data.frame(touch[smallPlots$id,])
+  smallTouch <- touch[smallPlots$id,]
+  # 1 - transform F -> 0 / T -> 1
+  smallTouch[smallTouch == FALSE] <- 0
+  smallTouch[smallTouch == TRUE] <- 1
+  # 2 - sum lines
+  smallTouch <- data.frame(smallTouch)
+  smallTouch$sum <- apply(smallTouch, 1, sum)
+  # 3 - keep only smallPlots with neighbours (i.e. those for which sum > 0)
+  smallTouch <- smallTouch[smallTouch$sum > 0,]
+  # 4- randomly select a plot with a nei (to be --> "i")
+  iSmallPlot <- rownames(smallTouch)[round(runif(1, min = 1, max = nrow(smallTouch)))]
+  # i <- smallPlot with neighbours
+  i <- iSmallPlot
 
-  # and select the first plot with a nei to be --> "i"
-  if(sum(smallTouch == TRUE) > 0){
-    counter <- 1
-    while(sum(smallTouch[counter,] == TRUE) == 0){
-      counter <- counter + 1
-    }
+  # if the new smallPlot (i.e. iSmallPlot) is not touching any of the joined plots
+  # (i.e. ptj + i) no need to calculate another touch matrix
+  a <- data.frame(touch[i,])
+  a$nei <- rownames(a)
+  colnames(a) <- c('plot', 'nei')
+  paste(unique(a$plot))
+  a <- a[a$plot == TRUE, ]
+
+  if (any(a$nei %in% ptji)){
+    touch <- gTouches(forestPlots, byid = TRUE, returnDense=TRUE)
+    rownames(touch) <- forestPlots$id
+    colnames(touch) <- forestPlots$id
+    ptji <- c()
   }
-  iSmallPlot <- rownames(smallTouch[counter,])
 
-  # nei <- data.frame(i = NA, nei = NA)
-  # for (i in smallPlots$id){
-  #   a <- data.frame(touch[i,])
-  #   FT <- length(unique(a[,1])) # [F]ALSE [T]RUTH
-  #   if(FT == 2){
-  #     FT <- data.frame("i" = i, "nei" = "y")
-  #   } else {
-  #     FT <- data.frame("i" = i, "nei" = "n")
-  #   }
-  #   colnames(FT)
-  #   nei <- rbind(nei, FT)
-  # }
-  # nei <- nei[-1,]
-
-
-  print('et hop un tour de plus')
+  print(paste(nrow(smallPlots), 'small plots left, among which', nrow(smallTouch),'have neighbours to be merged with', '( i =', iSmallPlot, ')'))
 
 }
 
