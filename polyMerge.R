@@ -23,7 +23,7 @@ forestPlots$id <- paste(c(1:nrow(forestPlots@data)), 'id', sep = "")
 start_time <- Sys.time()
 
 # size threshold (m²)
-threshold <- 10
+threshold <- 0.2
 # list of smallPlots
 smallPlots <- forestPlots[forestPlots$area <= threshold, ]
 # matrix of polygones links
@@ -48,7 +48,7 @@ i <- iSmallPlot
 
 ptji <- c() # [p]lots [t]o [j]oin + iSmallPlot (see below)
 rfsl <- c() # [r]emove [f]rom [s]mallPlots [l]ist (see below)
-while(sum(smallTouch == TRUE) > 0){
+while(nrow(smallTouch) > 0){
 
   a <- data.frame(touch[i,])
   a$nei <- rownames(a)
@@ -59,18 +59,27 @@ while(sum(smallTouch == TRUE) > 0){
     # no neighbours
   } else {
     a <- a[a$plot == TRUE, ]
+    # identify intersecting lines
     lines <- rgeos::gIntersection(forestPlots[forestPlots$id == i,], forestPlots[forestPlots$id %in% c(a$nei),], byid = TRUE)
+
     if (class(lines)[1] == "SpatialPoints"){
       # remove definitely from the smallPlots List
       rfsl <- c(rfsl, iSmallPlot) # [r]emove [f]rom [s]mallPlots [l]ist
       print('SpatialPoints --> impossible to merge')
-    } else if(class(lines)[1] == "SpatialCollections") {
-      rfsl <- c(rfsl, iSmallPlot) # [r]emove [f]rom [s]mallPlots [l]ist
-      # lines <- lines@lineobj
-      # find a way to identify wich intersection  is/are SpatialPoints and remove
-      # it from 'a' dataframe
-      print('SpatialCollections --> impossible to merge')
     } else {
+      if(class(lines)[1] == "SpatialCollections"){
+        # identify wich intersection is/are SpatialPoints / SpatialLines
+        a$type <- NA
+        for (j in a$nei){
+          a[a$nei == j, 'type'] <- class(rgeos::gIntersection(forestPlots[forestPlots$id == i,], forestPlots[forestPlots$id %in% j,], byid = TRUE))[1]
+        }
+        # remove it from "a" dataframe
+        a <- a[a$type == "SpatialLines",]
+        # reidentify intersecting lines
+        lines <- rgeos::gIntersection(forestPlots[forestPlots$id == i,], forestPlots[forestPlots$id %in% c(a$nei),], byid = TRUE)
+        print('SpatialCollections --> merge polygons sharing more than a point (i.e. a line)')
+      }
+
       l_lines <- sp::SpatialLinesLengths(lines)
       # plot(forestPlots[forestPlots$id %in% c(i, c(a$nei)),])
       # plot(lines, add = TRUE, col = 1 + 1:length(lines), lwd = 5)
@@ -117,50 +126,74 @@ while(sum(smallTouch == TRUE) > 0){
       # correct area (daughter + mother)
       forestPlots[nrow(forestPlots), 'area'] <- area(forestPlots[forestPlots$id == biggest, ])
 
+
+      # create new smallPlots list
+      smallPlots <- forestPlots[forestPlots$area <= threshold, ]
+      # remove plots that could not be merged because their union with their
+      # neighbours is aa SpatialPoints or a SpatialCollections
+      smallPlots <- smallPlots[!(smallPlots$id %in% rfsl),]
+
+      # chek whether these new smallPlots have neighbours (conditions for main while loop)
+      smallTouch <- touch[smallPlots$id,]
+      # 1 - transform F -> 0 / T -> 1
+      smallTouch[smallTouch == FALSE] <- 0
+      smallTouch[smallTouch == TRUE] <- 1
+      # 2 - sum lines
+      smallTouch <- data.frame(smallTouch)
+      smallTouch$sum <- apply(smallTouch, 1, sum)
+      # 3 - keep only smallPlots with neighbours (i.e. those for which sum > 0)
+      smallTouch <- smallTouch[smallTouch$sum > 0,]
+      # 4- randomly select a plot with a nei (to be --> "i")
+      if (nrow(smallTouch) > 0){
+        iSmallPlot <- rownames(smallTouch)[round(runif(1, min = 1, max = nrow(smallTouch)))]
+        # i <- smallPlot with neighbours
+        i <- iSmallPlot
+
+        # if the new smallPlot (i.e. iSmallPlot) is not touching any of the joined plots
+        # (i.e. ptj + i) no need to calculate another touch matrix
+        a <- data.frame(touch[i,])
+        a$nei <- rownames(a)
+        colnames(a) <- c('plot', 'nei')
+        paste(unique(a$plot))
+        a <- a[a$plot == TRUE, ]
+
+        if (any(a$nei %in% ptji)){
+          touch <- gTouches(forestPlots, byid = TRUE, returnDense=TRUE)
+          rownames(touch) <- forestPlots$id
+          colnames(touch) <- forestPlots$id
+          ptji <- c()
+        }
+      }
     }
   }
-
-  # create new smallPlots list
-  smallPlots <- forestPlots[forestPlots$area <= threshold, ]
-  # remove plots that could not be merged because their union with their
-  # neighbours is aa SpatialPoints or a SpatialCollections
-  smallPlots <- smallPlots[!(smallPlots$id %in% rfsl),]
-
-  # chek whether these new smallPlots have neighbours (conditions for main while loop)
-  smallTouch <- touch[smallPlots$id,]
-  # 1 - transform F -> 0 / T -> 1
-  smallTouch[smallTouch == FALSE] <- 0
-  smallTouch[smallTouch == TRUE] <- 1
-  # 2 - sum lines
-  smallTouch <- data.frame(smallTouch)
-  smallTouch$sum <- apply(smallTouch, 1, sum)
-  # 3 - keep only smallPlots with neighbours (i.e. those for which sum > 0)
-  smallTouch <- smallTouch[smallTouch$sum > 0,]
-  # 4- randomly select a plot with a nei (to be --> "i")
-  iSmallPlot <- rownames(smallTouch)[round(runif(1, min = 1, max = nrow(smallTouch)))]
-  # i <- smallPlot with neighbours
-  i <- iSmallPlot
-
-  # if the new smallPlot (i.e. iSmallPlot) is not touching any of the joined plots
-  # (i.e. ptj + i) no need to calculate another touch matrix
-  a <- data.frame(touch[i,])
-  a$nei <- rownames(a)
-  colnames(a) <- c('plot', 'nei')
-  paste(unique(a$plot))
-  a <- a[a$plot == TRUE, ]
-
-  if (any(a$nei %in% ptji)){
-    touch <- gTouches(forestPlots, byid = TRUE, returnDense=TRUE)
-    rownames(touch) <- forestPlots$id
-    colnames(touch) <- forestPlots$id
-    ptji <- c()
-  }
-
   print(paste(nrow(smallPlots), 'small plots left, among which', nrow(smallTouch),'have neighbours to be merged with', '( i =', iSmallPlot, ')'))
-
 }
 
 
 end_time <- Sys.time()
 
 end_time - start_time
+
+
+
+
+
+
+--> enregistrer sous un autre nom (forestPlots1)
+--> estimation du temps complet (39 mn pour 580 smallPlot < 10 m2 )
+
+--> comparer nb de plot avec forestPlots --> ok (moins de small plots)
+--> comparer hist(area()) --> semble ok (moins de small plots)
+--> comparer surface totale --> idem --> ok
+--> enregistrer comme shp & comprarer parcellaire forestPlots1 vs forestPlots sous Qgis
+(notamment spatialcollection)
+
+--> trouver solution pour spatial collection --> ok
+--> probleme de la derniere iteration --> ok
+
+
+
+plot(forestPlots[forestPlots$id == '12308id',], col = 'red') # pour avoir l'extent
+plot(forestPlots, add = TRUE, col = as.factor(forestPlots$id))
+
+plot(forestPlots1, add = TRUE, col = as.factor(forestPlots1$id))
