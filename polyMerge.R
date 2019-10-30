@@ -49,6 +49,7 @@ i <- iSmallPlot
 ptji <- c() # [p]lots [t]o [j]oin + iSmallPlot (see below)
 rfsl <- c() # [r]emove [f]rom [s]mallPlots [l]ist (see below)
 geomBugue <- c()
+spatialPointsPlots <- c()
 while(nrow(smallTouch) > 0){
 
   a <- data.frame(touch[i,])
@@ -71,9 +72,10 @@ while(nrow(smallTouch) > 0){
   if (class(lines)[1] == "SpatialPoints" | i %in% rfsl){
     # remove definitely from the smallPlots List
     if (i %in% rfsl){
-      # no need to add in rfsl --> already in rfsl
+      # no need to add in rfsl --> already in rfsl if in geomBugue
     } else {
       rfsl <- c(rfsl, iSmallPlot) # [r]emove [f]rom [s]mallPlots [l]ist
+      spatialPointsPlots <- c(spatialPointsPlots, iSmallPlot) # keep track of spatialpoints plots
     }
     print('SpatialPoints --> impossible to merge')
   } else { # if intersection is SpatialLines or SpatialCollections
@@ -118,12 +120,9 @@ while(nrow(smallTouch) > 0){
     ptji <- c(ptji, a[1:nbNei, 'nei'], iSmallPlot) # ptj + iSmallPlot
 
     # save attribute of biggest polygon in the UNION
-    if(max(a[a$nei %in% ptj, 'area']) > iArea){
-      biggest <- a[a$area == max(a[a$nei %in% ptj, 'area']), 'nei']
-      attr <- data.frame(forestPlots[forestPlots$id == biggest, ])
-    } else {
-      attr <- data.frame(forestPlots[forestPlots$id == i, ])
-    }
+    a <- rbind(a[a$nei %in% ptj,], c(i, TRUE, 0, iArea))
+    biggest <- a[a$area == max(a$area), 'nei']
+    attr <- data.frame(forestPlots[forestPlots$id == biggest, ])
 
     # remove the polygons that were joined
     forestPlots <- forestPlots[!(forestPlots$id %in% c(i, ptj)), ]
@@ -176,31 +175,22 @@ while(nrow(smallTouch) > 0){
   print(paste(nrow(smallPlots), 'small plots left, among which', nrow(smallTouch),'have neighbours to be merged with', '( i =', iSmallPlot, ')'))
 }
 
-
 end_time <- Sys.time()
-
 end_time - start_time
 
+#--> estimation du temps complet
+# (39mn pour 580 smallPlot < 10 m2)
+# (3.96h pour +- 3000 smallPlot < 2500 m2)
 
 
 
+#--> comparer nb de plot avec forestPlots --> moins de small plots ---------------------------> ok
+#--> comparer hist(area()) --> moins de small plots ------------------------------------------> ok
+#--> comparer surface totale -----------------------------------------------------------------> ok
+#--> enregistrer comme shp & comprarer parcellaire forestPlots1 vs forestPlots sous Qgis -----> semble ok
+#    (notamment spatialcollection) -----------------------------------------------------------> semble ok
+#--> vérifier si apres algo il reste encore des parcelles (avec neighbours) < threshold ------> ok
+# reste les 'SpatialPoints', 'geomBugue' et les isolés (i.e.sans voisins)
 
 
-#--> enregistrer sous un autre nom (forestPlots1)
-#--> estimation du temps complet (39 mn pour 580 smallPlot < 10 m2 )
-
-#--> comparer nb de plot avec forestPlots --> ok (moins de small plots)
-#--> comparer hist(area()) --> semble ok (moins de small plots)
-#--> comparer surface totale --> idem --> ok
-#--> enregistrer comme shp & comprarer parcellaire forestPlots1 vs forestPlots sous Qgis
-#(notamment spatialcollection)
-
-#--> trouver solution pour spatial collection --> ok
-#--> probleme de la derniere iteration --> ok
-
-# --> vérifier si apres algo il reste encore des parcelles (avec neighbours) < threshold
-# (possible --> les spatialPoints: vérifier avec liste des rfsl)
-
-#plot(forestPlots[forestPlots$id == '12308id',], col = 'red') # pour avoir l'extent
-#plot(forestPlots, add = TRUE, col = as.factor(forestPlots$id))
-#plot(forestPlots1, add = TRUE, col = as.factor(forestPlots1$id))
+---> supprimer les SmallPlots restants (les 'SpatialPoints', 'geomBugue' et les isolés (i.e.sans voisins)) ?
