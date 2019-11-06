@@ -42,15 +42,21 @@ orien <- terrain(elev, opt = 'aspect', unit = 'degrees', neighbors = 8)
 
 greco <- readOGR(dsn = "Z:/Private/DonneesIFN/Shapes_SER_GRECO", layer = "greco_l93", encoding = "UTF-8", use_iconv = TRUE)
 greco <- spTransform(greco, crs(pnr)) # change projection
-
 # plot(greco, col = greco$CODEGRECO)
+#
+# # convert into a Raster
+# ext <- floor(extent(elev))
+# r <- raster(ext, res=res(elev))
+# grecoRaster <- rasterize(greco, r, field="CODEGRECO")
+# crs(grecoRaster) <- crs(pnr)
+# # plot(grecoRaster)
+# #
+# # # save raster
+# writeRaster(grecoRaster, "grecoRaster.tif")
 
-# convert into a Raster
-ext <- floor(extent(elev))
-r <- raster(ext, res=res(elev))
-grecoRaster <- rasterize(greco, r, field="CODEGRECO")
-crs(grecoRaster) <- crs(pnr)
-# plot(grecoRaster)
+# load grecoRaster raster
+grecoRaster <- raster('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/grecoRaster.tif')
+# plot(grecoRaster, col=colorRampPalette(c("green", "blue"))(255))
 
 ###############################################################
 # dendro
@@ -143,24 +149,62 @@ r <- raster('Z:/Private/rasterVanneck/r.tif')
 # land ownership
 ###############################################################
 
-# BD Forêt v2 2014 par decoupage / fusion dep 73 et 74 puis union avec forets publiques
-owner <- readOGR(dsn = "X:/ProjetsCommuns/PROTEST/T1/Donnees_SIG", layer="BD.Foret.V2.2014_union_Foret.publique.2814", encoding = "UTF-8", use_iconv = TRUE)
-# ajouter champ public prive
-owner$Pub_Priv <- factor(ifelse(is.na(owner$llib_frt), "Private", "Public"))
-#
-# # convert into a Raster
-# ext <- floor(extent(elev))
-# r <- raster(ext, res=res(elev))
-# owner <- rasterize(foret, r, field="Pub_Priv")
-# crs(owner) <- crs(pnr)
-# # plot(owner)
-#
-# # save raster
-# writeRaster(owner, "ownership.tif")
-
 # load ownership raster
-ownership <- raster('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/ownership.tif')
-plot(ownership, col=colorRampPalette(c("green", "blue"))(255))
+ownership <- raster('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/BDForetv2_foret_PNRfilled_propriete_5m.tif')
+# plot(ownership, col=colorRampPalette(c("green", "blue"))(255))
+
+###############################################################
+# accesssibility
+###############################################################
+
+# load non-harvestable forest --------------------------------------------------
+nonHarv <- raster("X:/ProjetsCommuns/PROTEST/T1/Accessibilite/sylvaccess/sylvaccessv3.1/Skidder/Pente_ok_buch.tif")
+# set projection
+crs(nonHarv) <- crs(pnr)
+# plot(nonHarv, col=colorRampPalette(c("red", "green"))(255))
+
+# remove useless attributes in nonHarv
+isBecomes <- cbind(c(1, NA),
+                   c(1, 0))
+nonHarv <- reclassify(nonHarv, rcl = isBecomes)
+# plot(nonHarv, col=colorRampPalette(c("red", "green"))(255))
+
+# load inaccessible forest -----------------------------------------------------
+nonAcc <- raster("X:/ProjetsCommuns/PROTEST/T1/Accessibilite/sylvaccess/sylvaccessv3.1/Skidder/Foret_inaccessible.tif")
+# set projection
+crs(nonAcc) <- crs(pnr)
+# plot(nonAcc, col=colorRampPalette(c("red", "green"))(255))
+
+# remove useless attributes in nonAcc
+isBecomes <- cbind(c(1, 255, NA),
+                   c(0, 1, 1))
+nonAcc <- reclassify(nonAcc, rcl = isBecomes)
+# plot(nonAcc, col=colorRampPalette(c("red", "green"))(255))
+
+# load skidding distance -------------------------------------------------------
+dist <- raster("X:/ProjetsCommuns/PROTEST/T1/Accessibilite/sylvaccess/sylvaccessv3.1/Skidder/Distance_totale_foret_route_forestiere.tif")
+# set projection
+crs(dist) <- crs(pnr)
+# plot(dist, col=colorRampPalette(c("black", "red"))(255))
+
+# retrieve area < 500m
+near <- dist < 500
+isBecomes <- cbind(c(0, 1),
+                   c(NA, 1))
+near <- reclassify(near, rcl = isBecomes)
+
+# retrieve area > 500m
+far <- dist > 500
+isBecomes <- cbind(c(0, 1),
+                   c(NA, 2))
+far <- reclassify(far, rcl = isBecomes)
+
+# merge rasters --> [f]ree [e]volution [f]orest
+dist <- mosaic(near, far, fun = mean)
+isBecomes <- cbind(c(NA, 1, 2), # replace NA -> 0
+                   c(0, 1, 2))
+dist <- reclassify(dist, rcl = isBecomes)
+# plot(dist, col=colorRampPalette(c("black", "red"))(255))
 
 ###############################################################
 # prepare NFI data for extraction
@@ -210,6 +254,9 @@ sloVr <- velox(slo)
 orienVr <- velox(orien)
 grecoVr <- velox(grecoRaster)
 ownershipVr <- velox(ownership)
+nonHarvVr <- velox(nonHarv)
+nonAccVr <- velox(nonAcc)
+distVr <- velox(dist)
 forProtecVr <- velox(forProtec)
 niVr <- velox(ni)
 niDgi2Vr <- velox(niDgi2)
@@ -303,6 +350,15 @@ grecoExt <- grecoVr$extract(sp = forestPlots, fun = getmode, small = TRUE)
 # extract ownership
 ownershipExt <- ownershipVr$extract(sp = forestPlots, fun = getmode, small = TRUE)
 
+# extract nonHarv
+nonHarvExt <- nonHarvVr$extract(sp = forestPlots, fun = getmode, small = TRUE)
+
+# extract nonAcc
+nonAccExt <- nonAccVr$extract(sp = forestPlots, fun = getmode, small = TRUE)
+
+# extract dist
+distExt <- distVr$extract(sp = forestPlots, fun = getmode, small = TRUE)
+
 # extract elevation
 elevExt <- elevVr$extract(sp = forestPlots, fun = mean, small = TRUE)
 
@@ -354,6 +410,12 @@ colnames(ownershipExtDf) <- "owner"
 ownershipExtDf[ownershipExtDf$owner == 2 & !is.na(ownershipExtDf$owner), 'owner'] <- 'Pub'
 ownershipExtDf[ownershipExtDf$owner == 1 & !is.na(ownershipExtDf$owner), 'owner'] <- 'Priv'
 ownershipExtDf$owner <- as.factor(ownershipExtDf$owner)
+nonHarvExtDf <- data.frame(nonHarvExt)
+colnames(nonHarvExtDf) <- "nonHarv"
+nonAccExtDf <- data.frame(nonAccExt)
+colnames(nonAccExtDf) <- "nonAcc"
+distExtDf <- data.frame(distExt)
+colnames(distExtDf) <- "dist"
 elevExtDf <- data.frame(elevExt)
 colnames(elevExtDf) <- "alti"
 sloExtDf <- data.frame(sloExt)
@@ -402,7 +464,8 @@ orienExtDf$expoEW <- sin(orienExtDf$orient*pi/180)
 orienExtDf <- orienExtDf[,c("expoNS", "expoEW")]
 
 # integrate into the shp file
-forestPlots@data <- cbind(forestPlots@data, grecoExtDf, ownershipExtDf, elevExtDf, sloExtDf,
+forestPlots@data <- cbind(forestPlots@data, grecoExtDf, ownershipExtDf,
+                      nonHarvExtDf, nonAccExtDf, distExtDf, elevExtDf, sloExtDf,
                       orienExtDf, forProtecExtDf, dgPredExtDf, gPredExtDf,
                       ggbPredExtDf, p100gfPredExtDf, phExtDf,
                       rumExtDf, kExtDf, lsExtDf, pExtDf, rExtDf)
@@ -441,41 +504,13 @@ forestPlots$area <- NULL
 # remove plot where p100gfP = NA
 forestPlots <- forestPlots[!is.na(forestPlots$p100gfPred), ]
 
+# concatanate accessibility
+forestPlots$access <- paste('dist', forestPlots$dist,
+                            'harv', forestPlots$nonHarv,
+                            'acc', forestPlots$nonAcc)
+
 ###############################################################
 # save
 ###############################################################
 
 shapefile(forestPlots, filename = 'forestPlots3Ha', overwrite = TRUE)
-
-
-# -----------------------------------
-#
-# hist(forestPlots$gPred)
-#
-# tab1 <- forestPlots[forestPlots$area < 10000, ]
-# hist(tab1$gPred, add = TRUE, border = 'blue')
-#
-# tab2 <- forestPlots[forestPlots$area > 10000 & forestPlots$area < 20000, ]
-# hist(tab2$gPred, add = TRUE, border = 'green')
-#
-# tab3 <- forestPlots[forestPlots$area > 25000, ]
-# hist(tab3$gPred, add = TRUE, border = 'red')
-#
-# plot(forestPlots$area, forestPlots$gPred)
-
-
-
-
-
-plot(owner[owner$Pub_Priv == 'Public' & !is.na(owner$Pub_Priv),], col = 'red')
-plot(forestPlots[forestPlots$owner == 'Pub' & !is.na(forestPlots$owner),], col = 'red', add = TRUE)
-plot(forestPlots[forestPlots$owner == 'Priv' & !is.na(forestPlots$owner),], col = 'blue', add = TRUE)
-plot(forestPlots[is.na(forestPlots$owner),], col = 'green', add = TRUE)
-
-plot(forestPlots, col = 'cyan', add = TRUE)
-
-
-plot(owner, col = 1, add = TRUE)
-
-plot(owner[owner$Pub_Priv == 'Private' & !is.na(owner$Pub_Priv),], col = 'red')
-plot(forestPlots[is.na(forestPlots$owner),], col = 'green', border = 'green', add = TRUE)
