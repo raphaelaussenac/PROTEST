@@ -158,7 +158,7 @@ ownership <- raster('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/BDForetv
 ###############################################################
 
 # load non-harvestable forest --------------------------------------------------
-nonHarv <- raster("X:/ProjetsCommuns/PROTEST/T1/Accessibilite/sylvaccess/sylvaccessv3.1/Skidder/Pente_ok_buch.tif")
+nonHarv <- raster("X:/ProjetsCommuns/PROTEST/T1/Accessibilite/sylvaccess/sylvaccessv3.3/Skidder/Pente_ok_buch.tif")
 # set projection
 crs(nonHarv) <- crs(pnr)
 # plot(nonHarv, col=colorRampPalette(c("red", "green"))(255))
@@ -170,19 +170,19 @@ nonHarv <- reclassify(nonHarv, rcl = isBecomes)
 # plot(nonHarv, col=colorRampPalette(c("red", "green"))(255))
 
 # load inaccessible forest -----------------------------------------------------
-nonAcc <- raster("X:/ProjetsCommuns/PROTEST/T1/Accessibilite/sylvaccess/sylvaccessv3.1/Skidder/Foret_inaccessible.tif")
+nonAcc <- raster("X:/ProjetsCommuns/PROTEST/T1/Accessibilite/sylvaccess/sylvaccessv3.3/Skidder/Foret_inaccessible.tif")
 # set projection
 crs(nonAcc) <- crs(pnr)
 # plot(nonAcc, col=colorRampPalette(c("red", "green"))(255))
 
 # remove useless attributes in nonAcc
-isBecomes <- cbind(c(1, 255, NA),
-                   c(0, 1, 1))
+isBecomes <- cbind(c(255, NA),
+                   c(0, 1))
 nonAcc <- reclassify(nonAcc, rcl = isBecomes)
 # plot(nonAcc, col=colorRampPalette(c("red", "green"))(255))
 
 # load skidding distance -------------------------------------------------------
-dist <- raster("X:/ProjetsCommuns/PROTEST/T1/Accessibilite/sylvaccess/sylvaccessv3.1/Skidder/Distance_totale_foret_route_forestiere.tif")
+dist <- raster("X:/ProjetsCommuns/PROTEST/T1/Accessibilite/sylvaccess/sylvaccessv3.3/Skidder/Distance_totale_foret_route_forestiere.tif")
 # set projection
 crs(dist) <- crs(pnr)
 # plot(dist, col=colorRampPalette(c("black", "red"))(255))
@@ -200,10 +200,10 @@ isBecomes <- cbind(c(0, 1),
 far <- reclassify(far, rcl = isBecomes)
 
 # merge rasters --> [f]ree [e]volution [f]orest
-dist <- mosaic(near, far, fun = mean)
-isBecomes <- cbind(c(NA, 1, 2), # replace NA -> 0
-                   c(0, 1, 2))
-dist <- reclassify(dist, rcl = isBecomes)
+dist <- mosaic(near, far, fun = sum)
+# isBecomes <- cbind(c(NA, 1, 2), # replace NA -> 0
+#                    c(0, 1, 2))
+# dist <- reclassify(dist, rcl = isBecomes)
 # plot(dist, col=colorRampPalette(c("black", "red"))(255))
 
 ###############################################################
@@ -275,14 +275,14 @@ rVr <- velox(r)
 # extract values for NFI plots
 ###############################################################
 
-# extract GRECO
-# Create a function to calculate the mode.
-# Each plot is assigned the most represented GRECO.
+# Create a function to calculate the mode
+# Each plot is assigned the most represented value
 getmode <- function(x) {
    uniqv <- unique(x)
    uniqv <- uniqv[!is.na(uniqv)]
    uniqv[which.max(tabulate(match(x, uniqv)))]
 }
+
 grecoExt <- grecoVr$extract(sp = ifnCircular, fun = getmode, small = TRUE)
 
 # extract elevation
@@ -351,13 +351,42 @@ grecoExt <- grecoVr$extract(sp = forestPlots, fun = getmode, small = TRUE)
 ownershipExt <- ownershipVr$extract(sp = forestPlots, fun = getmode, small = TRUE)
 
 # extract nonHarv
-nonHarvExt <- nonHarvVr$extract(sp = forestPlots, fun = getmode, small = TRUE)
+# Create a function to calculate the proportion of nonHarv
+# and keep non-harvestable those plots that are nonharv at 'threshold' %
+# this is done because the non-harvestable surface is underestimated with our
+# method using 3ha plots on which 'harvestability' is extracted
+threshold <- 35
+getprop <- function(x) {
+  uniqv <- sort(unique(x)) # 0, 1
+  uniqv <- uniqv[!is.na(uniqv)]
+  uniqv[which(tabulate(match(x, uniqv)) * 100 / sum(tabulate(match(x, uniqv))) > threshold)][1]
+}
+nonHarvExt <- nonHarvVr$extract(sp = forestPlots, fun = getprop, small = TRUE)
 
 # extract nonAcc
 nonAccExt <- nonAccVr$extract(sp = forestPlots, fun = getmode, small = TRUE)
 
 # extract dist
-distExt <- distVr$extract(sp = forestPlots, fun = getmode, small = TRUE)
+
+
+
+
+
+--> expliquer threshold01
+
+
+
+threshold01 <- 40 # favor 0 when 0,1
+getpropdist <- function(x) {
+  uniqv <- sort(unique(x)) # 0, 1
+  uniqv <- uniqv[!is.na(uniqv)]
+  if (length(uniqv)==2 & sum(uniqv) == 1){
+    uniqv[which(tabulate(match(x, uniqv)) * 100 / sum(tabulate(match(x, uniqv))) > threshold01)][1]
+  } else {
+    uniqv[which.max(tabulate(match(x, uniqv)))] # mode
+  }
+}
+distExt <- distVr$extract(sp = forestPlots, fun = getpropdist, small = TRUE)
 
 # extract elevation
 elevExt <- elevVr$extract(sp = forestPlots, fun = mean, small = TRUE)
@@ -514,3 +543,64 @@ forestPlots$access <- paste('dist', forestPlots$dist,
 ###############################################################
 
 shapefile(forestPlots, filename = 'forestPlots3Ha', overwrite = TRUE)
+
+
+
+# ownership ----------------------------------
+--> Public
+sum(area(forestPlots[forestPlots$owner == 'Pub' & !is.na(forestPlots$owner),])) / 10000
+[1] 21284.97
+--> Private
+sum(area(forestPlots[forestPlots$owner == 'Priv' & !is.na(forestPlots$owner),])) / 10000
+[1] 30602.82
+--> "NA"
+sum(area(forestPlots[is.na(forestPlots$owner),]))/ 10000
+[1] 0.02230977
+(76 placettes qui disparaitront probablement avec polyMerge)
+
+# nonHarv ----------------------------------
+sum(area(forestPlots[forestPlots$nonHarv == 1,]))/ 10000
+[1] 47935.94
+
+# nonAcc ----------------------------------
+sum(area(forestPlots[forestPlots$nonAcc == 0,]))/ 10000
+[1] 21777.67
+
+# dist ----------------------------------
+sum(area(forestPlots[forestPlots$dist > 0,]))/ 10000
+[1] 29811.09
+
+--> clip raster with polygon
+--> polygoniser
+--> save shp
+--> First --> compare total surface forestPlots vs test (pour ownership)
+
+test <- readOGR(dsn = "C:/Users/raphael.aussenac/Documents/GitHub/PROTEST", layer = "test", encoding = "UTF-8", use_iconv = TRUE)
+
+# ownership ----------------------------------
+sum(area(test[test$DN == 1,]))/10000
+[1] 30687.74
+
+sum(area(test[test$DN == 2,]))/10000
+[1] 21200.14
+
+# nonHarv ----------------------------------
+sum(area(test)) / 10000
+[1] 47945.45
+
+# nonAcc ----------------------------------
+sum(area(test[test$DN == 1,]))/10000    --> sum(area(test)) / 10000
+[1] 18360.77                            --> 22501.21
+
+# dist ----------------------------------
+sum(area(test))/ 10000
+[1] 29280.1                             -->  51888.12
+
+sum(area(test[test$DN == 0,])) / 10000
+[1] 22523.79
+
+sum(area(test[test$DN == 1,])) / 10000
+[1] 14586.36
+
+sum(area(test[test$DN == 2,])) / 10000
+[1] 14777.96
