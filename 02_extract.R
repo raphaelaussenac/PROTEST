@@ -169,18 +169,6 @@ isBecomes <- cbind(c(1, NA),
 nonHarv <- reclassify(nonHarv, rcl = isBecomes)
 # plot(nonHarv, col=colorRampPalette(c("red", "green"))(255))
 
-# load inaccessible forest -----------------------------------------------------
-nonAcc <- raster("X:/ProjetsCommuns/PROTEST/T1/Accessibilite/sylvaccess/sylvaccessv3.3/Skidder/Foret_inaccessible.tif")
-# set projection
-crs(nonAcc) <- crs(pnr)
-# plot(nonAcc, col=colorRampPalette(c("red", "green"))(255))
-
-# remove useless attributes in nonAcc
-isBecomes <- cbind(c(255, NA),
-                   c(0, 1))
-nonAcc <- reclassify(nonAcc, rcl = isBecomes)
-# plot(nonAcc, col=colorRampPalette(c("red", "green"))(255))
-
 # load skidding distance -------------------------------------------------------
 dist <- raster("X:/ProjetsCommuns/PROTEST/T1/Accessibilite/sylvaccess/sylvaccessv3.3/Skidder/Distance_totale_foret_route_forestiere.tif")
 # set projection
@@ -255,7 +243,6 @@ orienVr <- velox(orien)
 grecoVr <- velox(grecoRaster)
 ownershipVr <- velox(ownership)
 nonHarvVr <- velox(nonHarv)
-nonAccVr <- velox(nonAcc)
 distVr <- velox(dist)
 forProtecVr <- velox(forProtec)
 niVr <- velox(ni)
@@ -351,10 +338,11 @@ grecoExt <- grecoVr$extract(sp = forestPlots, fun = getmode, small = TRUE)
 ownershipExt <- ownershipVr$extract(sp = forestPlots, fun = getmode, small = TRUE)
 
 # extract nonHarv
-# Create a function to calculate the proportion of nonHarv
-# and keep non-harvestable those plots that are nonharv at 'threshold' %
-# this is done because the non-harvestable surface is underestimated with our
-# method using 3ha plots on which 'harvestability' is extracted
+# Create a function to calculate the proportion of nonHarv and set a threshold
+# to determine whether the plot will be harvestable or not (this is done because
+# the non-harvestable surface is underestimated with our method using 3ha plots)
+# ex with a threshold of 35: if more than 35% of a plot is non-harvestaable, it
+# becomes entirely non-harvestable
 threshold <- 35
 getprop <- function(x) {
   uniqv <- sort(unique(x)) # 0, 1
@@ -363,24 +351,16 @@ getprop <- function(x) {
 }
 nonHarvExt <- nonHarvVr$extract(sp = forestPlots, fun = getprop, small = TRUE)
 
-# extract nonAcc
-nonAccExt <- nonAccVr$extract(sp = forestPlots, fun = getmode, small = TRUE)
-
 # extract dist
-
-
-
-
-
---> expliquer threshold01
-
-
-
-threshold01 <- 40 # favor 0 when 0,1
+# Create a function to calculate the proportion of dist 0, 1 and 2 on each plot
+# and set a threshold to determine wether the entire plot will become 0 or 1 or 2
+# ex with a threshold of 40: if more than 40% of a plot is 0 and the rest of it is 1
+# it becomes entirely 0 (favor 0 when 0,1 otherwise (0,2 - 1,2 - 1,2,3) take the mode)
+threshold01 <- 40
 getpropdist <- function(x) {
   uniqv <- sort(unique(x)) # 0, 1
   uniqv <- uniqv[!is.na(uniqv)]
-  if (length(uniqv)==2 & sum(uniqv) == 1){
+  if (length(uniqv)==2 & sum(uniqv) == 1){ # if dist is 0,1 --> favor 0
     uniqv[which(tabulate(match(x, uniqv)) * 100 / sum(tabulate(match(x, uniqv))) > threshold01)][1]
   } else {
     uniqv[which.max(tabulate(match(x, uniqv)))] # mode
@@ -441,8 +421,6 @@ ownershipExtDf[ownershipExtDf$owner == 1 & !is.na(ownershipExtDf$owner), 'owner'
 ownershipExtDf$owner <- as.factor(ownershipExtDf$owner)
 nonHarvExtDf <- data.frame(nonHarvExt)
 colnames(nonHarvExtDf) <- "nonHarv"
-nonAccExtDf <- data.frame(nonAccExt)
-colnames(nonAccExtDf) <- "nonAcc"
 distExtDf <- data.frame(distExt)
 colnames(distExtDf) <- "dist"
 elevExtDf <- data.frame(elevExt)
@@ -494,7 +472,7 @@ orienExtDf <- orienExtDf[,c("expoNS", "expoEW")]
 
 # integrate into the shp file
 forestPlots@data <- cbind(forestPlots@data, grecoExtDf, ownershipExtDf,
-                      nonHarvExtDf, nonAccExtDf, distExtDf, elevExtDf, sloExtDf,
+                      nonHarvExtDf, distExtDf, elevExtDf, sloExtDf,
                       orienExtDf, forProtecExtDf, dgPredExtDf, gPredExtDf,
                       ggbPredExtDf, p100gfPredExtDf, phExtDf,
                       rumExtDf, kExtDf, lsExtDf, pExtDf, rExtDf)
@@ -535,8 +513,7 @@ forestPlots <- forestPlots[!is.na(forestPlots$p100gfPred), ]
 
 # concatanate accessibility
 forestPlots$access <- paste('dist', forestPlots$dist,
-                            'harv', forestPlots$nonHarv,
-                            'acc', forestPlots$nonAcc)
+                            'harv', forestPlots$nonHarv)
 
 ###############################################################
 # save
@@ -561,10 +538,6 @@ sum(area(forestPlots[is.na(forestPlots$owner),]))/ 10000
 # nonHarv ----------------------------------
 sum(area(forestPlots[forestPlots$nonHarv == 1,]))/ 10000
 [1] 47935.94
-
-# nonAcc ----------------------------------
-sum(area(forestPlots[forestPlots$nonAcc == 0,]))/ 10000
-[1] 21777.67
 
 # dist ----------------------------------
 sum(area(forestPlots[forestPlots$dist > 0,]))/ 10000
