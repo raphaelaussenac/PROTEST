@@ -13,7 +13,7 @@ library(rgeos)
 setwd("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST")
 
 # import polygons
-forestPlots <- readOGR(dsn = ".", layer = "superID_1", encoding = "UTF-8", use_iconv = TRUE)
+forestPlots <- readOGR(dsn = ".", layer = "forestPlots3Ha", encoding = "UTF-8", use_iconv = TRUE)
 forestPlots$area <- area(forestPlots)
 forestPlots$id <- paste(c(1:nrow(forestPlots@data)), 'id', sep = "")
 
@@ -23,7 +23,7 @@ forestPlots$id <- paste(c(1:nrow(forestPlots@data)), 'id', sep = "")
 start_time <- Sys.time()
 
 # size threshold (m²)
-threshold <- 2500
+threshold <- 200
 # list of smallPlots
 smallPlots <- forestPlots[forestPlots$area <= threshold, ]
 # matrix of polygones links
@@ -87,6 +87,7 @@ while(nrow(smallTouch) > 0){
       }
       # remove SpatialPoints from "a" dataframe
       a <- a[a$type == "SpatialLines",]
+      a$type <- NULL
       # reidentify intersecting lines
       lines <- rgeos::gIntersection(forestPlots[forestPlots$id == i,], forestPlots[forestPlots$id %in% c(a$nei),], byid = TRUE)
       print('SpatialCollections --> merge polygons sharing more than a point (i.e. a line)')
@@ -101,7 +102,9 @@ while(nrow(smallTouch) > 0){
     a <- cbind(a, l_lines)
     a <- merge(a, data.frame(forestPlots[, c('area', 'id')]), by.x = 'nei', by.y = 'id')
 
-    # add randomly neighbours untill size threshold is reached
+    # add, one by one, neighbours with longest common boundary untill the size
+    # threshold is reached
+    a <- a[order(-a$l_lines),] # sort by boundary length -> longest first
     iArea <- data.frame(forestPlots[forestPlots$id == i, 'area'])[1,1]
     nbNeimax <- nrow(a)
     iAreaMerge <- iArea
@@ -113,7 +116,7 @@ while(nrow(smallTouch) > 0){
       counter <- counter + 1
      }
 
-    # list of plots to join
+    # list of plots to join / merge
     ptj <- a[1:nbNei, 'nei'] # [p]lots [t]o [j]oin
     print(paste('merging', length(ptj)+1, 'plots together'))
     uni <- aggregate(forestPlots[forestPlots$id %in% c(i, ptj),], dissolve=TRUE)
@@ -121,6 +124,8 @@ while(nrow(smallTouch) > 0){
 
     # save attribute of biggest polygon in the UNION
     a <- rbind(a[a$nei %in% ptj,], c(i, TRUE, 0, iArea))
+    a$area <- as.numeric(a$area)
+    a$l_lines <- as.numeric(a$l_lines)
     biggest <- a[a$area == max(a$area), 'nei']
     attr <- data.frame(forestPlots[forestPlots$id == biggest, ])
 
