@@ -70,12 +70,12 @@ gdalwarp('X:/ProjetsCommuns/PROTEST/T1/Donnees_SIG/Foret_protection.tif',
 forProtec <- raster('Z:/Private/rasterVanneck/forProtec.tif')
 
 # Dg_pred
-dgPred <- raster('X:/ProjetsCommuns/PROTEST/T5/Livrables/T1/model_pnr_bauges_73_74/raster/Dg_pred.tif')
+dgPred <- raster('X:/ProjetsCommuns/PROTEST/T1/Observatoire/Analyse/rastDg75error.clean.tif')
 crs(dgPred) <- crs(pnr)
 dgPred <- dgPred / 100 # cm to m
 
 # G_pred
-gPred <- raster('X:/ProjetsCommuns/PROTEST/T5/Livrables/T1/model_pnr_bauges_73_74/raster/G_pred.tif')
+gPred <- raster('X:/ProjetsCommuns/PROTEST/T1/Observatoire/Analyse/rastG75error.clean.tif')
 crs(gPred) <- crs(pnr)
 
 # GGB_pred
@@ -86,8 +86,9 @@ crs(ggbPred) <- crs(pnr)
 nPred <- raster('X:/ProjetsCommuns/PROTEST/T5/Livrables/T1/model_pnr_bauges_73_74/raster/N_pred.tif')
 crs(nPred) <- crs(pnr)
 
-# p100GF_pred
-p100gfPred <- raster('X:/ProjetsCommuns/PROTEST/T5/Livrables/T1/model_pnr_bauges_73_74/raster/p100GF_pred.tif')
+# p100GF_pred --> deciduous proportion
+p100gfPred <- raster('X:/ProjetsCommuns/PROTEST/T1/Observatoire/Analyse/propGR_ONF_25filled.tif')
+p100gfPred <- 100 - p100gfPred
 crs(p100gfPred) <- crs(pnr)
 
 # calculate N from g and dg (more reliable than N_pred)
@@ -158,19 +159,19 @@ ownership <- raster('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/BDForetv
 ###############################################################
 
 # load non-harvestable forest --------------------------------------------------
-nonHarv <- raster("X:/ProjetsCommuns/PROTEST/T1/Accessibilite/sylvaccess/sylvaccessv3.3/Skidder/Pente_ok_buch.tif")
+nonHarv <- raster("X:/ProjetsCommuns/PROTEST/T1/Accessibilite/sylvaccess/sylvaccessv3.3/Skidder/PNRfilled_Foret_non_buch.tif")
 # set projection
 crs(nonHarv) <- crs(pnr)
 # plot(nonHarv, col=colorRampPalette(c("red", "green"))(255))
 
 # remove useless attributes in nonHarv
-isBecomes <- cbind(c(1, NA),
-                   c(1, 0))
+isBecomes <- cbind(c(0, 1, NA),
+                   c(1, 0, 1))
 nonHarv <- reclassify(nonHarv, rcl = isBecomes)
 # plot(nonHarv, col=colorRampPalette(c("red", "green"))(255))
 
 # load skidding distance -------------------------------------------------------
-dist <- raster("X:/ProjetsCommuns/PROTEST/T1/Accessibilite/sylvaccess/sylvaccessv3.3/Skidder/Distance_totale_foret_route_forestiere.tif")
+dist <- raster("X:/ProjetsCommuns/PROTEST/T1/Accessibilite/sylvaccess/sylvaccessv3.3/Skidder/PNRfilled_F.distance.tif")
 # set projection
 crs(dist) <- crs(pnr)
 # plot(dist, col=colorRampPalette(c("black", "red"))(255))
@@ -493,87 +494,7 @@ classGeol$rocheCalc <- as.factor(classGeol$rocheCalc)
 forestPlots <- merge(forestPlots, classGeol, by.x = "geolNotation", by.y = 'NOTATION', all.x = TRUE)
 
 ###############################################################
-# filters
-###############################################################
-
-# remove polygones with geol == 'hydro' (== lac, river)
-forestPlots <- forestPlots[forestPlots$geolNotation != 'hydro', ]
-
-# remove forest plots where gPred == 0 & NA
-forestPlots <- forestPlots[!is.na(forestPlots$gPred), ]
-forestPlots <- forestPlots[forestPlots$gPred > 0, ]
-
-# convert mean BA/ha --> BA (real stock associated to each plot)
-forestPlots$area <- area(forestPlots) / 10000
-forestPlots$gPred <- forestPlots$gPred * forestPlots$area
-forestPlots$area <- NULL
-
-# remove plot where p100gfP = NA
-forestPlots <- forestPlots[!is.na(forestPlots$p100gfPred), ]
-
-# concatanate accessibility
-forestPlots$access <- paste('dist', forestPlots$dist,
-                            'harv', forestPlots$nonHarv)
-
-###############################################################
 # save
 ###############################################################
 
 shapefile(forestPlots, filename = 'forestPlots3Ha', overwrite = TRUE)
-
-
-
-# ownership ----------------------------------
---> Public
-sum(area(forestPlots[forestPlots$owner == 'Pub' & !is.na(forestPlots$owner),])) / 10000
-[1] 21284.97
---> Private
-sum(area(forestPlots[forestPlots$owner == 'Priv' & !is.na(forestPlots$owner),])) / 10000
-[1] 30602.82
---> "NA"
-sum(area(forestPlots[is.na(forestPlots$owner),]))/ 10000
-[1] 0.02230977
-(76 placettes qui disparaitront probablement avec polyMerge)
-
-# nonHarv ----------------------------------
-sum(area(forestPlots[forestPlots$nonHarv == 1,]))/ 10000
-[1] 47935.94
-
-# dist ----------------------------------
-sum(area(forestPlots[forestPlots$dist > 0,]))/ 10000
-[1] 29811.09
-
---> clip raster with polygon
---> polygoniser
---> save shp
---> First --> compare total surface forestPlots vs test (pour ownership)
-
-test <- readOGR(dsn = "C:/Users/raphael.aussenac/Documents/GitHub/PROTEST", layer = "test", encoding = "UTF-8", use_iconv = TRUE)
-
-# ownership ----------------------------------
-sum(area(test[test$DN == 1,]))/10000
-[1] 30687.74
-
-sum(area(test[test$DN == 2,]))/10000
-[1] 21200.14
-
-# nonHarv ----------------------------------
-sum(area(test)) / 10000
-[1] 47945.45
-
-# nonAcc ----------------------------------
-sum(area(test[test$DN == 1,]))/10000    --> sum(area(test)) / 10000
-[1] 18360.77                            --> 22501.21
-
-# dist ----------------------------------
-sum(area(test))/ 10000
-[1] 29280.1                             -->  51888.12
-
-sum(area(test[test$DN == 0,])) / 10000
-[1] 22523.79
-
-sum(area(test[test$DN == 1,])) / 10000
-[1] 14586.36
-
-sum(area(test[test$DN == 2,])) / 10000
-[1] 14777.96
