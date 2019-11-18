@@ -10,7 +10,7 @@ library(reshape2)
 ###############################################################
 
 # Site index
-source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/03_siteIndex.R')
+source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/siteIndex.R')
 
 forestPlots
 dim(forestPlots)
@@ -22,7 +22,7 @@ forestPlotsSiteIndex <- forestPlots
 rm(list=setdiff(ls(), "forestPlotsSiteIndex"))
 
 # compo g Dg and N
-source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/05_gDgN.R')
+source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/gDgN.R')
 
 forestPlots
 dim(forestPlots)

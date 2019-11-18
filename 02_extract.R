@@ -344,7 +344,7 @@ ownershipExt <- ownershipVr$extract(sp = forestPlots, fun = getmode, small = TRU
 # the non-harvestable surface is underestimated with our method using 3ha plots)
 # ex with a threshold of 35: if more than 35% of a plot is non-harvestaable, it
 # becomes entirely non-harvestable
-threshold <- 35
+threshold <- 35.34
 getprop <- function(x) {
   uniqv <- sort(unique(x)) # 0, 1
   uniqv <- uniqv[!is.na(uniqv)]
