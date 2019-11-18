@@ -23,7 +23,7 @@ forestPlots$id <- paste(c(1:nrow(forestPlots@data)), 'id', sep = "")
 start_time <- Sys.time()
 
 # size threshold (m²)
-threshold <- 200
+threshold <- 5000
 # list of smallPlots
 smallPlots <- forestPlots[forestPlots$area <= threshold, ]
 # matrix of polygones links
@@ -167,10 +167,10 @@ while(nrow(smallTouch) > 0){
     a <- data.frame(touch[i,])
     a$nei <- rownames(a)
     colnames(a) <- c('plot', 'nei')
-    paste(unique(a$plot))
     a <- a[a$plot == TRUE, ]
 
     if (any(a$nei %in% ptji)){
+      rm(list = c('touch')) # otherwise memory error
       touch <- gTouches(forestPlots, byid = TRUE, returnDense=TRUE)
       rownames(touch) <- forestPlots$id
       colnames(touch) <- forestPlots$id
@@ -183,19 +183,113 @@ while(nrow(smallTouch) > 0){
 end_time <- Sys.time()
 end_time - start_time
 
-#--> estimation du temps complet
-# (39mn pour 580 smallPlot < 10 m2)
-# (3.96h pour +- 3000 smallPlot < 2500 m2)
+# time elapsed
+# 15 hours with threshold == 5000 m²
+
+shapefile(forestPlots, filename = 'forestPlots3HaPolyMerge', overwrite = TRUE)
+
+###############################################################
+# filters
+###############################################################
+
+# remove polygones with geol == 'hydro' (== lac, river)
+forestPlots <- forestPlots[forestPlots$gelNttn != 'hydro', ]
+
+# remove forest plots where gPred == 0 & NA
+forestPlots <- forestPlots[!is.na(forestPlots$gPred), ]
+forestPlots <- forestPlots[forestPlots$gPred > 0, ]
+
+# remove forest plots where dgPred == 0
+forestPlots <- forestPlots[forestPlots$dgPred > 0, ]
+
+# convert mean BA/ha --> BA (real stock associated to each plot)
+forestPlots$area <- area(forestPlots) / 10000
+forestPlots$gPred <- forestPlots$gPred * forestPlots$area
+forestPlots$area <- NULL
+
+# remove plot where p100gfP = NA
+forestPlots <- forestPlots[!is.na(forestPlots$p100gfP), ]
+
+# remove forest plots where gPred == 0 & NA
+forestPlots <- forestPlots[!is.na(forestPlots$owner), ]
+
+# concatanate accessibility
+forestPlots$access <- paste('dist', forestPlots$dist,
+                            'harv', forestPlots$nonHarv)
+
+###############################################################
+# save
+###############################################################
+
+shapefile(forestPlots, filename = 'forestPlots', overwrite = TRUE)
 
 
 
-#--> comparer nb de plot avec forestPlots --> moins de small plots ---------------------------> ok
-#--> comparer hist(area()) --> moins de small plots ------------------------------------------> ok
-#--> comparer surface totale -----------------------------------------------------------------> ok
-#--> enregistrer comme shp & comprarer parcellaire forestPlots1 vs forestPlots sous Qgis -----> semble ok
-#    (notamment spatialcollection) -----------------------------------------------------------> semble ok
-#--> vérifier si apres algo il reste encore des parcelles (avec neighbours) < threshold ------> ok
-# reste les 'SpatialPoints', 'geomBugue' et les isolés (i.e.sans voisins)
 
 
----> supprimer les SmallPlots restants (les 'SpatialPoints', 'geomBugue' et les isolés (i.e.sans voisins)) ?
+###############################################################
+# compare surfaces before filters and check wether they represent
+# accurately the landscape (difference between surfaces measured
+# on input rasters and final plot should be reduced to a minimum)
+###############################################################
+
+# ownership ----------------------------------
+--> "Private"
+sum(area(forestPlots[forestPlots$owner == "Priv" & !is.na(forestPlots$owner),])) / 10000
+[1] 31137.81   -- polymerge --> 31122.03
+
+--> "Public"
+sum(area(forestPlots[forestPlots$owner == "Pub" & !is.na(forestPlots$owner),])) / 10000
+[1] 21687.13   -- polymerge --> 21702.97
+
+--> "NA"
+sum(area(forestPlots[is.na(forestPlots$owner),])) / 10000
+[1] 0.07500767   -- polymerge --> 0.01030308
+
+# nonHarv ----------------------------------
+sum(area(forestPlots[forestPlots$nonHarv == 0,])) / 10000
+[1] 4230.202   -- polymerge --> 4225.428
+
+sum(area(forestPlots[forestPlots$nonHarv == 1,])) / 10000
+[1] 48594.81   -- polymerge --> 48599.58
+
+# dist ----------------------------------
+sum(area(forestPlots[forestPlots$dist == 0,])) / 10000
+[1] 23239.67   -- polymerge --> 23242.86
+
+sum(area(forestPlots[forestPlots$dist == 1,])) / 10000
+[1] 14685.22   -- polymerge --> 14681.18
+
+sum(area(forestPlots[forestPlots$dist == 2,])) / 10000
+[1] 14900.12   -- polymerge --> 14900.97
+
+############################################################### rasters
+# under QGIS
+# --> clip raster with polygon
+# --> polygoniser
+# --> save shp
+test <- readOGR(dsn = "C:/Users/raphael.aussenac/Documents/GitHub/PROTEST", layer = "test", encoding = "UTF-8", use_iconv = TRUE)
+
+# ownership ----------------------------------
+sum(area(test[test$DN == 1,]))/10000
+[1] 31230.38
+
+sum(area(test[test$DN == 2,]))/10000
+[1] 21610.72
+
+# nonHarv ----------------------------------
+sum(area(test[test$DN == 1,])) / 10000
+[1] 4237.11
+
+sum(area(test[test$DN == 0,])) / 10000
+[1] 48603.69
+
+# dist ----------------------------------
+sum(area(test[test$DN == 0,])) / 10000
+[1] 23272.07
+
+sum(area(test[test$DN == 1,])) / 10000
+[1] 14678.06
+
+sum(area(test[test$DN == 2,])) / 10000
+[1] 14891.02
