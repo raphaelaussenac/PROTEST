@@ -14,9 +14,9 @@ source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/siteIndex.R')
 
 forestPlots
 dim(forestPlots)
-sum(area(forestPlots))
+sum(area(forestPlots)) / 10000
 length(forestPlots@polygons)
-length(unique(forestPlots$id))
+length(unique(forestPlots$WKTid))
 
 forestPlotsSiteIndex <- forestPlots
 rm(list=setdiff(ls(), "forestPlotsSiteIndex"))
@@ -26,9 +26,9 @@ source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/gDgN.R')
 
 forestPlots
 dim(forestPlots)
-sum(area(forestPlots))
+sum(area(forestPlots)) / 10000
 length(forestPlots@polygons)
-length(unique(forestPlots$id))
+length(unique(forestPlots$WKTid))
 
 forestPlotsCompogDgN <- forestPlots
 rm(list=setdiff(ls(), c("forestPlotsCompogDgN", "forestPlotsSiteIndex")))
@@ -36,8 +36,8 @@ rm(list=setdiff(ls(), c("forestPlotsCompogDgN", "forestPlotsSiteIndex")))
 # missing plots? ###############################################################
 # check this --> might be those plots belonging to "unwanted" TFV types (FO0, FF0)
 
-disapearedPlots <- forestPlotsSiteIndex$id[!forestPlotsSiteIndex$id %in% forestPlotsCompogDgN$id]
-forestPlotsSiteIndex@data[forestPlotsSiteIndex@data$id %in% disapearedPlots,]
+disapearedPlots <- forestPlotsSiteIndex$WKTid[!forestPlotsSiteIndex$WKTid %in% forestPlotsCompogDgN$WKTid]
+forestPlotsSiteIndex@data[forestPlotsSiteIndex@data$WKTid %in% disapearedPlots,]
 
 table(forestPlotsSiteIndex$CODE_TF)
 table(forestPlotsCompogDgN$CODE_TF)
@@ -46,14 +46,14 @@ table(forestPlotsCompogDgN$CODE_TF)
 # merge
 ###############################################################
 
-forestPlots <- merge(forestPlotsSiteIndex[, c('id', 'pot03', 'pot03Epsilon',
+forestPlots <- merge(forestPlotsSiteIndex[, c('WKTid', 'pot03', 'pot03Epsilon',
                                                                 'pot09', 'pot09Epsilon', 'pot61',
                                                                 'pot61Epsilon', 'pot62',
                                                                 'pot62Epsilon', 'INSEE_D', 'owner')],
-                     forestPlotsCompogDgN[, c('id', 'compoSp', 'area', "gBeech", "gOak", "gFir", "gSpruce",
+                     forestPlotsCompogDgN[, c('WKTid', 'compoSp', 'area', "gBeech", "gOak", "gFir", "gSpruce",
                                                                 "dgBeech", "dgOak", "dgFir", "dgSpruce", "nBeech",
-                                                                "nOak", "nFir", "nSpruce", "WKT")],
-                      by = 'id')
+                                                                "nOak", "nFir", "nSpruce")],
+                      by = 'WKTid')
 
 # retrieve spatial extent
 xmin <- extent(forestPlots)@xmin
@@ -62,22 +62,21 @@ xmax <- extent(forestPlots)@xmax
 ymax <- extent(forestPlots)@ymax
 
 # remove 'disapearedPlots'
-forestPlots <- forestPlots[!forestPlots$id %in% disapearedPlots, ]
+forestPlots <- forestPlots[!forestPlots$WKTid %in% disapearedPlots, ]
 forestPlots <- forestPlots@data
 
 # import non-truncated WKT
-wkt <- read.csv("superID_1.csv", header = TRUE, sep = "\t")
-wkt$id <- c(1:nrow(wkt))
+wkt <- read.csv("BDid_1.csv", header = TRUE, sep = "\t")
+wkt$WKTid <- c(1:nrow(wkt))
 # replace wkt in forestPlots
-forestPlots$WKT <- NULL
-forestPlots <- merge(forestPlots, wkt[, c('id', 'WKT')], by = 'id')
+forestPlots <- merge(forestPlots, wkt[, c('WKTid', 'WKT')], by = 'WKTid')
 
 ###############################################################
 # format
 ###############################################################
 
 # id
-colnames(forestPlots)[colnames(forestPlots) == "id"] <- 'STAND_ID'
+colnames(forestPlots)[colnames(forestPlots) == "WKTid"] <- 'STAND_ID'
 
 # transform diversity
 forestPlots[forestPlots$compoSp == 'beech', 'compoSp'] <- 'salem_beech'
@@ -189,9 +188,23 @@ forestPlots <- forestPlots[, c('STAND_ID',	'FOREST_TYPE_CODE',	'FOREST_TYPE_NAME
                               'DDOM_2',	'HG_2',	'DG_2',	'EXPLOITABILITY',	'DOMAINE_TYPE',	'FOREST',
                               'INVENTORY_DATE',	'DEPARTMENT',	'CITY',	'COMMENT',	'WKT-GEOM')]
 
+
+
+
+
+
+
+# --> indice de fertilité négatifs !! due au predict + rnorm --> changer modele? ----------------------------------------------
 # remove fertility index < 0
 forestPlots <- forestPlots[forestPlots$SITE_INDEX_1 > 0, ]
 forestPlots <- forestPlots[forestPlots$SITE_INDEX_2 > 0 | forestPlots$SITE_INDEX_2 == -1, ]
+#  ----------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
 
 # convert dg m -> cm
 forestPlots$DG_1 <- forestPlots$DG_1 * 100
@@ -216,11 +229,6 @@ cat('\n#', file="forestPlots.txt", append=TRUE)
 write.table(forestPlots, file="forestPlots.txt", row.names = FALSE, append=TRUE, quote = FALSE, sep = '\t')
 
 
-
-
-
-
---> indice de fertilité négatifs !! due au predict + rnorm --> changer modele?
 
 #
 # verif merge forestPlots wkt by id

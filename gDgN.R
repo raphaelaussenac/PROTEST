@@ -325,9 +325,9 @@ forestPlotsDf[forestPlotsDf$compoSp == "fir-spruce", "nSpruce"] <- (4 * forestPl
 ###############################################################
 
 # put back g Dg and N in the SpatialPolygonDataframe
-forestPlots@data <- merge(forestPlots@data, forestPlotsDf[, c('id', "gBeech", "gOak", "gFir", "gSpruce",
+forestPlots@data <- merge(forestPlots@data, forestPlotsDf[, c('WKTid', "gBeech", "gOak", "gFir", "gSpruce",
                                           "dgBeech", "dgOak", "dgFir", "dgSpruce", "nBeech",
-                                          "nOak", "nFir", "nSpruce")], by = 'id', all = TRUE)
+                                          "nOak", "nFir", "nSpruce")], by = 'WKTid', all = TRUE)
 
 ###############################################################
 # test dg

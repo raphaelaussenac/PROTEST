@@ -21,7 +21,7 @@ source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/siteIndexModel.R')
 ###############################################################
 
 # load forest plots
-forestPlots <- readOGR(dsn = "C:/Users/raphael.aussenac/Documents/GitHub/PROTEST", layer = "forestPlots3Ha", encoding = "UTF-8", use_iconv = TRUE)
+forestPlots <- readOGR(dsn = "C:/Users/raphael.aussenac/Documents/GitHub/PROTEST", layer = "forestPlots", encoding = "UTF-8", use_iconv = TRUE)
 # plot(forestPlots, col = forestPlots$CODE_TFV, border = forestPlots$CODE_TFV)
 plot(coordinates(forestPlots), asp = 1)
 
@@ -58,8 +58,9 @@ forestPlots@data <- cbind(forestPlots@data, modDf[,c('pot03', 'pot03Epsilon',
                                             'pot62Epsilon')])
 
 # convert to export to ggplot
-forestPlotsPts <- fortify(forestPlots, region="id")
-forestPlotsDf <- join(forestPlotsPts, forestPlots@data, by="id")
+forestPlotsPts <- fortify(forestPlots, region="WKTid")
+colnames(forestPlotsPts)[colnames(forestPlotsPts) == 'id'] <- 'WKTid'
+forestPlotsDf <- join(forestPlotsPts, forestPlots@data, by= 'WKTid')
 
 # plot
 plotMap <- function(sp){

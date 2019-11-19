@@ -184,7 +184,7 @@ end_time <- Sys.time()
 end_time - start_time
 
 # time elapsed
-# 15 hours with threshold == 5000 m²
+# 5.450937 hours with threshold == 5000 m²
 
 shapefile(forestPlots, filename = 'forestPlots3HaPolyMerge', overwrite = TRUE)
 
@@ -200,6 +200,7 @@ forestPlots <- forestPlots[!is.na(forestPlots$gPred), ]
 forestPlots <- forestPlots[forestPlots$gPred > 0, ]
 
 # remove forest plots where dgPred == 0
+forestPlots <- forestPlots[!is.na(forestPlots$dgPred), ]
 forestPlots <- forestPlots[forestPlots$dgPred > 0, ]
 
 # convert mean BA/ha --> BA (real stock associated to each plot)
@@ -210,12 +211,15 @@ forestPlots$area <- NULL
 # remove plot where p100gfP = NA
 forestPlots <- forestPlots[!is.na(forestPlots$p100gfP), ]
 
-# remove forest plots where gPred == 0 & NA
+# remove forest plots where owner ==  NA
 forestPlots <- forestPlots[!is.na(forestPlots$owner), ]
 
 # concatanate accessibility
 forestPlots$access <- paste('dist', forestPlots$dist,
                             'harv', forestPlots$nonHarv)
+
+# remove useless columns
+forestPlots$id <- NULL
 
 ###############################################################
 # save
@@ -255,10 +259,10 @@ sum(area(forestPlots[forestPlots$nonHarv == 1,])) / 10000
 
 # dist ----------------------------------
 sum(area(forestPlots[forestPlots$dist == 0,])) / 10000
-[1] 23239.67   -- polymerge --> 23242.86
+[1] 23239.67   -- polymerge --> 23243.34
 
 sum(area(forestPlots[forestPlots$dist == 1,])) / 10000
-[1] 14685.22   -- polymerge --> 14681.18
+[1] 14685.22   -- polymerge --> 14680.7
 
 sum(area(forestPlots[forestPlots$dist == 2,])) / 10000
 [1] 14900.12   -- polymerge --> 14900.97

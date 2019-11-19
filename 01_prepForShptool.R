@@ -37,18 +37,18 @@ BDforet <- readOGR(dsn = "X:/ProjetsCommuns/PROTEST/T1/Donnees_SIG/BD_Foret", la
 # create new shapefile with only ID
 ###############################################################
 
-# change column ID name to avoid conflict with shptools ID
-colnames(BDforet@data)[colnames(BDforet@data) == 'ID'] <- 'IDD'
+# remove useless column
+BDforet <- BDforet[, c('CODE_TFV', 'INSEE_DEP')]
 
 # create unique ID for each polygon
-BDforet$SuperID <- c(1:nrow(BDforet@data))
+BDforet$BDid <- paste(c(1:nrow(BDforet@data)), 'BDid', sep = "")
 
 # save the attribute table with the unqiue ID and the rest of the data
-write.table(BDforet@data, file = "BDsuperID.csv", sep = "\t", row.names = FALSE)
+write.table(BDforet@data, file = "BDid.csv", sep = "\t", row.names = FALSE)
 
 # remove all other colums from the shapefile attribute table
-BDforet@data <- data.frame(BDforet$SuperID)
-colnames(BDforet@data) <- "superID"
+BDforet@data <- data.frame(BDforet$BDid)
+colnames(BDforet@data) <- "BDid"
 
 # save new shapefile
-shapefile(BDforet, filename = 'superID', overwrite = T)
+shapefile(BDforet, filename = 'BDid', overwrite = T)

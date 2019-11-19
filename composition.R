@@ -27,7 +27,7 @@ correspond <- read.csv("Z:/Private/croisementIfn.csv", header = TRUE, sep = ";")
 protestPt <- load(file = "Z:/Private/protestPt.rda")
 
 # load BDforet
-forestPlots <- readOGR(dsn = "C:/Users/raphael.aussenac/Documents/GitHub/PROTEST", layer = "forestPlots3Ha", encoding = "UTF-8", use_iconv = TRUE)
+forestPlots <- readOGR(dsn = "C:/Users/raphael.aussenac/Documents/GitHub/PROTEST", layer = "forestPlots", encoding = "UTF-8", use_iconv = TRUE)
 
 ###############################################################
 # retrieve code TFV for all NFI points within the study area
@@ -424,11 +424,12 @@ text(bp, surfaceCompoSp$area - 500, label = round(surfaceCompoSp$area,1), cex = 
 
 # composition map
 # put back compositions in the SpatialPolygonDataframe
-forestPlots@data <- merge(forestPlots@data, forestPlotsDf[, c('id', 'compoDCM', 'compoSp')], by = 'id', all = TRUE)
+forestPlots@data <- merge(forestPlots@data, forestPlotsDf[, c('WKTid', 'compoDCM', 'compoSp')], by = 'WKTid', all = TRUE)
 forestPlots <- forestPlots[!is.na(forestPlots$compoSp), ]
 # convert for ggplot
-forestPlotsPts <- fortify(forestPlots, region="id")
-forestNewSp <- join(forestPlotsPts, forestPlots@data, by="id")
+forestPlotsPts <- fortify(forestPlots, region="WKTid")
+colnames(forestPlotsPts)[colnames(forestPlotsPts) == 'id'] <- 'WKTid'
+forestNewSp <- join(forestPlotsPts, forestPlots@data, by="WKTid")
 
 # plot
 pnr <- readOGR(dsn = "Z:/Private/PNR Bauges/Sans_Trou", layer = "parc_filled", encoding = "UTF-8", use_iconv = TRUE)

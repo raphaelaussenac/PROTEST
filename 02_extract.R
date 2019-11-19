@@ -327,10 +327,13 @@ shapefile(ifnCircular, filename = 'ifnCircular', overwrite = TRUE)
 # extract values for all forest plots
 ###############################################################
 
-forestPlots <- readOGR(dsn = ".", layer = "superID_1", encoding = "UTF-8", use_iconv = TRUE)
+forestPlots <- readOGR(dsn = ".", layer = "BDid_1", encoding = "UTF-8", use_iconv = TRUE)
 crs(forestPlots) <- crs(pnr)
 # add unique id
-forestPlots$id <- c(1:nrow(forestPlots@data))
+forestPlots$WKTid <- c(1:nrow(forestPlots@data))
+# remove useless columns
+forestPlots$WKT <- NULL
+forestPlots$BDID <- NULL
 
 # extract GRECO
 grecoExt <- grecoVr$extract(sp = forestPlots, fun = getmode, small = TRUE)
