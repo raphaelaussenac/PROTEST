@@ -10,9 +10,6 @@ library(plyr)
 library(sf)
 library(gridExtra)
 
-# set model method
-chosenMethod <- 'direct' # 'knPa-unPa' or 'direct'
-
 # load models
 source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/siteIndexModel.R')
 
@@ -43,10 +40,10 @@ hist(area(forestPlots), breaks = 1000)
 # hist(area(forestPlots)[area(forestPlots)<20], breaks = 10)
 
 # predict fertility index
-modDf <- predFert(modUnPa03, modDf, "03", 'prediction', chosenMethod)
-modDf <- predFert(modUnPa09, modDf, "09", 'prediction', chosenMethod)
-modDf <- predFert(modUnPa61, modDf, "61", 'prediction', chosenMethod)
-modDf <- predFert(modUnPa62, modDf, "62", 'prediction', chosenMethod)
+modDf <- predFert(mod03, modDf, "03")
+modDf <- predFert(mod09, modDf, "09")
+modDf <- predFert(mod61, modDf, "61")
+modDf <- predFert(mod62, modDf, "62")
 
 ###############################################################
 # control model quality and create fertility maps
@@ -66,25 +63,21 @@ forestPlotsDf <- join(forestPlotsPts, forestPlots@data, by= 'WKTid')
 plotMap <- function(sp){
   # manage colnames
   if (sp == "03"){
-    mod <- modUnPa03
+    mod <- mod03
     bd <- bdBauges03
     ti <- "Q. petraea"
-    ratEpsiPot <- varPar[ti, "ratEpsiPot"]
   } else if(sp == "09"){
-    mod <- modUnPa09
+    mod <- mod09
     bd <- bdBauges09
     ti <- "F. sylvatica"
-    ratEpsiPot <- varPar[2, "ratEpsiPot"]
   } else if(sp == "61"){
-    mod <- modUnPa61
+    mod <- mod61
     bd <- bdBauges61
     ti <- "A. alba"
-    ratEpsiPot <- varPar[3, "ratEpsiPot"]
   } else if(sp == "62"){
-    mod <- modUnPa62
+    mod <- mod62
     bd <- bdBauges62
     ti <- "P. abies"
-    ratEpsiPot <- varPar[4, "ratEpsiPot"]
   }
   colnames(bd)[colnames(bd) == paste('pot', sp, sep ='')] <- 'pot'
   colnames(bd)[colnames(bd) == paste('ptnt_', sp, sep ='')] <- 'ptnt'
@@ -95,8 +88,8 @@ plotMap <- function(sp){
   mDf <- modDf
   colnames(mDf)[colnames(mDf) == paste('pot', sp, sep ='')] <- 'pot'
 
-  # add residuals tp bd
-  res <-data.frame(residuals(mod))
+  # add residuals to bd
+  res <- data.frame(residuals(mod))
   colnames(res) <- "residuals"
   res$sign <- "positive"
   res[res$res < 0, "sign"] <- "negative"
@@ -110,11 +103,11 @@ plotMap <- function(sp){
 
   # density observed vs predicted
   dens <- ggplot() +
-    geom_density(data = bd, aes(ptnt), col = 'black', fill = 'grey', lwd = 1, , linetype = 'dashed') +
-    geom_density(data = bd, aes(pot), col = 'red') +
-    geom_density(data = bd, aes(potEpsilon), col = 'blue') +
-    # geom_density(data = forestDf, aes(potEpsilon), col = 'green4') +
-    # geom_density(data = forestDf, aes(pot), col = 'green1') +
+    geom_density(data = bd, aes(ptnt), col = 'black', fill = 'grey', lwd = 1.5) +
+    geom_density(data = bd, aes(pot), col = 'blue') +
+    geom_density(data = bd, aes(potEpsilon), col = 'cyan') +
+    geom_density(data = forestDf, aes(pot), col = 'green4') +
+    geom_density(data = forestDf, aes(potEpsilon), col = 'green') +
     annotate("text", label = paste("R² =", round(summary(mod)$r.squared,2)), x = 20, y = 0.075, size = 5) +
     theme_bw()
 
@@ -211,23 +204,3 @@ plotMap <- function(sp){
 # pdf(file="C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/map62.pdf", width = 20, height = 10)
 # plotMap("62")
 # dev.off()
-
-
-
-
-#
-# # summary(lm(residuals(modUnPa03) ~ bdBauges03[,"rum"]))
-# plot(residuals(modUnPa03) ~ bdBauges03[,"rum"], pch = 16)
-# abline(h = 0, lty = 2, col = 'red')
-# panel.smooth(bdBauges03[, "rum"], residuals(modUnPa03), span = 0.5)
-#
-#
-# plot(modUnPa03)
-# plot(residuals(modUnPa03) ~ bdBauges03[,"pot03"], pch = 16, xlim = c(-10, 40), ylim = c(-10, 40))
-#
-# # observed vs predicted (voir article: How to evaluate models: Observed vs. predictedor predicted vs. observed?)
-# testPred <- lm(ptnt_09 ~ pot09, data = bdBauges09)
-# summary(testPred)
-# plot(bdBauges09$ptnt_09 ~ bdBauges09$pot09)
-# curve(1*x, add = TRUE, col = 'red', lty = 2)
-# curve(coef(testPred)[[1]] +  coef(testPred)[[2]] *x, add = TRUE, col = 'black')

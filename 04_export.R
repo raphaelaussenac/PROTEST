@@ -19,7 +19,7 @@ length(forestPlots@polygons)
 length(unique(forestPlots$WKTid))
 
 forestPlotsSiteIndex <- forestPlots
-rm(list=setdiff(ls(), "forestPlotsSiteIndex"))
+rm(list=setdiff(ls(), c('forestPlotsSiteIndex', 'mod03', 'mod09', 'mod61', 'mod62', 'predFert')))
 
 # compo g Dg and N
 source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/gDgN.R')
@@ -31,7 +31,7 @@ length(forestPlots@polygons)
 length(unique(forestPlots$WKTid))
 
 forestPlotsCompogDgN <- forestPlots
-rm(list=setdiff(ls(), c("forestPlotsCompogDgN", "forestPlotsSiteIndex")))
+rm(list=setdiff(ls(), c('forestPlotsCompogDgN', 'forestPlotsSiteIndex', 'mod03', 'mod09', 'mod61', 'mod62', 'predFert')))
 
 # missing plots? ###############################################################
 # check this --> might be those plots belonging to "unwanted" TFV types (FO0, FF0)
@@ -188,23 +188,77 @@ forestPlots <- forestPlots[, c('STAND_ID',	'FOREST_TYPE_CODE',	'FOREST_TYPE_NAME
                               'DDOM_2',	'HG_2',	'DG_2',	'EXPLOITABILITY',	'DOMAINE_TYPE',	'FOREST',
                               'INVENTORY_DATE',	'DEPARTMENT',	'CITY',	'COMMENT',	'WKT-GEOM')]
 
+###############################################################
+# manage negative site index
+###############################################################
 
+# basically, a new random noise is added to the models predictions
+# untill all SI are positive
 
+# list of plots with negative SI_1
+negSI1 <- forestPlots[forestPlots$SITE_INDEX_1 < 0, c("STAND_ID", 'FOREST_TYPE_CODE')]
+nrow(negSI1)
+# list of plots with negative SI_2
+negSI2 <- forestPlots[forestPlots$SITE_INDEX_2 < 0 & forestPlots$SITE_INDEX_2 != -1, c("STAND_ID", 'FOREST_TYPE_CODE')]
+nrow(negSI2)
 
+# recalculate untill all SI_1 are positive
+for (compo in unique(negSI1$FOREST_TYPE_CODE)){
+  modDf <- forestPlotsSiteIndex[forestPlotsSiteIndex$WKTid %in% negSI1[negSI1$FOREST_TYPE_CODE == compo, "STAND_ID"], ]
+  modDf <- modDf@data
+  counter <- 9999
+  while(counter > 0){
+    if (compo == "salem_oak"){
+      modDf$pot03 <- NULL
+      modDf$pot03Epsilon <- NULL
+      modDf <- predFert(mod03, modDf, "03")
+      counter <- sum(modDf$pot03Epsilon < 0)
+    } else if (compo %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce")){
+      modDf$pot09 <- NULL
+      modDf$pot09Epsilon <- NULL
+      modDf <- predFert(mod09, modDf, "09")
+      counter <- sum(modDf$pot09Epsilon < 0)
+    } else if (compo %in% c("salem_fir", "salem_fir_spruce")){
+      modDf$pot61 <- NULL
+      modDf$pot61Epsilon <- NULL
+      modDf <- predFert(mod61, modDf, "61")
+      counter <- sum(modDf$pot61Epsilon < 0)
+    } else if (compo == "salem_spruce"){
+      modDf$pot62 <- NULL
+      modDf$pot62Epsilon <- NULL
+      modDf <- predFert(mod62, modDf, "62")
+      counter <- sum(modDf$pot62Epsilon < 0)
+    }
+    print(counter)
+  }
+  forestPlots[forestPlots$STAND_ID %in% modDf$WKTid, 'SITE_INDEX_1'] <- modDf[, ncol(modDf)]
+}
 
+# recalculate untill all SI_2 are positive
+for (compo in unique(negSI2$FOREST_TYPE_CODE)){
+  modDf <- forestPlotsSiteIndex[forestPlotsSiteIndex$WKTid %in% negSI2[negSI2$FOREST_TYPE_CODE == compo, "STAND_ID"], ]
+  modDf <- modDf@data
+  counter <- 9999
+  while(counter > 0){
+    if (compo == "salem_beech_fir"){
+      modDf$pot61 <- NULL
+      modDf$pot61Epsilon <- NULL
+      modDf <- predFert(mod61, modDf, "61")
+      counter <- sum(modDf$pot61Epsilon < 0)
+    } else if (compo == c("salem_fir_spruce", 'salem_beech_spruce')){
+      modDf$pot62 <- NULL
+      modDf$pot62Epsilon <- NULL
+      modDf <- predFert(mod62, modDf, "62")
+      counter <- sum(modDf$pot62Epsilon < 0)
+    }
+    print(counter)
+  }
+  forestPlots[forestPlots$STAND_ID %in% modDf$WKTid, 'SITE_INDEX_2'] <- modDf[, ncol(modDf)]
+}
 
-
-# --> indice de fertilité négatifs !! due au predict + rnorm --> changer modele? ----------------------------------------------
-# remove fertility index < 0
-forestPlots <- forestPlots[forestPlots$SITE_INDEX_1 > 0, ]
-forestPlots <- forestPlots[forestPlots$SITE_INDEX_2 > 0 | forestPlots$SITE_INDEX_2 == -1, ]
-#  ----------------------------------------------------------------------------------------------------------------------------
-
-
-
-
-
-
+###############################################################
+# manage units
+###############################################################
 
 # convert dg m -> cm
 forestPlots$DG_1 <- forestPlots$DG_1 * 100

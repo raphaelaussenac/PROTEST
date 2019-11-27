@@ -34,216 +34,102 @@ bdBauges <- merge(bdBauges, classGeol, by.x = 'gelNttn', by.y = 'NOTATION', all.
 # prediction function
 ###############################################################
 
-predFert <- function(mod, modData, sp, mode, method){
-  # 1 - calculate the known part
-  if (method == "direct"){
-    modData$knPa <- 0
-  } else if (method == "knPa-unPa"){
-    if (sp == '03'){
-      modData$knPa <- 0
-      modData[modData$rochClc == 1, "knPa"] <- -11.097
-    } else if (sp == '09'){
-      modData$knPa <- -0.0083 * modData$alti + -0.086 * modData$slope
-    } else if (sp == '61'){
-      modData$knPa <- 0
-      modData[modData$greco =="H", "knPa"] <- -11.56
-    } else if (sp == '62'){
-      modData$knPa <- 0
-      modData[modData$rochClc == 1, "knPa"] <- -8.100
-      modData$continuousknPa2 <- -0.255 * modData$slope + -3.705 * modData$expoNS
-      modData$knPa <- modData$knPa + modData$continuousknPa2
-    }
-  }
-  # 2 - calculate the unknow part
-  modData$unPa <- predict(mod, newdata = modData)
-  # 3 - calculate the predicted fertility index (by adding both parts)
-  modData$pot <- modData$unPa + modData$knPa
-  # 4 - calculate the potential index with a random variation
-  if (mode == 'calibration'){
-    modData$potEpsilon <- modData$unPa + modData$knPa + residuals(mod)
-  } else if (mode == 'prediction'){
-    modData$potEpsilon <- modData$unPa + modData$knPa + rnorm(nrow(modData), 0, sd(residuals(mod)))
-  }
-  # 5 - add sp to colnames
-  colnames(modData)[colnames(modData) == "knPa"] <- paste("knPa", sp, sep="")
-  colnames(modData)[colnames(modData) == "unPa"] <- paste("unPa", sp, sep="")
+predFert <- function(mod, modData, sp){
+  modData$pot <- predict(mod, newdata = modData)
+  # add a random variation
+  modData$potEpsilon <- modData$pot + rnorm(nrow(modData), 0, sd(residuals(mod)))
+  # add sp to colnames
   colnames(modData)[colnames(modData) == "pot"] <- paste("pot", sp, sep="")
   colnames(modData)[colnames(modData) == "potEpsilon"] <- paste("pot", sp, "Epsilon", sep="")
   return(modData)
 }
 
 ###############################################################
-# variance partition function
-###############################################################
-
-varPar <- function(mod, modData, sp){
-  # retrieve colnames without sp code
-  colnames(modData)[colnames(modData) == paste('knPa', sp, sep = "")] <- 'knPa'
-  colnames(modData)[colnames(modData) == paste('unPa', sp, sep = "")] <- 'unPa'
-  colnames(modData)[colnames(modData) == paste('ptnt_', sp, sep = "")] <- 'ptnt'
-  colnames(modData)[colnames(modData) == paste('pot', sp, sep = "")] <- 'pot'
-  colnames(modData)[colnames(modData) == paste('pot', sp, 'Epsilon', sep = "")] <- 'potEpsilon'
-  # potentiel variance
-  varPtnt <- var(modData$ptnt)
-  # residuals variance
-  varEpsi <- var(residuals(mod))
-  # global goodness of fit
-  # ratio of var(residuals) / var(potentiel)
-  ratEpsiPot <- varEpsi / varPtnt
-  # variance of the known part
-  varKnPa <- var(modData$knPa)
-  # variance of the unknown part
-  varUnPa <- var(modData$unPa)
-  # covarances
-  covKnUn <- 2 * cov(modData$knPa, modData$unPa)
-  covKnEpsi <- 2 * cov(modData$knPa, residuals(mod))
-  covUnEpsi <- 2 * cov(modData$unPa, residuals(mod))
-  # verification
-  # var(potentiel) = var(a) + var(b) + var(c) + 2*cov(a,b) + 2*cov(a,c) + 2*cov(b,c)
-  sumVarCov <- varKnPa + varUnPa + varEpsi + covKnUn + covKnEpsi + covUnEpsi
-  # save
-  varPar <- data.frame(round(c(varPtnt, varKnPa, varUnPa, varEpsi, covKnUn, covKnEpsi, covUnEpsi, ratEpsiPot, sumVarCov), 5))
-  return(varPar)
-}
-
-###############################################################
 # model quercus petraea (03) potential index
 ###############################################################
 
-# known variables:   - GRECO D        # unknown variables: - Intercept
-#                    - rochClc      #                    - tmin_12
-#                                     #                    - CN_decor
-#                                     #                    - de_7
-#                                     #                    - swhc
-
-# create a data subset without NA (depends on the variables included in the model)
+# create a data subset without NA
 bdBauges03 <- bdBauges
 
-# model
-# complete model: alti + slope + rum + ph + expoNS + expoEW +
-# I(greco == "H") + I(greco == "C") + I(Cd_hydr == "0") + I(Cd_hydr == "1") +
-# I(Cd_hydr == "2") + I(Cd_hydr == "3") + I(Cd_crbn == "0") +
-# I(Cd_crbn == "1") + I(Cd_crbn == "2") + I(Cd_crbn == "3") +
-# I(rochClc == "0") + I(rochClc == "1")
-if (chosenMethod == 'direct'){
-  modUnPa03 <- lm(ptnt_03 ~ slope + rum + I(alti^2) + I(ph^2) +
-  I(greco == "H") +
-  I(Cd_crbn == "0") +
-  I(Cd_crbn == "1") + I(Cd_crbn == "2"), data = bdBauges03) #
-} else if (chosenMethod == 'knPa-unPa'){
-  modUnPa03 <- lm(unknP03 ~ alti + rum + I(rum^2) + Cd_crbn + Cd_hydr, data = bdBauges03)
-}
-summary(modUnPa03)
+# complete model
+# alti + slope + rum + ph + expoNS + expoEW +
+#           I(greco == "H") +
+#           I(Cd_hydr == "0") + I(Cd_hydr == "1") + I(Cd_hydr == "2") +
+#           I(Cd_crbn == "0") + I(Cd_crbn == "1") + I(Cd_crbn == "2")
+
+mod03 <- lm(ptnt_03 ~ slope + rum + I(alti^2) + I(ph^2) +
+            I(greco == "H") +
+            I(Cd_crbn == "0") + I(Cd_crbn == "1") + I(Cd_crbn == "2"),
+            data = bdBauges03)
+
+summary(mod03)
 
 # prediction on the same data set (for obs vs pred comparison)
-bdBauges03 <- predFert(modUnPa03, bdBauges03, "03", 'calibration', chosenMethod)
-
-# variance partition
-varPar03 <- varPar(modUnPa03, bdBauges03, "03")
+bdBauges03 <- predFert(mod03, bdBauges03, "03")
 
 ###############################################################
 # model fagus sylvatica (09) potential index
 ###############################################################
 
-# known variables:   - alti           # unknown variables: - Intercept
-#                    - slope          #                    - C/N
-#                    - GRECO B        #                    - swhc
-#                                     #                    - sol carbonaté
-
-# create a data subset without NA (depends on the variables included in the model)
+# create a data subset without NA
 bdBauges09 <- bdBauges[!is.na(bdBauges$ptnt_09), ]
 
-# model
-# complete model: alti + slope + rum + ph + expoNS + expoEW +
-# I(greco == "H") + I(greco == "C") + I(Cd_hydr == "0") + I(Cd_hydr == "1") +
-# I(Cd_hydr == "2") + I(Cd_hydr == "3") + I(Cd_crbn == "0") +
-# I(Cd_crbn == "1") + I(Cd_crbn == "2") + I(Cd_crbn == "3") +
-# I(rochClc == "0") + I(rochClc == "1")
-if (chosenMethod == 'direct'){
-  modUnPa09 <- lm(ptnt_09 ~ alti + slope + expoNS + I(rum^2), data = bdBauges09) #
-} else if (chosenMethod == 'knPa-unPa'){
-  modUnPa09 <- lm(unknP09 ~ alti + rum + I(rum^2) + Cd_crbn + Cd_hydr, data = bdBauges09)
-}
-summary(modUnPa09)
+# complete model
+# alti + slope + rum + ph + expoNS + expoEW +
+#           I(greco == "H") +
+#           I(Cd_hydr == "0") + I(Cd_hydr == "1") + I(Cd_hydr == "2") +
+#           I(Cd_crbn == "0") + I(Cd_crbn == "1") + I(Cd_crbn == "2")
+
+mod09 <- lm(ptnt_09 ~ alti + slope + expoNS + I(rum^2),
+            data = bdBauges09)
+
+summary(mod09)
 
 # prediction on the same data set (for obs vs pred comparison)
-bdBauges09 <- predFert(modUnPa09, bdBauges09, "09", 'calibration', chosenMethod)
-
-# variance partition
-varPar09 <- varPar(modUnPa09, bdBauges09, "09")
+bdBauges09 <- predFert(mod09, bdBauges09, "09")
 
 ###############################################################
 # model abies alba (61) potential index
 ###############################################################
 
-# known variables:   - GRECO A        # unknown variables: - Intercept
-#                    - GRECO H        #                    - ETP June
-#                                     #                    - swhc_A
-#                                     #                    - C/N
-
-# create a data subset without NA (depends on the variables included in the model)
+# create a data subset without NA
 bdBauges61 <- bdBauges
 
-# model
-# complete model: alti + slope + rum + ph + expoNS + expoEW +
-# I(greco == "H") + I(greco == "C") + I(Cd_hydr == "0") + I(Cd_hydr == "1") +
-# I(Cd_hydr == "2") + I(Cd_hydr == "3") + I(Cd_crbn == "0") +
-# I(Cd_crbn == "1") + I(Cd_crbn == "2") + I(Cd_crbn == "3") +
-# I(rochClc == "0") + I(rochClc == "1")
-if (chosenMethod == 'direct'){
-  modUnPa61 <- lm(ptnt_61 ~ alti + expoEW + I(rum^2) +
-  I(greco == "H") + I(Cd_crbn == "0"), data = bdBauges61) #
-} else if (chosenMethod == 'knPa-unPa'){
-  modUnPa61 <- lm(unknP61 ~ alti + rum + I(rum^2) + Cd_crbn + Cd_hydr, data = bdBauges61)
-}
-summary(modUnPa61)
+# complete model
+# alti + slope + rum + ph + expoNS + expoEW +
+#           I(greco == "H") +
+#           I(Cd_hydr == "0") + I(Cd_hydr == "1") + I(Cd_hydr == "2") +
+#           I(Cd_crbn == "0") + I(Cd_crbn == "1") + I(Cd_crbn == "2")
+
+mod61 <- lm(ptnt_61 ~ alti + expoEW + I(rum^2) +
+            I(greco == "H") +
+            I(Cd_crbn == "0"),
+            data = bdBauges61)
+
+summary(mod61)
 
 # prediction on the same data set (for obs vs pred comparison)
-bdBauges61 <- predFert(modUnPa61, bdBauges61, "61", 'calibration', chosenMethod)
-
-# variance partition
-varPar61 <- varPar(modUnPa61, bdBauges61, "61")
+bdBauges61 <- predFert(mod61, bdBauges61, "61")
 
 ###############################################################
 # model picea abies (62) potential index
 ###############################################################
 
-# known variables:   - slope          # unknown variables: - Intercept
-#                    - expoNS         #                    - tmin_2
-#                    - rochClc      #                    - swhc_A
-#                                     #                    - bhc_5
-#                                     #                    - C/N
-
-# create a data subset without NA (depends on the variables included in the model)
+# create a data subset without NA
 bdBauges62 <- bdBauges[!is.na(bdBauges$ptnt_62), ]
 
-# model
-# complete model: alti + slope + rum + ph + expoNS + expoEW +
-# I(greco == "H") + I(greco == "C") + I(Cd_hydr == "0") + I(Cd_hydr == "1") +
-# I(Cd_hydr == "2") + I(Cd_hydr == "3") + I(Cd_crbn == "0") +
-# I(Cd_crbn == "1") + I(Cd_crbn == "2") + I(Cd_crbn == "3") +
-# I(rochClc == "0") + I(rochClc == "1")
-if (chosenMethod == 'direct'){
-  modUnPa62 <- lm(ptnt_62 ~ slope + expoEW + I(slope^2) + I(rum^2) +
-  I(greco == "H") + I(Cd_crbn == "0"), data = bdBauges62) #
-} else if (chosenMethod == 'knPa-unPa'){
-  modUnPa62 <- lm(unknP62 ~ alti + rum + I(rum^2) + Cd_crbn + Cd_hydr, data = bdBauges62)
-}
-summary(modUnPa62)
+# complete model
+# alti + slope + rum + ph + expoNS + expoEW +
+#           I(greco == "H") +
+#           I(Cd_hydr == "0") + I(Cd_hydr == "1") + I(Cd_hydr == "2") +
+#           I(Cd_crbn == "0") + I(Cd_crbn == "1") + I(Cd_crbn == "2")
+
+mod62 <- lm(ptnt_62 ~ slope + expoEW + I(slope^2) + I(rum^2) +
+            I(greco == "H") +
+            I(Cd_crbn == "0"),
+            data = bdBauges62)
+
+summary(mod62)
 
 # prediction on the same data set (for obs vs pred comparison)
-bdBauges62 <- predFert(modUnPa62, bdBauges62, "62", 'calibration', chosenMethod)
-
-# variance partition
-varPar62 <- varPar(modUnPa62, bdBauges62, "62")
-
-###############################################################
-# save variance partition into a df
-###############################################################
-
-varPar <- cbind(varPar03, varPar09, varPar61, varPar62)
-colnames(varPar) <- c("Q. petraea", "F. sylvatica", "A. alba", "P. abies")
-varPar <- t(varPar)
-colnames(varPar) <- c("varPtnt", "varKnPa", "varUnPa", "varEpsi", "covKnUn", "covKnEpsi", "covUnEpsi", "ratEpsiPot", "sumVarCov")
-
-write.csv(varPar, file = "C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/varPar.csv")
+bdBauges62 <- predFert(mod62, bdBauges62, "62")
