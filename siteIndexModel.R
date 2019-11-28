@@ -35,9 +35,12 @@ bdBauges <- merge(bdBauges, classGeol, by.x = 'gelNttn', by.y = 'NOTATION', all.
 ###############################################################
 
 predFert <- function(mod, modData, sp){
-  modData$pot <- predict(mod, newdata = modData)
-  # add a random variation
-  modData$potEpsilon <- modData$pot + rnorm(nrow(modData), 0, sd(residuals(mod)))
+  modData$pot <- predict(mod, newdata = modData, type = 'response')
+  # add a random variation for gamma glms
+  shape_estim  <- drop(MASS::gamma.shape(mod)[1]$alpha)
+  modData$potEpsilon <- rgamma(nrow(modData), rate = shape_estim / modData$pot, shape = shape_estim)
+  # add a random variation for lms
+  # modData$potEpsilon <- modData$pot + rnorm(nrow(modData), 0, sd(residuals(mod)))
   # add sp to colnames
   colnames(modData)[colnames(modData) == "pot"] <- paste("pot", sp, sep="")
   colnames(modData)[colnames(modData) == "potEpsilon"] <- paste("pot", sp, "Epsilon", sep="")
@@ -57,10 +60,18 @@ bdBauges03 <- bdBauges
 #           I(Cd_hydr == "0") + I(Cd_hydr == "1") + I(Cd_hydr == "2") +
 #           I(Cd_crbn == "0") + I(Cd_crbn == "1") + I(Cd_crbn == "2")
 
-mod03 <- lm(ptnt_03 ~ slope + rum + I(alti^2) + I(ph^2) +
-            I(greco == "H") +
-            I(Cd_crbn == "0") + I(Cd_crbn == "1") + I(Cd_crbn == "2"),
-            data = bdBauges03)
+# glm Gamma
+mod03 <- glm(ptnt_03 ~ alti + rum + expoNS +
+          I(Cd_hydr == "1") +
+          I(Cd_crbn == "1") + I(Cd_crbn == "2"),
+          family = Gamma(link = "identity"),
+          data = bdBauges03)
+
+# lm
+# mod03 <- lm(ptnt_03 ~ slope + rum + I(alti^2) + I(ph^2) +
+#             I(greco == "H") +
+#             I(Cd_crbn == "0") + I(Cd_crbn == "1") + I(Cd_crbn == "2"),
+#             data = bdBauges03)
 
 summary(mod03)
 
@@ -80,8 +91,14 @@ bdBauges09 <- bdBauges[!is.na(bdBauges$ptnt_09), ]
 #           I(Cd_hydr == "0") + I(Cd_hydr == "1") + I(Cd_hydr == "2") +
 #           I(Cd_crbn == "0") + I(Cd_crbn == "1") + I(Cd_crbn == "2")
 
-mod09 <- lm(ptnt_09 ~ alti + slope + expoNS + I(rum^2),
-            data = bdBauges09)
+# glm Gamma
+mod09 <- glm(ptnt_09 ~ alti + slope + expoNS + I(rum^2),
+          family = Gamma(link = "identity"),
+          data = bdBauges09)
+
+# lm
+# mod09 <- lm(ptnt_09 ~ alti + slope + expoNS + I(rum^2),
+#             data = bdBauges09)
 
 summary(mod09)
 
@@ -101,10 +118,18 @@ bdBauges61 <- bdBauges
 #           I(Cd_hydr == "0") + I(Cd_hydr == "1") + I(Cd_hydr == "2") +
 #           I(Cd_crbn == "0") + I(Cd_crbn == "1") + I(Cd_crbn == "2")
 
-mod61 <- lm(ptnt_61 ~ alti + expoEW + I(rum^2) +
-            I(greco == "H") +
-            I(Cd_crbn == "0"),
-            data = bdBauges61)
+# glm Gamma
+mod61 <- glm(ptnt_61 ~ alti + I(rum^2) +
+          I(greco == "H") +
+          I(Cd_crbn == "2"),
+          family = Gamma(link = "identity"),
+          data = bdBauges61)
+
+# lm
+# mod61 <- lm(ptnt_61 ~ alti + expoEW + I(rum^2) +
+#             I(greco == "H") +
+#             I(Cd_crbn == "0"),
+#             data = bdBauges61)
 
 summary(mod61)
 
@@ -124,10 +149,17 @@ bdBauges62 <- bdBauges[!is.na(bdBauges$ptnt_62), ]
 #           I(Cd_hydr == "0") + I(Cd_hydr == "1") + I(Cd_hydr == "2") +
 #           I(Cd_crbn == "0") + I(Cd_crbn == "1") + I(Cd_crbn == "2")
 
-mod62 <- lm(ptnt_62 ~ slope + expoEW + I(slope^2) + I(rum^2) +
-            I(greco == "H") +
-            I(Cd_crbn == "0"),
-            data = bdBauges62)
+# glm Gamma
+mod62 <- glm(ptnt_62 ~ alti + slope + I(slope^2) + I(rum^2) +
+          I(Cd_hydr == "2"),
+          family = Gamma(link = "identity"),
+          data = bdBauges62)
+
+# lm
+# mod62 <- lm(ptnt_62 ~ slope + expoEW + I(slope^2) + I(rum^2) +
+#             I(greco == "H") +
+#             I(Cd_crbn == "0"),
+#             data = bdBauges62)
 
 summary(mod62)
 

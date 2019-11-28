@@ -108,7 +108,7 @@ plotMap <- function(sp){
     geom_density(data = bd, aes(potEpsilon), col = 'cyan') +
     geom_density(data = forestDf, aes(pot), col = 'green4') +
     geom_density(data = forestDf, aes(potEpsilon), col = 'green') +
-    annotate("text", label = paste("R² =", round(summary(mod)$r.squared,2)), x = 20, y = 0.075, size = 5) +
+    # annotate("text", label = paste("R² =", round(summary(mod)$r.squared,2)), x = 20, y = 0.075, size = 5) +
     theme_bw()
 
   # model observed - predicted (voir article: How to evaluate models: Observed vs. predictedor predicted vs. observed?)
