@@ -89,7 +89,7 @@ forestPlotsDf$gOak <- NA
 forestPlotsDf$gFir <- NA
 forestPlotsDf$gSpruce <- NA
 
-################################### 1 - First case: pure stands
+# 1 - First case: pure stands --------------------------------------------------
 # --> nothing to calculate, gPred is available
 # beech
 forestPlotsDf[forestPlotsDf$compoSp == 'beech', "gBeech"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech', "gPred"]
@@ -100,7 +100,7 @@ forestPlotsDf[forestPlotsDf$compoSp == 'fir', "gFir"] <- forestPlotsDf[forestPlo
 # spruce
 forestPlotsDf[forestPlotsDf$compoSp == 'spruce', "gSpruce"] <- forestPlotsDf[forestPlotsDf$compoSp == 'spruce', "gPred"]
 
-################################### 2 - Second case: deciduous - coniferous mixtures
+# 2 - Second case: deciduous - coniferous mixtures -----------------------------
 # g deciduous and g coniferous are available
 # beech - fir
 forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "gBeech"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "gPred"] *
@@ -113,8 +113,7 @@ forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "gBeech"] <- forestPlotsD
 forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "gSpruce"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "gPred"] *
                                                                       (100 - forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "p100gfP"]) / 100
 
-################################### 3 - Third case: coniferous - coniferous mixtures
-# g deciduous and g coniferous are not available
+# 3 - Third case: coniferous - coniferous mixtures -----------------------------
 # fir - spruce
 # model Gfir / GTot ratio
 ratGFirSpruce <- ratGDg(trueMixedFirSpruce, 'S.P', 'EPC')
@@ -122,8 +121,9 @@ ratGFirSpruce <- ratGDg(trueMixedFirSpruce, 'S.P', 'EPC')
 #                   # I(greco == "H") + I(greco == "C") +
 #                   # I(Cd_hydr == "0") + I(Cd_hydr == "1") + I(Cd_hydr == "2") + I(Cd_hydr == "3") +
 #                   # I(Cd_crbn == "0") + I(Cd_crbn == "1") + I(Cd_crbn == "2") + I(Cd_crbn == "3")
+
+# lm
 # modgFirSpruce <- lm(ratG ~ slope, data = ratGFirSpruce)
-# summary(modgFirSpruce)
 
 # betareg
 modgFirSpruce <- betareg(ratG ~ slope,
@@ -131,10 +131,8 @@ modgFirSpruce <- betareg(ratG ~ slope,
 
 summary(modgFirSpruce)
 
-# b <- b + rnorm(sd(residuals))
-# set the minimum proportion of G for a species in the mixture
-minP <- 0.25
-# minP < b < 1 - minP
+# b <- pred
+# bNoise <- pred & beta noise
 forestPlotsDf$b <- -999
 forestPlotsDf$bNoise <- -999
 
@@ -144,6 +142,7 @@ N <- nrow(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', ])
 phi <- as.numeric(modgFirSpruce$coefficient$precision)
 forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "bNoise"] <- rbeta(N, pred * phi, (1 - pred) * phi)
 
+# plot prediction and noise
 plot(density(ratGFirSpruce$ratG), ylim = c(0,5))
 mu <- predict(modgFirSpruce, type = 'response')
 lines(density(mu), col = "blue3")
@@ -152,15 +151,6 @@ noise <- rbeta(N, mu * phi, (1 - mu) * phi)
 lines(density(noise), col = 'cyan')
 lines(density(pred), col = 'green4')
 lines(density(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "bNoise"]), col = 'green')
-
-# # keep generating b until all b values are in the range minP < b < 1 - minP
-# while(sum(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "b"] < minP | forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "b"] > (1 - minP)) > 0){
-#   forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce' & forestPlotsDf$b < minP | forestPlotsDf$b > (1 - minP), "b"] <- predict(modgFirSpruce, newdata = forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce' & forestPlotsDf$b < minP | forestPlotsDf$b > (1 - minP),]) +
-#                                                               rnorm(nrow(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce' & forestPlotsDf$b < minP | forestPlotsDf$b > (1 - minP),]), 0, sd(residuals(modgFirSpruce)))
-#   print(sum(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "b"] < minP | forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "b"] > (1 - (minP))))
-# }
-# hist(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "b"], breaks = 100)
-# range(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "b"])
 
 # gSpruce
 forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gSpruce"] <- forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gPred"] * (1 - forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "bNoise"])
@@ -172,7 +162,7 @@ forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gFir"] <- forestPlotsDf[fo
 # model Dg1/Dg2 ratio with available variables
 ###############################################################
 
-# Beech - Fir -------------------------------------------------
+# Beech - Fir ------------------------------------------------------------------
 ratDgBeechFir <- ratGDg(trueMixedBeechFir, 'HET', 'S.P')
 # complete model: alti + slope + rum + ph + expoNS + expoEW + dgPred + gPred +
                   # I(greco == "H") + I(greco == "C") +
@@ -189,7 +179,7 @@ modBeechFir <- glm(ratDg ~ I(Cd_hydr == "1"),
 
 summary(modBeechFir)
 
-# Beech - Spruce ----------------------------------------------
+# Beech - Spruce ---------------------------------------------------------------
 ratDgBeechSpruce <- ratGDg(trueMixedBeechSpruce, 'HET', 'EPC')
 # complete model: alti + slope + rum + ph + expoNS + expoEW + dgPred + gPred +
                   # I(greco == "H") + I(greco == "C") +
@@ -210,7 +200,7 @@ modBeechSpruce <- glm(ratDg ~ alti + slope + expoNS +
 
 summary(modBeechSpruce)
 
-# Fir - Spruce ------------------------------------------------
+# Fir - Spruce -----------------------------------------------------------------
 ratDgFirSpruce <- ratGDg(trueMixedFirSpruce, 'S.P', 'EPC')
 # complete model: alti + slope + rum + ph + expoNS + expoEW + dgPred + gPred +
                   # I(greco == "H") + I(greco == "C") +
@@ -238,7 +228,7 @@ forestPlotsDf$dgOak <- NA
 forestPlotsDf$dgFir <- NA
 forestPlotsDf$dgSpruce <- NA
 
-################################### 1 - First case: pure stands
+# 1 - First case: pure stands --------------------------------------------------
 # --> nothing to calculate, gPred is available
 # beech
 forestPlotsDf[forestPlotsDf$compoSp == 'beech', "dgBeech"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech', "dgPred"]
@@ -249,17 +239,12 @@ forestPlotsDf[forestPlotsDf$compoSp == 'fir', "dgFir"] <- forestPlotsDf[forestPl
 # spruce
 forestPlotsDf[forestPlotsDf$compoSp == 'spruce', "dgSpruce"] <- forestPlotsDf[forestPlotsDf$compoSp == 'spruce', "dgPred"]
 
-################################### 2 - Second case: mixed stands
+# 2 - Second case: mixed stands ------------------------------------------------
 
 forestPlotsDf$a <- -999
 forestPlotsDf$aNoise <- -999
 
-# Beech - Fir
-# condition: a values are in the range of a values obtained with protest plots
-# # keep generating a until all a values are in the range of a value obtained with protest plots
-minA <- min(ratDgBeechFir$dgSp1 / ratDgBeechFir$dgSp2)
-maxA <- max(ratDgBeechFir$dgSp1 / ratDgBeechFir$dgSp2)
-
+# Beech - Fir ------------------------------------------------------------------
 pred <- predict(modBeechFir, newdata = forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', ], type = 'response')
 forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', 'a'] <- pred
 
@@ -273,20 +258,6 @@ lines(density(rgamma(nrow(ratDgBeechFir), rate = shape_estim / predict(modBeechF
 lines(density(pred), col = 'green4')
 lines(density(forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', 'aNoise']), col = 'green')
 
-nrow(forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir' & forestPlotsDf$a < minA,])
-nrow(forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir' & forestPlotsDf$a > maxA,])
-nrow(forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir' & forestPlotsDf$aNoise < minA,])
-nrow(forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir' & forestPlotsDf$aNoise > maxA,])
-nrow(forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir',])
-
-# while(sum(forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "a"] < minA | forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "a"] > maxA) > 0){
-#   forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir' & forestPlotsDf$a < minA, 'a'] <- predict(modBeechFir, newdata = forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir' & forestPlotsDf$a < minA,]) +
-#                                                               rnorm(nrow(forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir' & forestPlotsDf$a < minA,]), 0, sd(residuals(modBeechFir)))
-#   forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir' & forestPlotsDf$a > maxA, 'a'] <- predict(modBeechFir, newdata = forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir' & forestPlotsDf$a > maxA,]) +
-#                                                             rnorm(nrow(forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir' & forestPlotsDf$a > maxA,]), 0, sd(residuals(modBeechFir)))
-#   print(sum(forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "a"] < minA | forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "a"] > maxA))
-# }
-
 # Dg Beech
 forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "dgBeech"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "dgPred"] *
                                                               sqrt((forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "gBeech"] +
@@ -298,12 +269,7 @@ forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "dgBeech"] <- forestPlotsDf[
 forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "dgFir"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "dgBeech"] /
                                                               forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "aNoise"]
 
-# Beech - Spruce
-# condition: a values are in the range of a values obtained with protest plots
-# # keep generating a until all a values are in the range of a value obtained with protest plots
-minA <- min(ratDgBeechSpruce$dgSp1 / ratDgBeechSpruce$dgSp2)
-maxA <- max(ratDgBeechSpruce$dgSp1 / ratDgBeechSpruce$dgSp2)
-
+# Beech - Spruce ---------------------------------------------------------------
 pred <- predict(modBeechSpruce, newdata = forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', ], type = 'response')
 forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', 'a'] <- pred
 
@@ -317,20 +283,6 @@ lines(density(rgamma(nrow(ratDgBeechSpruce), rate = shape_estim / predict(modBee
 lines(density(pred), col = 'green4')
 lines(density(forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', 'aNoise']), col = 'green')
 
-nrow(forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce' & forestPlotsDf$a < minA,])
-nrow(forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce' & forestPlotsDf$a > maxA,])
-nrow(forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce' & forestPlotsDf$aNoise < minA,])
-nrow(forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce' & forestPlotsDf$aNoise > maxA,])
-nrow(forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce',])
-
-# while(sum(forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "a"] < minA | forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "a"] > maxA) > 0){
-#   forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce' & forestPlotsDf$a < minA, 'a'] <- predict(modBeechSpruce, newdata = forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce' & forestPlotsDf$a < minA,]) +
-#                                                               rnorm(nrow(forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce' & forestPlotsDf$a < minA,]), 0, sd(residuals(modBeechSpruce)))
-#   forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce' & forestPlotsDf$a > maxA, 'a'] <- predict(modBeechSpruce, newdata = forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce' & forestPlotsDf$a > maxA,]) +
-#                                                             rnorm(nrow(forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce' & forestPlotsDf$a > maxA,]), 0, sd(residuals(modBeechSpruce)))
-#   print(sum(forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "a"] < minA | forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "a"] > maxA))
-# }
-
 # Dg Beech
 forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "dgBeech"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "dgPred"] *
                                                               sqrt((forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "gBeech"] +
@@ -343,12 +295,7 @@ forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "dgBeech"] <- forestPlots
 forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "dgSpruce"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "dgBeech"] /
                                                               forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "aNoise"]
 
-# Fir - Spruce
-# condition: a values are in the range of a values obtained with protest plots
-# # keep generating a until all a values are in the range of a value obtained with protest plots
-minA <- min(ratDgFirSpruce$dgSp1 / ratDgFirSpruce$dgSp2)
-maxA <- max(ratDgFirSpruce$dgSp1 / ratDgFirSpruce$dgSp2)
-
+# Fir - Spruce -----------------------------------------------------------------
 pred <- predict(modFirSpruce, newdata = forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', ], type = 'response')
 forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', 'a'] <- pred
 
@@ -362,20 +309,6 @@ lines(density(rgamma(nrow(ratDgFirSpruce), rate = shape_estim / predict(modFirSp
 lines(density(pred), col = 'green4')
 lines(density(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', 'aNoise']), col = 'green')
 
-nrow(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce' & forestPlotsDf$a < minA,])
-nrow(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce' & forestPlotsDf$a > maxA,])
-nrow(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce' & forestPlotsDf$aNoise < minA,])
-nrow(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce' & forestPlotsDf$aNoise > maxA,])
-nrow(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce',])
-
-# while(sum(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "a"] < minA | forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "a"] > maxA) > 0){
-#   forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce' & forestPlotsDf$a < minA, 'a'] <- predict(modFirSpruce, newdata = forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce' & forestPlotsDf$a < minA,]) +
-#                                                               rnorm(nrow(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce' & forestPlotsDf$a < minA,]), 0, sd(residuals(modFirSpruce)))
-#   forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce' & forestPlotsDf$a > maxA, 'a'] <- predict(modFirSpruce, newdata = forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce' & forestPlotsDf$a > maxA,]) +
-#                                                             rnorm(nrow(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce' & forestPlotsDf$a > maxA,]), 0, sd(residuals(modFirSpruce)))
-#   print(sum(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "a"] < minA | forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "a"] > maxA))
-# }
-
 # Dg Fir
 forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "dgFir"] <- forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "dgPred"] *
                                                               sqrt((forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gFir"] +
@@ -386,7 +319,6 @@ forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "dgFir"] <- forestPlotsDf[f
 # Dg Spruce
 forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "dgSpruce"] <- forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "dgFir"] /
                                                               forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "aNoise"]
-
 
 ###############################################################
 # calculate nSp1 & nSp2 from g and dg
@@ -474,32 +406,6 @@ d <- forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "dgSpruce"]^2
 forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "dTot"] <- (a + b) / ((a / c) + (b / d))
 hist(sqrt(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "dTot"]) - forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "dgPred"])
 
-# density plot of prediction vs protest plots
-# beech - spruce
-plot(density(ratDgBeechSpruce$dgSp1), ylim = c(0, 8))
-lines(density(forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', 'dgBeech']), col = 'green')
-
-plot(density(ratDgBeechSpruce$dgSp2), ylim = c(0, 8))
-lines(density(forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', 'dgSpruce']), col = 'green')
-
-hist(forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', 'dgSpruce'], breaks = seq(0, 2, 0.05), col = 'grey')
-par(new=TRUE)
-hist(ratDgBeechSpruce$dgSp2, col = 2, breaks = seq(0, 2, 0.05), density = 2, angle = -45)
-
-# beech - fir
-plot(density(ratDgBeechFir$dgSp1), ylim = c(0, 10))
-lines(density(forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', 'dgBeech']), col = 'green')
-
-plot(density(ratDgBeechFir$dgSp2), ylim = c(0, 8))
-lines(density(forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', 'dgFir']), col = 'green')
-
-# fir - spruce
-plot(density(ratDgFirSpruce$dgSp1), ylim = c(0, 8))
-lines(density(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', 'dgFir']), col = 'green')
-
-plot(density(ratDgFirSpruce$dgSp2), ylim = c(0, 8))
-lines(density(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', 'dgSpruce']), col = 'green')
-
 ###############################################################
 # test g
 ###############################################################
@@ -552,7 +458,7 @@ dg2 <- forestPlotsDf[forestPlotsDf$compoSp == "fir-spruce", "dgSpruce"]
 hist((((n1*dg1^2) + (n2*dg2^2)) / (n1 + n2)) - dgPred^2)
 
 ###############################################################
-# test a --> minA < a < maxA
+# test ratio range predicted vs observed
 ###############################################################
 
 # beech - fir
@@ -579,22 +485,16 @@ hist(ratDgFirSpruce$dgSp1 / ratDgFirSpruce$dgSp2, add = TRUE, col ='red')
 range(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce' , 'aNoise'])
 range(ratDgFirSpruce$dgSp1 / ratDgFirSpruce$dgSp2)
 
-
-
+###############################################################
+# compare Dg predicted to ifn data and LIDAR
+###############################################################
 
 # comparer dg ifn / protest /lidar et simulé
-ifn <- read.csv("forRaph.csv", sep = " ")
-load(file="placette.protest.rda")
+ifn <- read.csv("forRaph.csv", sep = " ")       # --> ifn data (dg > 7.5)
+load(file="placette.protest.rda")               # --> protest data (dg > 7.5)
+dgPred <- raster('X:/ProjetsCommuns/PROTEST/T1/Observatoire/Analyse/rastDg75error.clean.tif') # LIDAR data (dg > 7.5)
 
-dgPred <- raster('X:/ProjetsCommuns/PROTEST/T1/Observatoire/Analyse/rastDg75error.clean.tif')
-crs(dgPred) <- crs(pnr)
-dgPred <- dgPred / 100 # cm to m
-
-plot(density(dgPred*100), col = 'orange', ylim = c(0,0.08))
+plot(density(dgPred), col = 'orange', ylim = c(0,0.08))
 lines(density(ifn$DgTotFinal))
-lines(density(forestPlots$dgPred * 100), col = 'green')
+lines(density(forestPlots$dgPred * 100), col = 'green') # LIDAR after having create forestPlots +- 3 ha
 lines(density(placette.mes$Dg75), col = 'blue3')
-# ci dessous les dg simulés --> ne fait pas trop de sens car il y a des dg en ppT mélangés
-# si on fait la somme des dg des deux espèces en ppt mélangés, on obtient dgPred
-# car c'est a partir d'une proportion de dgPred qu'on calcul les dg des espèces en mélange
-lines(density(c(forestPlots$dgOak, forestPlots$dgBeech, forestPlots$dgFir, forestPlots$dgSpruce) * 100 , na.rm = TRUE), col = 'red')

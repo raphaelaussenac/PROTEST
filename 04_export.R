@@ -126,7 +126,6 @@ colnames(forestPlots)[colnames(forestPlots) == "owner"] <- 'DOMAINE_TYPE'
 # EXPLOITABILITY
 forestPlots$EXPLOITABILITY <- 1
 
-
 ######################################
 
 # site index, n, dg
@@ -189,74 +188,6 @@ forestPlots <- forestPlots[, c('STAND_ID',	'FOREST_TYPE_CODE',	'FOREST_TYPE_NAME
                               'INVENTORY_DATE',	'DEPARTMENT',	'CITY',	'COMMENT',	'WKT-GEOM')]
 
 ###############################################################
-# manage negative site index
-###############################################################
-
-# basically, a new random noise is added to the models predictions
-# untill all SI are positive
-
-# list of plots with negative SI_1
-negSI1 <- forestPlots[forestPlots$SITE_INDEX_1 < 0, c("STAND_ID", 'FOREST_TYPE_CODE')]
-nrow(negSI1)
-# list of plots with negative SI_2
-negSI2 <- forestPlots[forestPlots$SITE_INDEX_2 < 0 & forestPlots$SITE_INDEX_2 != -1, c("STAND_ID", 'FOREST_TYPE_CODE')]
-nrow(negSI2)
-
-# recalculate untill all SI_1 are positive
-for (compo in unique(negSI1$FOREST_TYPE_CODE)){
-  modDf <- forestPlotsSiteIndex[forestPlotsSiteIndex$WKTid %in% negSI1[negSI1$FOREST_TYPE_CODE == compo, "STAND_ID"], ]
-  modDf <- modDf@data
-  counter <- 9999
-  while(counter > 0){
-    if (compo == "salem_oak"){
-      modDf$pot03 <- NULL
-      modDf$pot03Epsilon <- NULL
-      modDf <- predFert(mod03, modDf, "03")
-      counter <- sum(modDf$pot03Epsilon < 0)
-    } else if (compo %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce")){
-      modDf$pot09 <- NULL
-      modDf$pot09Epsilon <- NULL
-      modDf <- predFert(mod09, modDf, "09")
-      counter <- sum(modDf$pot09Epsilon < 0)
-    } else if (compo %in% c("salem_fir", "salem_fir_spruce")){
-      modDf$pot61 <- NULL
-      modDf$pot61Epsilon <- NULL
-      modDf <- predFert(mod61, modDf, "61")
-      counter <- sum(modDf$pot61Epsilon < 0)
-    } else if (compo == "salem_spruce"){
-      modDf$pot62 <- NULL
-      modDf$pot62Epsilon <- NULL
-      modDf <- predFert(mod62, modDf, "62")
-      counter <- sum(modDf$pot62Epsilon < 0)
-    }
-    print(counter)
-  }
-  forestPlots[forestPlots$STAND_ID %in% modDf$WKTid, 'SITE_INDEX_1'] <- modDf[, ncol(modDf)]
-}
-
-# recalculate untill all SI_2 are positive
-for (compo in unique(negSI2$FOREST_TYPE_CODE)){
-  modDf <- forestPlotsSiteIndex[forestPlotsSiteIndex$WKTid %in% negSI2[negSI2$FOREST_TYPE_CODE == compo, "STAND_ID"], ]
-  modDf <- modDf@data
-  counter <- 9999
-  while(counter > 0){
-    if (compo == "salem_beech_fir"){
-      modDf$pot61 <- NULL
-      modDf$pot61Epsilon <- NULL
-      modDf <- predFert(mod61, modDf, "61")
-      counter <- sum(modDf$pot61Epsilon < 0)
-    } else if (compo == c("salem_fir_spruce", 'salem_beech_spruce')){
-      modDf$pot62 <- NULL
-      modDf$pot62Epsilon <- NULL
-      modDf <- predFert(mod62, modDf, "62")
-      counter <- sum(modDf$pot62Epsilon < 0)
-    }
-    print(counter)
-  }
-  forestPlots[forestPlots$STAND_ID %in% modDf$WKTid, 'SITE_INDEX_2'] <- modDf[, ncol(modDf)]
-}
-
-###############################################################
 # manage units
 ###############################################################
 
@@ -266,6 +197,28 @@ forestPlots[forestPlots$DG_2 != -1, 'DG_2'] <- forestPlots[forestPlots$DG_2 != -
 
 # reduce file size
 # forestPlots <- forestPlots[20000:nrow(forestPlots),]
+
+###############################################################
+# verification
+###############################################################
+
+# Site Index
+hist(forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_beech', 'salem_beech-spruce', 'salem_beech-fir') , 'SITE_INDEX_1'], breaks = 100, border = 'green', ylim = c(0, 350), xlim = c(-10, 130), main = '', xlab = 'site index')
+hist(c(forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_fir', 'salem_fir-spruce') , 'SITE_INDEX_1'], forestPlots[forestPlots$FOREST_TYPE_CODE == 'salem_beech_fir', 'SITE_INDEX_2']), breaks = 100, add = TRUE, border = 'blue')
+hist(c(forestPlots[forestPlots$FOREST_TYPE_CODE == 'salem_spruce' , 'SITE_INDEX_1'], forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_fir-spruce', 'salem_beech-spruce') , 'SITE_INDEX_2']), breaks = 100, add = TRUE, border = 'orange')
+hist(forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_oak" , 'SITE_INDEX_1'], breaks = 100, col = 'black', add = TRUE)
+
+# Dg
+hist(forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_beech', 'salem_beech-spruce', 'salem_beech-fir') , 'DG_1'], breaks = 200, border = 'green', ylim = c(0, 200), xlim = c(5, 90), main = '', xlab = 'Dg')
+hist(c(forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_fir', 'salem_fir-spruce') , 'DG_1'], forestPlots[forestPlots$FOREST_TYPE_CODE == 'salem_beech_fir', 'DG_2']), breaks = 200, add = TRUE, border = 'blue')
+hist(c(forestPlots[forestPlots$FOREST_TYPE_CODE == 'salem_spruce' , 'DG_1'], forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_fir-spruce', 'salem_beech-spruce') , 'DG_2']), breaks = 200, add = TRUE, border = 'orange')
+hist(forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_oak" , 'DG_1'], breaks = 200, col = 'black', add = TRUE)
+
+# n / ha
+# pure plots
+hist(forestPlots[forestPlots$NHA_2 == -1, 'NHA_1'] , breaks = 100, ylim = c(0,600), col = 'black')
+# mixed plots
+hist(forestPlots[forestPlots$NHA_2 != -1, 'NHA_1'] + forestPlots[forestPlots$NHA_2 != -1, 'NHA_2'], breaks = 100, border = 'blue3', add = TRUE)
 
 ###############################################################
 # format
@@ -281,19 +234,3 @@ cat('\nYMAX=', ymax, sep = '', file="forestPlots.txt", append=TRUE)
 cat('\n# 2. Forest Unit Level', file="forestPlots.txt", append=TRUE)
 cat('\n#', file="forestPlots.txt", append=TRUE)
 write.table(forestPlots, file="forestPlots.txt", row.names = FALSE, append=TRUE, quote = FALSE, sep = '\t')
-
-
-
-#
-# verif merge forestPlots wkt by id
-# a <- character()
-# for (i in 1:nrow(wkt)){
-#   for (j in c("CODE_TFV", "ESSENCE", "IDD", "ID_2", "ID_3", "ID_4", "INSEE_DEP", "INSEE_REG", "NOM_DEP", "SUPERID", "TFV", "TFV_G11")){
-#     a <- c(a, wkt[wkt$id == i, c('IDD')] == forestPlots@data[forestPlots$id == i, c('IDD')])
-#   }
-# }
-
-# sum(a == TRUE)
-# sum(a == FALSE)
-#
-# nrow(wkt) * length(c("CODE_TFV", "ESSENCE", "IDD", "ID_2", "ID_3", "ID_4", "INSEE_DEP", "INSEE_REG", "NOM_DEP", "SUPERID", "TFV", "TFV_G11"))
