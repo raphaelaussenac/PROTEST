@@ -126,7 +126,7 @@ To run SIMMEM simulations, the following variables must be available for each fo
       \widehat{si_i} = a + b_1 alti_i + b_2 slope_i + b_3 rum_i + b_4 pH_i + b_5 expoNS_i + b_6 expoEW_i + \\ b_7 greco_i + b_8 hyrdo_i + b_9 carbo_i
     \end{multline}
 
-    \begin{equation}\label{si}
+    \begin{equation}\label{siGamma}
       si_i \sim \Gamma(\alpha, \frac{\alpha}{\widehat{si_i}})
     \end{equation}
 
@@ -184,11 +184,11 @@ We assigned a composition to all forest plots over the study area following a fo
 
   \item We first modeled the proportion of $G_{fir}$ ($P_{Gfir} = \frac{G_{fir}}{G_{fir} + G_{spruce}}$) at the PROTEST plots $i$ from environmental variables and LIDAR-derived measures, using a beta regression with a logit link. The model is based on the following initial structure:
 
-  \begin{multline}\label{gfir-spruce}
+  \begin{multline}\label{g}
     \widehat{P_{Gfir,i}} = logit(a + b_1 alti_i + b_2 slope_i + b_3 rum_i + b_4 pH_i + b_5 expoNS_i + b_6 expoEW_i + \\ b_7 dg_i + b_8 g_i + b_9 greco_i + b_{10} hyrdo_i + b_{11} carbo_i)
   \end{multline}
 
-  \begin{equation}\label{}
+  \begin{equation}\label{gBeta}
     P_{Gfir,i} \sim \mathcal{B}e (\widehat{P_{Gfir,i}}\phi, (1-\widehat{P_{Gfir,i}})\phi)
   \end{equation}
 
@@ -208,11 +208,11 @@ We assigned species quadratic diameter ($Dg_{sp}$) to each forest plot in differ
 
   \item We first modeled the $Dg_{sp}$ ratio of the mixed species ($sp1$ and $sp2$; $R_{Dg} = \frac{Dg_{sp1}}{Dg_{sp2}}$) at the PROTEST plots $i$, and that, separately for each mixture (beech-fir, beech-spruce and fir-spruce), from environmental variables and LIDAR-derived measures, using Generalized linear models with a Gamma ($\Gamma$) probability distribution. The three mixture-specific models are based on the following structure:
 
-  \begin{multline}\label{gfir-spruce}
+  \begin{multline}\label{DgModel}
     \widehat{R_{Dg, i}} = a + b_1 alti_i + b_2 slope_i + b_3 rum_i + b_4 pH_i + b_5 expoNS_i + b_6 expoEW_i + \\ b_7 dg_i + b_8 g_i + b_9 greco_i + b_{10} hyrdo_i + b_{11} carbo_i
   \end{multline}
 
-  \begin{equation}\label{si}
+  \begin{equation}\label{DgGamma}
     R_{Dg, i} \sim \Gamma(\alpha, \frac{\alpha}{\widehat{R_{Dg, i}}})
   \end{equation}
 
@@ -298,10 +298,10 @@ We assigned species quadratic diameter ($Dg_{sp}$) to each forest plot in differ
 \noindent where $Dg_t$ is the total quadratic diamater of a stand; $Dg_i$ and $Dg_j$, the quadratic diameters of species $i$ and $j$; and $n_i$ and $n_j$, the number of individuals of species $i$ and $j$.
 
 \begin{equation}\label{three}\tag{c}
-  \bullet \frac{Dg_i}{Dg_j} = r_{Dg}
+  \bullet \frac{Dg_i}{Dg_j} = R_{Dg}
 \end{equation}
 
-\noindent where $r_{Dg}$ is calculated by adding to the models predictions (models described at eqn \ref{DgModel}) a random number drawn from the normal distribution $\mathcal{N} (0, \sigma_\varepsilon)$, with $\sigma_\varepsilon$ being the standard deviation of the models residuals (see the \textit{Species quadratic diameter} section).
+\noindent where $R_{Dg}$ is obtained by drawing a random number from the Gamma distribution $\Gamma(\alpha, \frac{\alpha}{\widehat{R_{Dg, p}}})$ (see the \textit{Species quadratic diameter} section).
 
 \hfill
 
@@ -323,16 +323,16 @@ We assigned species quadratic diameter ($Dg_{sp}$) to each forest plot in differ
   Dg_t^2(G_i + \frac{Dg_i^2}{Dg_j^2}G_j^2)= Dg_i^2(G_i + G_j)
 \end{equation*}
 
-\noindent Using equation \ref{three}, $Dg_i^2 / Dg_j^2$ can be replaced by $r_{Dg}^2$:
+\noindent Using equation \ref{three}, $Dg_i^2 / Dg_j^2$ can be replaced by $R_{Dg}^2$:
 
 \begin{equation*}\label{}
-  Dg_t^2(G_i + r_{Dg}^2G_j^2)= Dg_i^2(G_i + G_j)
+  Dg_t^2(G_i + R_{Dg}^2G_j^2)= Dg_i^2(G_i + G_j)
 \end{equation*}
 
 \noindent hence:
 
 \begin{equation*}\label{}
-  Dg_i = Dg_t\sqrt{\frac{G_i + r_{Dg}^2G_j}{G_i + G_j}}
+  Dg_i = Dg_t\sqrt{\frac{G_i + R_{Dg}^2G_j}{G_i + G_j}}
 \end{equation*}
 
 
