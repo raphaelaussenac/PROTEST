@@ -117,28 +117,32 @@ To run SIMMEM simulations, the following variables must be available for each fo
 
 \subsection*{Site index}
 
-\noindent We assigned a species-specific site index ($si$) to all forest plots over the study area following a two-step procedure:
+\noindent We assigned a species-specific site index ($si$) to each forest plot over the study area following a two-step procedure:
 
 \begin{enumerate}
-    \item Because not all the variables required to calculate $si$ were available at all locations over the study area, we first modeled the available $si$ at the NFI plots from available environmental variables and LIDAR-derived measures as follows:
+    \item Because not all the variables required to calculate $si$ were available at all locations over the study area, we first modeled the available $si$ at the NFI plots $i$ from available environmental variables and LIDAR-derived measures, using Generalized linear models with a Gamma ($\Gamma$) probability distribution. The four species-specific models are based on the following initial structure:
+
+    \begin{multline}\label{si}
+      \widehat{si_i} = a + b_1 alti_i + b_2 slope_i + b_3 rum_i + b_4 pH_i + b_5 expoNS_i + b_6 expoEW_i + \\ b_7 greco_i + b_8 hyrdo_i + b_9 carbo_i
+    \end{multline}
 
     \begin{equation}\label{si}
-      si = \alpha + \beta_1 alti + \beta_2 pH +\beta_3 rum +\beta_4 slope +\beta_5 rocheCalc+...+\varepsilon
+      si_i \sim \Gamma(\alpha, \frac{\alpha}{\widehat{si_i}})
     \end{equation}
 
-    where $\alpha$ and $\beta_{1-X}$ are parameters to estmiate and $\varepsilon$, the models residuals. We then applied to the models the following variable selection procedure:
+    where $a$, $b_{1-9}$ and $\alpha$ are parameters to estmiate. Site index being species-specific, we ran four versions of this model, one for each target-species. We then applied to the models the following variable selection procedure:
 
     \begin{enumerate}
 
-        \item We first removed (one by one) the variables whose effect were non-significant starting with the least significant ones untill all variables were significant.
+        \item We first removed (one by one) the variables whose effect was non-significant starting with the least significant ones untill all variables were significant.
 
-        \item We then added a quadratic effect to all remaining variables (e.g. $\beta_1alti + \beta_1alti^2$).
+        \item We then added a quadratic effect to all remaining variables.
 
-        \item Finally, we removed (one by one) the variables whose effect became non-significant following the addition of the quadratic effects starting with the least significant ones untill all variables were significant (see the four final species-specific models in SI).
+        \item Here again, we removed (one by one) the variables whose effect was non-significant starting with the least significant ones untill all variables were significant (see the four final species-specific models in SI).
 
   \end{enumerate}
 
-    \item We then calculated $si$ for all forest plots over the study area by adding to the models predictions a random number drawn from the normal distribution $\mathcal{N} (0, \sigma_\varepsilon)$, with $\sigma_\varepsilon$ being the standard deviation of the models residuals.
+    \item We then assigned a $si$ to each forest plot $p$ over the study area by drawing a random number from the Gamma distribution $\Gamma(\alpha, \frac{\alpha}{\widehat{si_p}})$, $\widehat{si_p}$ being the $si$ predicted by the models at plot $p$.
 
 \end{enumerate}
 
@@ -178,15 +182,19 @@ We assigned a composition to all forest plots over the study area following a fo
 
 \begin{enumerate}
 
-  \item We first modeled the proportion of $G_{fir}$ in the PROTEST plots from environmental variables and LIDAR-derived measures (and modeled site index???) as follows:
+  \item We first modeled the proportion of $G_{fir}$ ($P_{Gfir} = \frac{G_{fir}}{G_{fir} + G_{spruce}}$) at the PROTEST plots $i$ from environmental variables and LIDAR-derived measures, using a beta regression with a logit link. The model is based on the following initial structure:
 
-  \begin{equation}\label{gfir-spruce}
-    \frac{G_{fir}}{G_{fir} + G_{spruce}} = \alpha + \beta_1 alti + \beta_2 pH +\beta_3 rum +\beta_4 slope +\beta_5 rocheCalc+...+ \varepsilon
+  \begin{multline}\label{gfir-spruce}
+    \widehat{P_{Gfir,i}} = logit(a + b_1 alti_i + b_2 slope_i + b_3 rum_i + b_4 pH_i + b_5 expoNS_i + b_6 expoEW_i + \\ b_7 dg_i + b_8 g_i + b_9 greco_i + b_{10} hyrdo_i + b_{11} carbo_i)
+  \end{multline}
+
+  \begin{equation}\label{}
+    P_{Gfir,i} \sim \mathcal{B}e (\widehat{P_{Gfir,i}}\phi, (1-\widehat{P_{Gfir,i}})\phi)
   \end{equation}
 
-  \noindent where $\alpha$ and $\beta_{1-X}$ are parameters to estmiate and $\varepsilon$, the model residuals. We applied the same variable selection procedure as the one we applied to the site index model (see final model in SI). Here, we worked with "true fir-spruce mixtures": PROTEST plots where fir and spruce represented more than 75\% of the total basal area of trees (saplings were not taken into account since we do not know their identity). We then assigned the basal area of non-target species (including the saplings basal area) to $G_{fir}$ and $G_{spruce}$ depending on the relative proportion of fir and spruce.
+  \noindent where $a$, $b_{1-11}$ and $\phi$ are parameters to estmiate. We applied the same variable selection procedure as the one we applied to the site index model (see final model in SI). Here, we worked with PROTEST plots where fir and spruce represented more than 75\% of the total basal area of trees (saplings are not taken into account when selecting the PROTEST plots since we do not know which species they belong to). We assigned the basal area of saplings and non-target species to $G_{fir}$ and $G_{spruce}$ depending on the relative proportion of fir and spruce.
 
-  \item We then calculated $P_{Gfir}$, the proportion of $G_{fir}$ for all conifer mixtures over the study area by adding to the model predictions a random number drawn from the normal distribution $\mathcal{N} (0, \sigma_\varepsilon)$, with $\sigma_\varepsilon$ being the standard deviation of the model residuals. We made sure that $0.25 < P_{Gfir} < 0.75$ to comply with the definition of mixture that we use in this study. Another random number was drawn and added to the model prediction until this condition was met. $G_{fir}$ and $G_{spruce}$ could then be calculated from $P_{Gfir}$ and $G_t$.
+  \item We then assigned $P_{Gfir}$ values to each forest plot $p$ consituted of a fir-spruce mixture over the study area by drawing random numbers from the Beta distribution $\mathcal{B}e (\widehat{P_{Gfir,p}}\phi, (1-\widehat{P_{Gfir,p}})\phi)$, $\widehat{P_{Gfir,p}}$ being the $P_{Gfir}$ predicted by the model at plot $p$. $G_{fir}$ and $G_{spruce}$ could then be calculated from $P_{Gfir}$ and $G_t$.
 
 \end{enumerate}
 
@@ -198,15 +206,19 @@ We assigned species quadratic diameter ($Dg_{sp}$) to each forest plot in differ
 
 \begin{enumerate}
 
-  \item We first modeled the species quadratic diameters ratio in the PROTEST plots (separately for each mixture, i.e. beech-fir, beech-spruce and fir-spruce) from environmental variables and LIDAR-derived measures (and modeled site index???) as follows:
+  \item We first modeled the $Dg_{sp}$ ratio of the mixed species ($sp1$ and $sp2$; $R_{Dg} = \frac{Dg_{sp1}}{Dg_{sp2}}$) at the PROTEST plots $i$, and that, separately for each mixture (beech-fir, beech-spruce and fir-spruce), from environmental variables and LIDAR-derived measures, using Generalized linear models with a Gamma ($\Gamma$) probability distribution. The three mixture-specific models are based on the following structure:
 
-  \begin{equation}\label{DgModel}
-    \frac{Dg_i}{Dg_j} = \alpha + \beta_1 alti + \beta_2 pH +\beta_3 rum +\beta_4 slope +\beta_5 rocheCalc+...+\varepsilon
+  \begin{multline}\label{gfir-spruce}
+    \widehat{R_{Dg, i}} = a + b_1 alti_i + b_2 slope_i + b_3 rum_i + b_4 pH_i + b_5 expoNS_i + b_6 expoEW_i + \\ b_7 dg_i + b_8 g_i + b_9 greco_i + b_{10} hyrdo_i + b_{11} carbo_i
+  \end{multline}
+
+  \begin{equation}\label{si}
+    R_{Dg, i} \sim \Gamma(\alpha, \frac{\alpha}{\widehat{R_{Dg, i}}})
   \end{equation}
 
-  where $Dg_i$ and $Dg_j$ are the quadratic diameters of species $i$ and $j$; $\alpha$ and $\beta_{1-X}$, parameters to estimate; and $\varepsilon$, the model residuals. We applied the same variable selection procedure as the one we applied to the site index model (see the three mixture-specific final models in SI). Here, we used $Dg_i$ and $Dg_j$ obtained from "true mixtures", i.e. PROTEST plots where the two mixed species represented more than 75\% of the total basal area of trees (saplings were not taken into account since we do not know their identity).
+  where $a$, $b_{1-11}$ and $\alpha$ are parameters to estmiate. We applied the same variable selection procedure as the one we applied to the site index model (see the three mixture-specific final models in SI). Here, we worked with PROTEST plots where the two mixed species ($sp1$ and $sp2$) represented more than 75\% of the total basal area of trees (saplings are not taken into account when selecting the PROTEST plots since we do not know which species they belong to).
 
-  \item We then calculated $r_{Dg}$, the $Dg_i / Dg_j$ ratios for all mixed stand over the study area by adding to the models predictions a random number drawn from the normal distribution $\mathcal{N} (0, \sigma_\varepsilon)$, with $\sigma_\varepsilon$ being the standard deviation of the models residuals. We made sure that $r_{Dg}$ falled in the range of the $Dg_i / Dg_j$ ratio values directly measured in the PROTEST "true mixtures" to avoid producing stands with excessively unbalanced diameters for both species. Another random number was drawn and added to the models predictions until this condition was met.
+  \item We then assign $R_{Dg}$, the each forest plot $p$ constituted of a mixed stand over the study area by drawing random numbers from the Gamma distribution $\Gamma(\alpha, \frac{\alpha}{\widehat{R_{Dg, p}}})$, $\widehat{R_{Dg, p}}$ being the $R_{Dg}$ predicted by the models at plot $p$.
 
   \item We then calculated the species quadratic diameter using two equations linking species basal area to species quadratic diameter:
 
@@ -217,19 +229,19 @@ We assigned species quadratic diameter ($Dg_{sp}$) to each forest plot in differ
   where $G_{sp}$, $D_{sp}$ and $n_{sp}$ are the basal area, the quadratic diameter and the number of individuals of a species, respectively; and
 
   \begin{equation}\label{}
-    Dg_t^2 = \frac{n_iDg_i^2 + n_jDg_j^2}{n_i + n_j}
+    Dg_t^2 = \frac{n_{sp1}Dg_{sp1}^2 + n_{sp2}Dg_{sp2}^2}{n_{sp1} + n_{sp2}}
   \end{equation}
 
-  where $Dg_t$ is the total quadratic diamater of a stand; $Dg_i$ and $Dg_j$, the quadratic diameters of species $i$ and $j$; and $n_i$ and $n_j$, the number of individuals of species $i$ and $j$. $Dg_i$ could therefore be expressed as:
+  where $Dg_t$ is the total quadratic diamater of a stand; $Dg_{sp1}$ and $Dg_{sp2}$, the quadratic diameters of species $sp1$ and $sp2$; and $n_{sp1}$ and $n_{sp2}$, the number of individuals of species $sp1$ and $sp2$. $Dg_{sp1}$ could therefore be expressed as:
 
   \begin{equation}\label{}
-    Dg_i = Dg_t\sqrt{\frac{G_i + r_{Dg}^2G_j}{G_i + G_j}}
+    Dg_{sp1} = Dg_t\sqrt{\frac{G_{sp1} + R_{Dg}^2G_{sp2}}{G_{sp1} + G_{sp2}}}
   \end{equation}
 
-  where $G_i$ and $G_j$ are the species basal area (see proof in SI). We finally calculated $Dg_j$ as follows:
+  where $G_{sp1}$ and $G_{sp2}$ are the species basal area (see proof in SI). We finally calculated $Dg_{sp2}$ as follows:
 
   \begin{equation}\label{}
-    Dg_j = \frac{Dg_i}{r_{Dg}}
+    Dg_{sp2} = \frac{Dg_{sp1}}{R_{Dg}}
   \end{equation}
 
 \end{enumerate}
