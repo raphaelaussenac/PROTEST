@@ -199,38 +199,6 @@ forestPlots[forestPlots$DG_2 != -1, 'DG_2'] <- forestPlots[forestPlots$DG_2 != -
 # forestPlots <- forestPlots[forestPlots$EXPLOITABILITY == 1,]
 # forestPlots <- forestPlots[1:1000,]
 
-# ###############################################################
-# # surface area of each forest type
-# ###############################################################
-#
-# AREA <- ddply(forestPlots, .(FOREST_TYPE_CODE, DOMAINE_TYPE), summarise, AREA = sum(AREA))
-# AREAPub <- AREA[AREA$DOMAINE_TYPE == "Pub",]
-# AREAPriv <-AREA[AREA$DOMAINE_TYPE == "Priv",]
-#
-# # beech
-# beechPubPrivArea <- sum(AREA[AREA$FOREST_TYPE_CODE == "salem_beech", "AREA"])
-#
-# # oak
-# oakPubPrivArea <- sum(AREA[AREA$FOREST_TYPE_CODE == "salem_oak", "AREA"])
-#
-# # fir + spruce + fir-spruce Public
-# fsPubArea <- sum(AREAPub[AREAPub$FOREST_TYPE_CODE == "salem_fir" |
-#                       AREAPub$FOREST_TYPE_CODE == "salem_spruce" |
-#                       AREAPub$FOREST_TYPE_CODE == "salem_fir_spruce", "AREA"])
-#
-# # fir + spruce + fir-spruce Private
-# fsPrivArea <- sum(AREAPriv[AREAPriv$FOREST_TYPE_CODE == "salem_fir" |
-#                       AREAPriv$FOREST_TYPE_CODE == "salem_spruce" |
-#                       AREAPriv$FOREST_TYPE_CODE == "salem_fir_spruce", "AREA"])
-#
-# # beech-spruce + beech-fir Public
-# bfbsPubArea <- sum(AREAPub[AREAPub$FOREST_TYPE_CODE == "salem_beech_fir" |
-#                       AREAPub$FOREST_TYPE_CODE == "salem_beech_spruce", "AREA"])
-#
-# # beech-spruce + beech-fir Private
-# bfbsPrivArea <- sum(AREAPriv[AREAPriv$FOREST_TYPE_CODE == "salem_beech_fir" |
-#                       AREAPriv$FOREST_TYPE_CODE == "salem_beech_spruce", "AREA"])
-#
 ###############################################################
 # list of plots and total area of each forest type
 ###############################################################
@@ -241,16 +209,12 @@ firSpruceList <- forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_fir" |
                              forestPlots$FOREST_TYPE_CODE == "salem_fir_spruce", "STAND_ID"]
 firSprucePubList <- forestPlots[forestPlots$STAND_ID %in% firSpruceList & forestPlots$DOMAINE_TYPE == "Pub", "STAND_ID"]
 firSprucePrivList <- forestPlots[forestPlots$STAND_ID %in% firSpruceList & forestPlots$DOMAINE_TYPE == "Priv", "STAND_ID"]
-fsPubArea <- sum(forestPlots[forestPlots$STAND_ID %in% firSprucePubList, 'AREA'])
-fsPrivArea <- sum(forestPlots[forestPlots$STAND_ID %in% firSprucePrivList, 'AREA'])
 
 # beech
 beechList <- forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_beech", "STAND_ID"]
-beechPubPrivArea <- sum(forestPlots[forestPlots$STAND_ID %in% beechList, 'AREA'])
 
 # oak
 oakList <- forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_oak", "STAND_ID"]
-oakPubPrivArea <- sum(forestPlots[forestPlots$STAND_ID %in% oakList, 'AREA'])
 
 # beach-fir + beech-spruce Public
 beechFirSpruceList <- forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_beech_fir" |
@@ -258,124 +222,12 @@ beechFirSpruceList <- forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_beech_f
 
 beechFirSprucePubList <- forestPlots[forestPlots$STAND_ID %in% beechFirSpruceList & forestPlots$DOMAINE_TYPE == "Pub", "STAND_ID"]
 beechFirSprucePrivList <- forestPlots[forestPlots$STAND_ID %in% beechFirSpruceList & forestPlots$DOMAINE_TYPE == "Priv", "STAND_ID"]
-bfbsPubArea <- sum(forestPlots[forestPlots$STAND_ID %in% beechFirSprucePubList, 'AREA'])
-bfbsPrivArea <- sum(forestPlots[forestPlots$STAND_ID %in% beechFirSprucePrivList, 'AREA'])
 
 ###############################################################
-# plot random selection function
+# management scenario
 ###############################################################
 
-rdmSelect <- function(plotList, threshold){
-  # randomly pick first plot
-  plots <- plotList[round(runif(1, min = 1, max = length(plotList)))]
-  # add new plots till the threshold is reached
-  while(sum(forestPlots[forestPlots$STAND_ID %in% plots, 'AREA']) < threshold){
-    # list of remaining plots
-    remaining <- plotList[!(plotList %in% plots)]
-    # randomly select 1 more plot
-    addplot <- remaining[round(runif(1, min = 1, max = length(remaining)))]
-    plots <- c(plots, addplot)
-  }
-  return(plots)
-}
-
-###############################################################
-# assign management to each plot
-###############################################################
-
-# Business as usual ------------------------------------------------------------
-# fir + spruce + fir-spruce Public ---------------------------------------------
-# conservation
-conservationThresh <- fsPubArea * 0.02
-plotCons <- rdmSelect(plotList = firSprucePubList, threshold = conservationThresh)
-forestPlots[forestPlots$STAND_ID %in% plotCons, "COMMENT"] <- 'fsPubCons'
-# thinning and harvest
-thinHarvThresh <- fsPubArea * 0.6
-plotThinHarv <- rdmSelect(plotList = firSprucePubList[!(firSprucePubList %in% plotCons)], threshold = thinHarvThresh)
-forestPlots[forestPlots$STAND_ID %in% plotThinHarv, "COMMENT"] <- 'fsPubThinHarv'
-# irregular
-plotIrr <- firSprucePubList[!(firSprucePubList %in% c(plotCons, plotThinHarv))]
-forestPlots[forestPlots$STAND_ID %in% plotIrr, "COMMENT"] <- 'fsPubIrr'
-
-# fir + spruce + fir-spruce Private --------------------------------------------
-# conservation
-conservationThresh <- fsPrivArea * 0.27
-plotCons <- rdmSelect(plotList = firSprucePrivList, threshold = conservationThresh)
-forestPlots[forestPlots$STAND_ID %in% plotCons, "COMMENT"] <- 'fsPrivCons'
-# final Harvest
-HarvThresh <- fsPrivArea * 0.15
-plotHarv <- rdmSelect(plotList = firSprucePrivList[!(firSprucePrivList %in% plotCons)], threshold = HarvThresh)
-forestPlots[forestPlots$STAND_ID %in% plotHarv, "COMMENT"] <- 'fsPrivHarv'
-# thinning and harvest
-thinHarvThresh <- fsPrivArea * 0.39
-plotThinHarv <- rdmSelect(plotList = firSprucePrivList[!(firSprucePrivList %in% c(plotCons, plotHarv))], threshold = thinHarvThresh)
-forestPlots[forestPlots$STAND_ID %in% plotThinHarv, "COMMENT"] <- 'fsPrivThinHarv'
-# irregular
-plotIrr <- firSprucePrivList[!(firSprucePrivList %in% c(plotCons, plotHarv, plotThinHarv))]
-forestPlots[forestPlots$STAND_ID %in% plotIrr, "COMMENT"] <- 'fsPrivIrr'
-
-# beech Public + Private -------------------------------------------------------
-# conservation
-conservationThresh <- beechPubPrivArea * 0.24
-plotCons <- rdmSelect(plotList = beechList, threshold = conservationThresh)
-forestPlots[forestPlots$STAND_ID %in% plotCons, "COMMENT"] <- 'bCons'
-# final Harvest
-HarvThresh <- beechPubPrivArea * 0.22
-plotHarv <- rdmSelect(plotList = beechList[!(beechList %in% plotCons)], threshold = HarvThresh)
-forestPlots[forestPlots$STAND_ID %in% plotHarv, "COMMENT"] <- 'bHarv'
-# thinning and harvest
-thinHarvThresh <- beechPubPrivArea * 0.21
-plotThinHarv <- rdmSelect(plotList = beechList[!(beechList %in% c(plotCons, plotHarv))], threshold = thinHarvThresh)
-forestPlots[forestPlots$STAND_ID %in% plotThinHarv, "COMMENT"] <- 'bThinHarv'
-# irregular
-plotIrr <- beechList[!(beechList %in% c(plotCons, plotHarv, plotThinHarv))]
-forestPlots[forestPlots$STAND_ID %in% plotIrr, "COMMENT"] <- 'bIrr'
-
-# oak Public + Private ---------------------------------------------------------
-# conservation
-conservationThresh <- oakPubPrivArea * 0.57
-plotCons <- rdmSelect(plotList = oakList, threshold = conservationThresh)
-forestPlots[forestPlots$STAND_ID %in% plotCons, "COMMENT"] <- 'oCons'
-# final Harvest
-plotIrr <- oakList[!(oakList %in% c(plotCons))]
-forestPlots[forestPlots$STAND_ID %in% plotIrr, "COMMENT"] <- 'oIrr'
-
-# beech-spruce + beech-fir Public ----------------------------------------------
-# thinning and harvest
-thinHarvThresh <- bfbsPubArea * 0.34
-plotThinHarv <- rdmSelect(plotList = beechFirSprucePubList, threshold = thinHarvThresh)
-forestPlots[forestPlots$STAND_ID %in% plotThinHarv, "COMMENT"] <- 'bfsPubThinHarv'
-# irregular
-plotIrr <- beechFirSprucePubList[!(beechFirSprucePubList %in% plotThinHarv)]
-forestPlots[forestPlots$STAND_ID %in% plotIrr, "COMMENT"] <- 'bfsPubIrr'
-
-# beech-spruce + beech-fir Private ---------------------------------------------
-# conservation
-conservationThresh <- bfbsPrivArea * 0.29
-plotCons <- rdmSelect(plotList = beechFirSprucePrivList, threshold = conservationThresh)
-forestPlots[forestPlots$STAND_ID %in% plotCons, "COMMENT"] <- 'bfsPrivCons'
-# thinning and harvest
-thinHarvThresh <- bfbsPrivArea * 0.14
-plotThinHarv <- rdmSelect(plotList = beechFirSprucePrivList[!(beechFirSprucePrivList %in% plotCons)], threshold = thinHarvThresh)
-forestPlots[forestPlots$STAND_ID %in% plotThinHarv, "COMMENT"] <- 'bfsPrivThinHarv'
-# irregular
-plotIrr <- beechFirSprucePrivList[!(beechFirSprucePrivList %in% c(plotCons, plotThinHarv))]
-forestPlots[forestPlots$STAND_ID %in% plotIrr, "COMMENT"] <- 'bfsPrivIrr'
-
-
-
-
-
-
-TODO: - faire une fonction assign avec les 4 types de gestion?
-      - sortir itk dans un autre script (avec fonctions rdm et assign?)
-
-# test
-sum(forestPlots[forestPlots$STAND_ID %in% plotIrr, 'AREA']) / 10000
-sum(forestPlots[forestPlots$COMMENT == "bfsPrivIrr", 'AREA']) / 10000
-unique(forestPlots[forestPlots$STAND_ID %in% beechFirSprucePrivList, "COMMENT"])
-length(plotCons) + length(plotHarv) + length(plotThinHarv) + length(plotIrr) - length(beechFirSprucePrivList)
-unique(forestPlots$COMMENT)
+source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/sc1_BAU.R')
 
 ###############################################################
 # verification
