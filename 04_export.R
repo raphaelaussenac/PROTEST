@@ -49,7 +49,7 @@ table(forestPlotsCompogDgN$CODE_TF)
 forestPlots <- merge(forestPlotsSiteIndex[, c('WKTid', 'pot03', 'pot03Epsilon',
                                                                 'pot09', 'pot09Epsilon', 'pot61',
                                                                 'pot61Epsilon', 'pot62',
-                                                                'pot62Epsilon', 'INSEE_D', 'owner', 'nonHarv')],
+                                                                'pot62Epsilon', 'INSEE_D', 'owner', 'access')],
                      forestPlotsCompogDgN[, c('WKTid', 'compoSp', 'area', "gBeech", "gOak", "gFir", "gSpruce",
                                                                 "dgBeech", "dgOak", "dgFir", "dgSpruce", "nBeech",
                                                                 "nOak", "nFir", "nSpruce")],
@@ -70,6 +70,17 @@ wkt <- read.csv("BDid_1.csv", header = TRUE, sep = "\t")
 wkt$WKTid <- c(1:nrow(wkt))
 # replace wkt in forestPlots
 forestPlots <- merge(forestPlots, wkt[, c('WKTid', 'WKT')], by = 'WKTid')
+
+###############################################################
+# define exploitability
+###############################################################
+
+forestPlots$access <- as.character(forestPlots$access)
+# non-expoitable sites
+forestPlots[!(forestPlots$access %in% c("dist 1 harv 1", "dist 2 harv 1")), "access"] <- 0
+# exploitable sites
+forestPlots[forestPlots$access %in% c("dist 1 harv 1", "dist 2 harv 1"), "access"] <- 1
+forestPlots$access <- as.factor(forestPlots$access)
 
 ###############################################################
 # format
@@ -124,7 +135,7 @@ forestPlots$INVENTORY_DATE	 <- 2016
 colnames(forestPlots)[colnames(forestPlots) == "owner"] <- 'DOMAINE_TYPE'
 
 # EXPLOITABILITY
-colnames(forestPlots)[colnames(forestPlots) == "nonHarv"] <- 'EXPLOITABILITY'
+colnames(forestPlots)[colnames(forestPlots) == "access"] <- 'EXPLOITABILITY'
 
 ######################################
 
@@ -229,6 +240,9 @@ beechFirSprucePrivList <- forestPlots[forestPlots$STAND_ID %in% beechFirSpruceLi
 
 source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/sc1_BAU.R')
 
+# TODO: arriver a ce stade -> executer tous les scenarios de gestion avec le même forestPLot
+# (car attention -> processus rdm en amont)
+
 ###############################################################
 # verification
 ###############################################################
@@ -255,13 +269,13 @@ hist(forestPlots[forestPlots$NHA_2 != -1, 'NHA_1'] + forestPlots[forestPlots$NHA
 # format
 ###############################################################
 
-cat('# 1. Global Level\n', file="forestPlots.txt")
-cat("DATE=2016\n", file="forestPlots.txt", append=TRUE)
-cat('TOTAL_AREA=', sum(forestPlots$AREA), file="forestPlots.txt", append=TRUE)
-cat('\nXMIN=', xmin, sep = '', file="forestPlots.txt", append=TRUE)
-cat('\nYMIN=', ymin, sep = '', file="forestPlots.txt", append=TRUE)
-cat('\nXMAX=', xmax, sep = '', file="forestPlots.txt", append=TRUE)
-cat('\nYMAX=', ymax, sep = '', file="forestPlots.txt", append=TRUE)
-cat('\n# 2. Forest Unit Level', file="forestPlots.txt", append=TRUE)
-cat('\n#', file="forestPlots.txt", append=TRUE)
-write.table(forestPlots, file="forestPlots.txt", row.names = FALSE, append=TRUE, quote = FALSE, sep = '\t')
+cat('# 1. Global Level\n', file="./output/forestPlots.txt")
+cat("DATE=2016\n", file="./output/forestPlots.txt", append=TRUE)
+cat('TOTAL_AREA=', sum(forestPlots$AREA), file="./output/forestPlots.txt", append=TRUE)
+cat('\nXMIN=', xmin, sep = '', file="./output/forestPlots.txt", append=TRUE)
+cat('\nYMIN=', ymin, sep = '', file="./output/forestPlots.txt", append=TRUE)
+cat('\nXMAX=', xmax, sep = '', file="./output/forestPlots.txt", append=TRUE)
+cat('\nYMAX=', ymax, sep = '', file="./output/forestPlots.txt", append=TRUE)
+cat('\n# 2. Forest Unit Level', file="./output/forestPlots.txt", append=TRUE)
+cat('\n#', file="./output/forestPlots.txt", append=TRUE)
+write.table(forestPlots, file="./output/forestPlots.txt", row.names = FALSE, append=TRUE, quote = FALSE, sep = '\t')
