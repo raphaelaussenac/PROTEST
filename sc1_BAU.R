@@ -59,55 +59,55 @@ irr
 
 # fir + spruce + fir-spruce Private --------------------------------------------
 firSprucePrivArea <- sum(forestPlots[forestPlots$STAND_ID %in% firSprucePrivList, 'AREA']) / 10000
-cons <- (typeArea[typeArea$COMMENT == "fsPrivCons", "AREA"] * 100 / firSprucePrivArea) - 27
+cons <- (typeArea[typeArea$COMMENT == "fsPrivCons", "AREA"] * 100 / firSprucePrivArea) - 28.19
 cons
-harv <- (typeArea[typeArea$COMMENT == "fsPrivHarv", "AREA"] * 100 / firSprucePrivArea) - 15
+harv <- (typeArea[typeArea$COMMENT == "fsPrivHarv", "AREA"] * 100 / firSprucePrivArea) - 14.75
 harv
-thinHarv <- (typeArea[typeArea$COMMENT == "fsPrivThinHarv", "AREA"] * 100 / firSprucePrivArea) - 39
+thinHarv <- (typeArea[typeArea$COMMENT == "fsPrivThinHarv", "AREA"] * 100 / firSprucePrivArea) - 38.36
 thinHarv
-irr <- (typeArea[typeArea$COMMENT == "fsPrivIrr", "AREA"] * 100 / firSprucePrivArea) - 19
+irr <- (typeArea[typeArea$COMMENT == "fsPrivIrr", "AREA"] * 100 / firSprucePrivArea) - 18.69
 irr
 
-# beech ------------------------------------------------------------------------
-beechArea <- sum(forestPlots[forestPlots$STAND_ID %in% beechList, 'AREA']) / 10000
-cons <- (typeArea[typeArea$COMMENT == "bCons", "AREA"] * 100 / beechArea) - 77  # 24 --> 77
-cons
-harv <- (typeArea[typeArea$COMMENT == "bHarv", "AREA"] * 100 / beechArea) - 6.67 # 22
-harv
-thinHarv <- (typeArea[typeArea$COMMENT == "bThinHarv", "AREA"] * 100 / beechArea) - 6.37 # 21
-thinHarv
-irr <- (typeArea[typeArea$COMMENT == "bIrr", "AREA"] * 100 / beechArea) - 10 # 33
-irr
-
-# oak --------------------------------------------------------------------------
-oakArea <- sum(forestPlots[forestPlots$STAND_ID %in% oakList, 'AREA']) / 10000
-cons <- (typeArea[typeArea$COMMENT == "oCons", "AREA"] * 100 / oakArea) - 57
-cons
-harv <- (typeArea[typeArea$COMMENT == "oHarv", "AREA"] * 100 / oakArea) - 43
-harv
-thinHarv <- (typeArea[typeArea$COMMENT == "oThinHarv", "AREA"] * 100 / oakArea) - 0
-thinHarv
-irr <- (typeArea[typeArea$COMMENT == "oIrr", "AREA"] * 100 / oakArea) - 0
-irr
-
-# beech-spruce + beech-fir Public ----------------------------------------------
-beechFirSprucePubArea <- sum(forestPlots[forestPlots$STAND_ID %in% beechFirSprucePubList, 'AREA']) / 10000
-cons <- (typeArea[typeArea$COMMENT == "bfsPubCons", "AREA"] * 100 / beechFirSprucePubArea) - 0
-cons
-harv <- (typeArea[typeArea$COMMENT == "bfsPubHarv", "AREA"] * 100 / beechFirSprucePubArea) - 0
-harv
-thinHarv <- (typeArea[typeArea$COMMENT == "bfsPubThinHarv", "AREA"] * 100 / beechFirSprucePubArea) - 34
-thinHarv
-irr <- (typeArea[typeArea$COMMENT == "bfsPubIrr", "AREA"] * 100 / beechFirSprucePubArea) - 66
-irr
-
-# beech-spruce + beech-fir Public ----------------------------------------------
-beechFirSprucePrivArea <- sum(forestPlots[forestPlots$STAND_ID %in% beechFirSprucePrivList, 'AREA']) / 10000
-cons <- (typeArea[typeArea$COMMENT == "bfsPrivCons", "AREA"] * 100 / beechFirSprucePrivArea) - 29
-cons
-harv <- (typeArea[typeArea$COMMENT == "bfsPrivHarv", "AREA"] * 100 / beechFirSprucePrivArea) - 0
-harv
-thinHarv <- (typeArea[typeArea$COMMENT == "bfsPrivThinHarv", "AREA"] * 100 / beechFirSprucePrivArea) - 14
-thinHarv
-irr <- (typeArea[typeArea$COMMENT == "bfsPrivIrr", "AREA"] * 100 / beechFirSprucePrivArea) - 57
-irr
+# # beech ------------------------------------------------------------------------
+# beechArea <- sum(forestPlots[forestPlots$STAND_ID %in% beechList, 'AREA']) / 10000
+# cons <- (typeArea[typeArea$COMMENT == "bCons", "AREA"] * 100 / beechArea) - 77  # 24 --> 77
+# cons
+# harv <- (typeArea[typeArea$COMMENT == "bHarv", "AREA"] * 100 / beechArea) - 6.67 # 22
+# harv
+# thinHarv <- (typeArea[typeArea$COMMENT == "bThinHarv", "AREA"] * 100 / beechArea) - 6.37 # 21
+# thinHarv
+# irr <- (typeArea[typeArea$COMMENT == "bIrr", "AREA"] * 100 / beechArea) - 10 # 33
+# irr
+#
+# # oak --------------------------------------------------------------------------
+# oakArea <- sum(forestPlots[forestPlots$STAND_ID %in% oakList, 'AREA']) / 10000
+# cons <- (typeArea[typeArea$COMMENT == "oCons", "AREA"] * 100 / oakArea) - 57
+# cons
+# harv <- (typeArea[typeArea$COMMENT == "oHarv", "AREA"] * 100 / oakArea) - 43
+# harv
+# thinHarv <- (typeArea[typeArea$COMMENT == "oThinHarv", "AREA"] * 100 / oakArea) - 0
+# thinHarv
+# irr <- (typeArea[typeArea$COMMENT == "oIrr", "AREA"] * 100 / oakArea) - 0
+# irr
+#
+# # beech-spruce + beech-fir Public ----------------------------------------------
+# beechFirSprucePubArea <- sum(forestPlots[forestPlots$STAND_ID %in% beechFirSprucePubList, 'AREA']) / 10000
+# cons <- (typeArea[typeArea$COMMENT == "bfsPubCons", "AREA"] * 100 / beechFirSprucePubArea) - 0
+# cons
+# harv <- (typeArea[typeArea$COMMENT == "bfsPubHarv", "AREA"] * 100 / beechFirSprucePubArea) - 0
+# harv
+# thinHarv <- (typeArea[typeArea$COMMENT == "bfsPubThinHarv", "AREA"] * 100 / beechFirSprucePubArea) - 34
+# thinHarv
+# irr <- (typeArea[typeArea$COMMENT == "bfsPubIrr", "AREA"] * 100 / beechFirSprucePubArea) - 66
+# irr
+#
+# # beech-spruce + beech-fir Public ----------------------------------------------
+# beechFirSprucePrivArea <- sum(forestPlots[forestPlots$STAND_ID %in% beechFirSprucePrivList, 'AREA']) / 10000
+# cons <- (typeArea[typeArea$COMMENT == "bfsPrivCons", "AREA"] * 100 / beechFirSprucePrivArea) - 29
+# cons
+# harv <- (typeArea[typeArea$COMMENT == "bfsPrivHarv", "AREA"] * 100 / beechFirSprucePrivArea) - 0
+# harv
+# thinHarv <- (typeArea[typeArea$COMMENT == "bfsPrivThinHarv", "AREA"] * 100 / beechFirSprucePrivArea) - 14
+# thinHarv
+# irr <- (typeArea[typeArea$COMMENT == "bfsPrivIrr", "AREA"] * 100 / beechFirSprucePrivArea) - 57
+# irr

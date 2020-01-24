@@ -49,7 +49,7 @@ table(forestPlotsCompogDgN$CODE_TF)
 forestPlots <- merge(forestPlotsSiteIndex[, c('WKTid', 'pot03', 'pot03Epsilon',
                                                                 'pot09', 'pot09Epsilon', 'pot61',
                                                                 'pot61Epsilon', 'pot62',
-                                                                'pot62Epsilon', 'INSEE_D', 'owner', 'access')],
+                                                                'pot62Epsilon', 'INSEE_D', 'owner', 'access', 'nonHarv', 'dist')],
                      forestPlotsCompogDgN[, c('WKTid', 'compoSp', 'area', "gBeech", "gOak", "gFir", "gSpruce",
                                                                 "dgBeech", "dgOak", "dgFir", "dgSpruce", "nBeech",
                                                                 "nOak", "nFir", "nSpruce")],
@@ -196,7 +196,7 @@ forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir
 forestPlots <- forestPlots[, c('STAND_ID',	'FOREST_TYPE_CODE',	'FOREST_TYPE_NAME',	'AREA',	'SITE_INDEX_1', 'NHA_1',
                               'AGE_1',	'HDOM_1',	'DDOM_1',	'HG_1',	'DG_1',	'SITE_INDEX_2', 'NHA_2',	'AGE_2',	'HDOM_2',
                               'DDOM_2',	'HG_2',	'DG_2',	'EXPLOITABILITY',	'DOMAINE_TYPE',	'FOREST',
-                              'INVENTORY_DATE',	'DEPARTMENT',	'CITY',	'COMMENT',	'WKT-GEOM')]
+                              'INVENTORY_DATE',	'DEPARTMENT',	'CITY',	'COMMENT',	'WKT-GEOM', 'nonHarv', 'dist')]
 
 ###############################################################
 # manage units
@@ -242,6 +242,9 @@ source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/sc1_BAU.R')
 
 # TODO: arriver a ce stade -> executer tous les scenarios de gestion avec le même forestPLot
 # (car attention -> processus rdm en amont)
+
+forestPlots$nonHarv <- NULL
+forestPlots$dist <- NULL
 
 ###############################################################
 # verification

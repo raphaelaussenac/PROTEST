@@ -2,14 +2,14 @@
 # plot random selection function
 ###############################################################
 
-rdmSelect <- function(plotSubset, threshold, switchNonHarv){
-  # randomly pick first plot
-  plots <- plotSubset[round(runif(1, min = 1, max = length(plotSubset)))]
+rdmSelect <- function(plotSubset, threshold, switchCons, plotCons){
 
-  # force nonHarvestable plots to be part of the Conservation type and then select
-  # extra plot to reach the defined threshold
-  if(switchNonHarv == 0){
-    plots <- forestPlots[forestPlots$STAND_ID %in% plotSubset & forestPlots$EXPLOITABILITY == 0, 'STAND_ID']
+  # if propInaccess > conservationThresh
+  if(switchCons == 0){
+    plots <- plotCons
+  } else {
+    # randomly pick first plot
+    plots <- plotSubset[round(runif(1, min = 1, max = length(plotSubset)))]
   }
   remaining <- plotSubset[!(plotSubset %in% plots)]
   # add new plots till the threshold is reached
@@ -36,42 +36,54 @@ management <- function(type, plotList, conservationThresh, HarvThresh,
   # conservation ---------------------------------------------------------------
   plotCons <- c()
 
-  # correct management proportion considering inaccessible/non-harvestable plots
-  nonHarv <- sum(forestPlots[forestPlots$STAND_ID %in% plotList & forestPlots$EXPLOITABILITY == 0, 'AREA'])
-  propNonHarv <- nonHarv / area
+  # all non-harvestable plots are necessarily in conservation
+  plotCons <- forestPlots[forestPlots$STAND_ID %in% plotList & forestPlots$nonHarv == 0, 'STAND_ID']
 
-  switchNonHarv <- 1
-  if (propNonHarv < conservationThresh){
-    switchNonHarv <- 0
-    conservationThresh <- area * conservationThresh
-    plotCons <- rdmSelect(plotSubset = plotList, threshold = conservationThresh, switchNonHarv = switchNonHarv)
+  # the proportion are only applied to the remaining plots
+  # remaining plots proportion
+  propRemaining <- (area - sum(forestPlots[forestPlots$STAND_ID %in% plotCons, 'AREA'])) / area
+  # correct proportions
+  conservationThresh <- propRemaining * conservationThresh
+  HarvThresh <- propRemaining * HarvThresh
+  thinHarvThresh <- propRemaining * thinHarvThresh
+  irrThresh <- propRemaining * irrThresh
+
+  # inaccessible plots are also classified in conservation
+  plotCons <- c(plotCons, forestPlots[forestPlots$STAND_ID %in% plotList & forestPlots$nonHarv == 1 & forestPlots$dist == 0, 'STAND_ID'])
+  propInaccess <- sum(forestPlots[forestPlots$STAND_ID %in% plotList & forestPlots$nonHarv == 1 & forestPlots$dist == 0, 'AREA']) / area
+
+  # 2 possible cases:
+  # propInaccess < conservationThresh
+  switchCons <- 1
+  if(propInaccess < conservationThresh){
+    switchCons <- 0
+    conservationThresh <- area * (conservationThresh + (1- propRemaining))
+    plotCons <- rdmSelect(plotSubset = plotList, threshold = conservationThresh, switchCons = switchCons, plotCons = plotCons)
     forestPlots[forestPlots$STAND_ID %in% plotCons, "COMMENT"] <- paste(type, "Cons", sep = "")
-    switchNonHarv <- 1
-  } else if (propNonHarv > conservationThresh){
-    # conservation plots
-    plotCons <- forestPlots[forestPlots$STAND_ID %in% plotList & forestPlots$EXPLOITABILITY == 0, 'STAND_ID']
-    forestPlots[forestPlots$STAND_ID %in% plotCons, "COMMENT"] <- paste(type, "Cons", sep = "")
+    switchCons <- 1
+  }
 
-    # corrected management proportion
-    remainingProp <- 1 - propNonHarv
-
+  # propInaccess > conservationThresh
+  if(propInaccess > conservationThresh){
+    propRemaining2 <- (area - sum(forestPlots[forestPlots$STAND_ID %in% plotCons, 'AREA'])) / area
     # convert prortion of other types of management to "relative" proportion
     totalPropRemainingType <- HarvThresh + thinHarvThresh + irrThresh
     # calculate relative proportion of each type
     HarvThresh <- HarvThresh / totalPropRemainingType
     thinHarvThresh <- thinHarvThresh / totalPropRemainingType
     irrThresh <- irrThresh / totalPropRemainingType
-    # assign these relative proportion to remaining plots
-    HarvThresh <- remainingProp * HarvThresh
-    thinHarvThresh <- remainingProp * thinHarvThresh
-    irrThresh <- remainingProp * irrThresh
+    # apply relative proportion to remaining proportion 2
+    HarvThresh <- propRemaining2 * HarvThresh
+    thinHarvThresh <- propRemaining2 * thinHarvThresh
+    irrThresh <- propRemaining2 * irrThresh
+    forestPlots[forestPlots$STAND_ID %in% plotCons, "COMMENT"] <- paste(type, "Cons", sep = "")
   }
 
   # final Harvest --------------------------------------------------------------
   plotHarv <- c()
   if (HarvThresh > 0){
     HarvThresh <- area * HarvThresh
-    plotHarv <- rdmSelect(plotSubset = plotList[!(plotList %in% plotCons)], threshold = HarvThresh, switchNonHarv = switchNonHarv)
+    plotHarv <- rdmSelect(plotSubset = plotList[!(plotList %in% plotCons)], threshold = HarvThresh, switchCons = switchCons, plotCons = plotCons)
     forestPlots[forestPlots$STAND_ID %in% plotHarv, "COMMENT"] <- paste(type, "Harv", sep = "")
   }
 
@@ -79,7 +91,7 @@ management <- function(type, plotList, conservationThresh, HarvThresh,
   plotThinHarv <- c()
   if (thinHarvThresh > 0){
     thinHarvThresh <- area * thinHarvThresh
-    plotThinHarv <- rdmSelect(plotSubset = plotList[!(plotList %in% c(plotCons, plotHarv))], threshold = thinHarvThresh, switchNonHarv = switchNonHarv)
+    plotThinHarv <- rdmSelect(plotSubset = plotList[!(plotList %in% c(plotCons, plotHarv))], threshold = thinHarvThresh, switchCons = switchCons, plotCons = plotCons)
     forestPlots[forestPlots$STAND_ID %in% plotThinHarv, "COMMENT"] <- paste(type, "ThinHarv", sep = "")
   }
 
@@ -87,7 +99,7 @@ management <- function(type, plotList, conservationThresh, HarvThresh,
   plotIrr <- c()
   if (irrThresh > 0){
     irrThresh <- area * irrThresh
-    plotIrr <- rdmSelect(plotSubset = plotList[!(plotList %in% c(plotCons, plotHarv, plotThinHarv))], threshold = irrThresh, switchNonHarv = switchNonHarv)
+    plotIrr <- rdmSelect(plotSubset = plotList[!(plotList %in% c(plotCons, plotHarv, plotThinHarv))], threshold = irrThresh, switchCons = switchCons, plotCons = plotCons)
     forestPlots[forestPlots$STAND_ID %in% plotIrr, "COMMENT"] <- paste(type, "Irr", sep = "")
   }
 
