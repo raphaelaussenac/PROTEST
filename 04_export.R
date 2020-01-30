@@ -257,7 +257,7 @@ hist(c(forestPlots[forestPlots$FOREST_TYPE_CODE == 'salem_spruce' , 'SITE_INDEX_
 hist(forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_oak" , 'SITE_INDEX_1'], breaks = 100, col = 'black', add = TRUE)
 
 # Dg
-hist(forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_beech', 'salem_beech-spruce', 'salem_beech-fir') , 'DG_1'], breaks = 200, border = 'green', ylim = c(0, 200), xlim = c(5, 90), main = '', xlab = 'Dg')
+hist(forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_beech', 'salem_beech-spruce', 'salem_beech-fir') , 'DG_1'], breaks = 200, border = 'green', xlim = c(5, 90), main = '', xlab = 'Dg')
 hist(c(forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_fir', 'salem_fir-spruce') , 'DG_1'], forestPlots[forestPlots$FOREST_TYPE_CODE == 'salem_beech_fir', 'DG_2']), breaks = 200, add = TRUE, border = 'blue')
 hist(c(forestPlots[forestPlots$FOREST_TYPE_CODE == 'salem_spruce' , 'DG_1'], forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_fir-spruce', 'salem_beech-spruce') , 'DG_2']), breaks = 200, add = TRUE, border = 'orange')
 hist(forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_oak" , 'DG_1'], breaks = 200, col = 'black', add = TRUE)

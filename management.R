@@ -59,7 +59,7 @@ management <- function(type, plotList, conservationThresh, HarvThresh,
     switchCons <- 0
     conservationThresh <- area * (conservationThresh + (1- propRemaining))
     plotCons <- rdmSelect(plotSubset = plotList, threshold = conservationThresh, switchCons = switchCons, plotCons = plotCons)
-    forestPlots[forestPlots$STAND_ID %in% plotCons, "COMMENT"] <- paste(type, "Cons", sep = "")
+    forestPlots[forestPlots$STAND_ID %in% plotCons, "COMMENT"] <- paste("Con", type, sep = "")
     switchCons <- 1
   }
 
@@ -76,7 +76,7 @@ management <- function(type, plotList, conservationThresh, HarvThresh,
     HarvThresh <- propRemaining2 * HarvThresh
     thinHarvThresh <- propRemaining2 * thinHarvThresh
     irrThresh <- propRemaining2 * irrThresh
-    forestPlots[forestPlots$STAND_ID %in% plotCons, "COMMENT"] <- paste(type, "Cons", sep = "")
+    forestPlots[forestPlots$STAND_ID %in% plotCons, "COMMENT"] <- paste("Con", type, sep = "")
   }
 
   # final Harvest --------------------------------------------------------------
@@ -84,7 +84,7 @@ management <- function(type, plotList, conservationThresh, HarvThresh,
   if (HarvThresh > 0){
     HarvThresh <- area * HarvThresh
     plotHarv <- rdmSelect(plotSubset = plotList[!(plotList %in% plotCons)], threshold = HarvThresh, switchCons = switchCons, plotCons = plotCons)
-    forestPlots[forestPlots$STAND_ID %in% plotHarv, "COMMENT"] <- paste(type, "Harv", sep = "")
+    forestPlots[forestPlots$STAND_ID %in% plotHarv, "COMMENT"] <- paste("Har", type, sep = "")
   }
 
   # thinning and harvest -------------------------------------------------------
@@ -92,7 +92,7 @@ management <- function(type, plotList, conservationThresh, HarvThresh,
   if (thinHarvThresh > 0){
     thinHarvThresh <- area * thinHarvThresh
     plotThinHarv <- rdmSelect(plotSubset = plotList[!(plotList %in% c(plotCons, plotHarv))], threshold = thinHarvThresh, switchCons = switchCons, plotCons = plotCons)
-    forestPlots[forestPlots$STAND_ID %in% plotThinHarv, "COMMENT"] <- paste(type, "ThinHarv", sep = "")
+    forestPlots[forestPlots$STAND_ID %in% plotThinHarv, "COMMENT"] <- paste("Thi", type, sep = "")
   }
 
   # irregular ------------------------------------------------------------------
@@ -100,7 +100,7 @@ management <- function(type, plotList, conservationThresh, HarvThresh,
   if (irrThresh > 0){
     irrThresh <- area * irrThresh
     plotIrr <- rdmSelect(plotSubset = plotList[!(plotList %in% c(plotCons, plotHarv, plotThinHarv))], threshold = irrThresh, switchCons = switchCons, plotCons = plotCons)
-    forestPlots[forestPlots$STAND_ID %in% plotIrr, "COMMENT"] <- paste(type, "Irr", sep = "")
+    forestPlots[forestPlots$STAND_ID %in% plotIrr, "COMMENT"] <- paste("Irr", type, sep = "")
   }
 
   return(forestPlots)

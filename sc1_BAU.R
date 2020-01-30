@@ -6,32 +6,32 @@ source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/management.R')
 ###############################################################
 
 # fir + spruce + fir-spruce Public ---------------------------------------------
-forestPlots <- management(type = 'fsPub', plotList = firSprucePubList,
+forestPlots <- management(type = 'fspPu', plotList = firSprucePubList,
                         conservationThresh = 0.02, HarvThresh = 0,
                         thinHarvThresh = 0.60, irrThresh = 0.38)
 
 # fir + spruce + fir-spruce Private --------------------------------------------
-forestPlots <- management(type = 'fsPriv', plotList = firSprucePrivList,
+forestPlots <- management(type = 'fspPr', plotList = firSprucePrivList,
                         conservationThresh = 0.27, HarvThresh = 0.15,
                         thinHarvThresh = 0.39, irrThresh = 0.19)
 
 # beech Public + Private -------------------------------------------------------
-forestPlots <- management(type = 'b', plotList = beechList,
+forestPlots <- management(type = 'beePP', plotList = beechList,
                         conservationThresh = 0.24, HarvThresh = 0.22,
                         thinHarvThresh = 0.21, irrThresh = 0.33)
 
 # oak Public + Private ---------------------------------------------------------
-forestPlots <- management(type = 'o', plotList = oakList,
+forestPlots <- management(type = 'oakPP', plotList = oakList,
                         conservationThresh = 0.57, HarvThresh = 0.43,
                         thinHarvThresh = 0, irrThresh = 0)
 
 # beech-spruce + beech-fir Public ----------------------------------------------
-forestPlots <- management(type = 'bfsPub', plotList = beechFirSprucePubList,
+forestPlots <- management(type = 'bfsPu', plotList = beechFirSprucePubList,
                         conservationThresh = 0, HarvThresh = 0,
                         thinHarvThresh = 0.34, irrThresh = 0.66)
 
 # beech-spruce + beech-fir Private ---------------------------------------------
-forestPlots <- management(type = 'bfsPriv', plotList = beechFirSprucePrivList,
+forestPlots <- management(type = 'bfsPr', plotList = beechFirSprucePrivList,
                         conservationThresh = 0.29, HarvThresh = 0,
                         thinHarvThresh = 0.14, irrThresh = 0.57)
 
