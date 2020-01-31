@@ -77,9 +77,9 @@ forestPlots <- merge(forestPlots, wkt[, c('WKTid', 'WKT')], by = 'WKTid')
 
 forestPlots$access <- as.character(forestPlots$access)
 # non-expoitable sites
-forestPlots[!(forestPlots$access %in% c("dist 1 harv 1", "dist 2 harv 1")), "access"] <- 0
+forestPlots[!(forestPlots$access %in% c("dist 1 harv 1")), "access"] <- 0 # , "dist 2 harv 1"
 # exploitable sites
-forestPlots[forestPlots$access %in% c("dist 1 harv 1", "dist 2 harv 1"), "access"] <- 1
+forestPlots[forestPlots$access %in% c("dist 1 harv 1"), "access"] <- 1
 forestPlots$access <- as.factor(forestPlots$access)
 
 ###############################################################
@@ -238,6 +238,12 @@ beechFirSprucePrivList <- forestPlots[forestPlots$STAND_ID %in% beechFirSpruceLi
 # management scenario
 ###############################################################
 
+# alculate plot total basal area
+forestPlots$Gsp1 <- (forestPlots$NHA_1 * pi * ((forestPlots$DG_1/100)^2)) / 4
+forestPlots$Gsp2 <- 0
+forestPlots[forestPlots$NHA_2 > 0, "Gsp2"] <- (forestPlots[forestPlots$NHA_2 > 0, "NHA_2"] * pi * ((forestPlots[forestPlots$NHA_2 > 0, "DG_2"]/100)^2)) / 4
+forestPlots$G <- forestPlots$Gsp1 + forestPlots$Gsp2
+
 source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/sc1_BAU.R')
 
 # TODO: arriver a ce stade -> executer tous les scenarios de gestion avec le même forestPLot
@@ -245,6 +251,10 @@ source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/sc1_BAU.R')
 
 forestPlots$nonHarv <- NULL
 forestPlots$dist <- NULL
+forestPlots$Gsp1 <- NULL
+forestPlots$Gsp2 <- NULL
+forestPlots$G <- NULL
+
 
 ###############################################################
 # verification

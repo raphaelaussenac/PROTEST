@@ -1,25 +1,46 @@
 ###############################################################
-# plot random selection function
+# random (or highest G) forestplot selection function
 ###############################################################
 
-rdmSelect <- function(plotSubset, threshold, switchCons, plotCons){
+rdmSelect <- function(plotSubset, threshold, switch, plotCons){
 
   # if propInaccess > conservationThresh
-  if(switchCons == 0){
+  if(switch == 0){
     plots <- plotCons
-  } else {
+    remaining <- plotSubset[!(plotSubset %in% plots)]
+  } else if(switch == 1){
     # randomly pick first plot
     plots <- plotSubset[round(runif(1, min = 1, max = length(plotSubset)))]
-  }
-  remaining <- plotSubset[!(plotSubset %in% plots)]
-  # add new plots till the threshold is reached
-  while(sum(forestPlots[forestPlots$STAND_ID %in% plots, 'AREA']) < threshold && length(remaining) > 0){
-    # randomly select 1 more plot
-    addplot <- remaining[round(runif(1, min = 1, max = length(remaining)))]
-    plots <- c(plots, addplot)
-    # list of remaining plots
     remaining <- plotSubset[!(plotSubset %in% plots)]
-    # print(length(remaining))
+  } else if(switch == 2){
+    # choose in priority plots with highest basal Area
+    # first, retrieve BA of each plot
+    plotSubsetG <- forestPlots[forestPlots$STAND_ID %in% plotSubset, c("STAND_ID", "G")]
+    # then, pick the first plot
+    plots <- plotSubsetG[plotSubsetG$G == max(plotSubsetG$G), "STAND_ID"]
+    remainingG <- plotSubsetG[!(plotSubsetG$STAND_ID %in% plots),]
+
+    # add new plots till the threshold is reached
+    while(sum(forestPlots[forestPlots$STAND_ID %in% plots, 'AREA']) < threshold && length(remainingG) > 0){
+      # select 1 more plot with highest G
+      addplot <- remainingG[remainingG$G == max(remainingG$G), "STAND_ID"]
+      plots <- c(plots, addplot)
+      # list of remainingG plots
+      remainingG <- plotSubsetG[!(plotSubsetG$STAND_ID %in% plots),]
+      # print(length(remainingG))
+    }
+  }
+  #
+  if (switch != 2){
+    # add new plots till the threshold is reached
+    while(sum(forestPlots[forestPlots$STAND_ID %in% plots, 'AREA']) < threshold && length(remaining) > 0){
+      # randomly select 1 more plot
+      addplot <- remaining[round(runif(1, min = 1, max = length(remaining)))]
+      plots <- c(plots, addplot)
+      # list of remaining plots
+      remaining <- plotSubset[!(plotSubset %in% plots)]
+      # print(length(remaining))
+    }
   }
   return(plots)
 }
@@ -54,13 +75,13 @@ management <- function(type, plotList, conservationThresh, HarvThresh,
 
   # 2 possible cases:
   # propInaccess < conservationThresh
-  switchCons <- 1
+  switch <- 1
   if(propInaccess < conservationThresh){
-    switchCons <- 0
+    switch <- 0
     conservationThresh <- area * (conservationThresh + (1- propRemaining))
-    plotCons <- rdmSelect(plotSubset = plotList, threshold = conservationThresh, switchCons = switchCons, plotCons = plotCons)
+    plotCons <- rdmSelect(plotSubset = plotList, threshold = conservationThresh, switch = switch, plotCons = plotCons)
     forestPlots[forestPlots$STAND_ID %in% plotCons, "COMMENT"] <- paste("Con", type, sep = "")
-    switchCons <- 1
+    switch <- 1
   }
 
   # propInaccess > conservationThresh
@@ -83,23 +104,25 @@ management <- function(type, plotList, conservationThresh, HarvThresh,
   plotHarv <- c()
   if (HarvThresh > 0){
     HarvThresh <- area * HarvThresh
-    plotHarv <- rdmSelect(plotSubset = plotList[!(plotList %in% plotCons)], threshold = HarvThresh, switchCons = switchCons, plotCons = plotCons)
+    plotHarv <- rdmSelect(plotSubset = plotList[!(plotList %in% plotCons)], threshold = HarvThresh, switch = switch, plotCons = plotCons)
     forestPlots[forestPlots$STAND_ID %in% plotHarv, "COMMENT"] <- paste("Har", type, sep = "")
   }
 
   # thinning and harvest -------------------------------------------------------
   plotThinHarv <- c()
+  switch <- 2
   if (thinHarvThresh > 0){
     thinHarvThresh <- area * thinHarvThresh
-    plotThinHarv <- rdmSelect(plotSubset = plotList[!(plotList %in% c(plotCons, plotHarv))], threshold = thinHarvThresh, switchCons = switchCons, plotCons = plotCons)
+    plotThinHarv <- rdmSelect(plotSubset = plotList[!(plotList %in% c(plotCons, plotHarv))], threshold = thinHarvThresh, switch = switch, plotCons = plotCons)
     forestPlots[forestPlots$STAND_ID %in% plotThinHarv, "COMMENT"] <- paste("Thi", type, sep = "")
   }
+  switch <- 1
 
   # irregular ------------------------------------------------------------------
   plotIrr <- c()
   if (irrThresh > 0){
     irrThresh <- area * irrThresh
-    plotIrr <- rdmSelect(plotSubset = plotList[!(plotList %in% c(plotCons, plotHarv, plotThinHarv))], threshold = irrThresh, switchCons = switchCons, plotCons = plotCons)
+    plotIrr <- rdmSelect(plotSubset = plotList[!(plotList %in% c(plotCons, plotHarv, plotThinHarv))], threshold = irrThresh, switch = switch, plotCons = plotCons)
     forestPlots[forestPlots$STAND_ID %in% plotIrr, "COMMENT"] <- paste("Irr", type, sep = "")
   }
 

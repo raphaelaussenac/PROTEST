@@ -5,6 +5,15 @@ source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/management.R')
 # assign management type to each plot
 ###############################################################
 
+
+# type <- 'fspPu'
+# plotList <- firSprucePubList
+# conservationThresh <- 0.02
+# HarvThresh <- 0
+# thinHarvThresh <- 0.60
+# irrThresh <- 0.38
+
+
 # fir + spruce + fir-spruce Public ---------------------------------------------
 forestPlots <- management(type = 'fspPu', plotList = firSprucePubList,
                         conservationThresh = 0.02, HarvThresh = 0,
@@ -39,34 +48,34 @@ forestPlots <- management(type = 'bfsPr', plotList = beechFirSprucePrivList,
 # verification
 ###############################################################
 
-unique(forestPlots$COMMENT)
-table(forestPlots$COMMENT)
-
-
-typeArea <- ddply(forestPlots, .(COMMENT), summarise, AREA = sum(AREA / 10000))
-
-
-# fir + spruce + fir-spruce Public ---------------------------------------------
-firSprucePubArea <- sum(forestPlots[forestPlots$STAND_ID %in% firSprucePubList, 'AREA']) / 10000
-cons <- (typeArea[typeArea$COMMENT == "fsPubCons", "AREA"] * 100 / firSprucePubArea) - 24.09
-cons
-harv <- (typeArea[typeArea$COMMENT == "fsPubHarv", "AREA"] * 100 / firSprucePubArea) - 0
-harv
-thinHarv <- (typeArea[typeArea$COMMENT == "fsPubThinHarv", "AREA"] * 100 / firSprucePubArea) - 46.47
-thinHarv
-irr <- (typeArea[typeArea$COMMENT == "fsPubIrr", "AREA"] * 100 / firSprucePubArea) - 29.43
-irr
-
-# fir + spruce + fir-spruce Private --------------------------------------------
-firSprucePrivArea <- sum(forestPlots[forestPlots$STAND_ID %in% firSprucePrivList, 'AREA']) / 10000
-cons <- (typeArea[typeArea$COMMENT == "fsPrivCons", "AREA"] * 100 / firSprucePrivArea) - 28.19
-cons
-harv <- (typeArea[typeArea$COMMENT == "fsPrivHarv", "AREA"] * 100 / firSprucePrivArea) - 14.75
-harv
-thinHarv <- (typeArea[typeArea$COMMENT == "fsPrivThinHarv", "AREA"] * 100 / firSprucePrivArea) - 38.36
-thinHarv
-irr <- (typeArea[typeArea$COMMENT == "fsPrivIrr", "AREA"] * 100 / firSprucePrivArea) - 18.69
-irr
+# unique(forestPlots$COMMENT)
+# table(forestPlots$COMMENT)
+#
+#
+# typeArea <- ddply(forestPlots, .(COMMENT), summarise, AREA = sum(AREA / 10000))
+#
+#
+# # fir + spruce + fir-spruce Public ---------------------------------------------
+# firSprucePubArea <- sum(forestPlots[forestPlots$STAND_ID %in% firSprucePubList, 'AREA']) / 10000
+# cons <- (typeArea[typeArea$COMMENT == "fsPubCons", "AREA"] * 100 / firSprucePubArea) - 24.09
+# cons
+# harv <- (typeArea[typeArea$COMMENT == "fsPubHarv", "AREA"] * 100 / firSprucePubArea) - 0
+# harv
+# thinHarv <- (typeArea[typeArea$COMMENT == "fsPubThinHarv", "AREA"] * 100 / firSprucePubArea) - 46.47
+# thinHarv
+# irr <- (typeArea[typeArea$COMMENT == "fsPubIrr", "AREA"] * 100 / firSprucePubArea) - 29.43
+# irr
+#
+# # fir + spruce + fir-spruce Private --------------------------------------------
+# firSprucePrivArea <- sum(forestPlots[forestPlots$STAND_ID %in% firSprucePrivList, 'AREA']) / 10000
+# cons <- (typeArea[typeArea$COMMENT == "fsPrivCons", "AREA"] * 100 / firSprucePrivArea) - 28.19
+# cons
+# harv <- (typeArea[typeArea$COMMENT == "fsPrivHarv", "AREA"] * 100 / firSprucePrivArea) - 14.75
+# harv
+# thinHarv <- (typeArea[typeArea$COMMENT == "fsPrivThinHarv", "AREA"] * 100 / firSprucePrivArea) - 38.36
+# thinHarv
+# irr <- (typeArea[typeArea$COMMENT == "fsPrivIrr", "AREA"] * 100 / firSprucePrivArea) - 18.69
+# irr
 
 # # beech ------------------------------------------------------------------------
 # beechArea <- sum(forestPlots[forestPlots$STAND_ID %in% beechList, 'AREA']) / 10000
