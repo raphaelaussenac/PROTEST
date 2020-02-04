@@ -13,7 +13,7 @@ library(plyr)
 setwd("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST")
 
 # load SIMMEM output file
-df <- read.csv(file="./input/exportSimu312.txt", sep = "\t", skip = 3)
+df <- read.csv(file="./input/exportSimuTESTIRR.txt", sep = "\t", skip = 3)
 colnames(df)[1] <- "standId"
 
 # load SIMMEM input to retrieve plot surface
@@ -139,6 +139,12 @@ ggplot(data = voltot, aes(x = date, y = vol, group = managType, col = managType)
   geom_line() +
   geom_point()
 
+# volume removed each year for each ownership type
+voltot <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, domainType), summarise, vol = sum(annualVolumeRemoved_m3))
+ggplot(data = voltot, aes(x = date, y = vol, group = domainType, col = domainType)) +
+  geom_line() +
+  geom_point()
+
 # volume removed each year for each managtype and compo
 vol <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, managType, compo), summarise, vol = sum(annualVolumeRemoved_m3))
 ggplot(data = vol, aes(x = date, y = vol, group = compo)) +
@@ -173,19 +179,21 @@ ggplot(data = area, aes(x = date, y = area, group = managType)) +
   facet_grid(compo ~ managType)
 
 
+###############################################################
+# basal area and density (rdi)
+###############################################################
+df$standColor <- as.numeric(as.factor(df$standId))
 
-#
-#
-# par(mfrow= c(3, 2))
-# plot(vol[vol$comment1 == 'Con', 'vol'] ~ vol[vol$comment1 == 'Con', 'date'], pch = 16, xlab = "", ylab = 'vol (m3)', main = "inaction")
-# plot(vol[vol$comment1 == 'Irr', 'vol'] ~ vol[vol$comment1 == 'Irr', 'date'], pch = 16, xlab = "", ylab = 'vol (m3)', main = "irregulier")
-# plot(vol[vol$comment1 == 'Har', 'vol'] ~ vol[vol$comment1 == 'Har', 'date'], pch = 16, xlab = "", ylab = 'vol (m3)', main = "coupe finale")
-# plot(vol[vol$comment1 == 'Thi', 'vol'] ~ vol[vol$comment1 == 'Thi', 'date'], pch = 16, xlab = "", ylab = 'vol (m3)', main = "éclaircie + coupe finale")
-# plot(voltot$vol ~ voltot$date, pch = 16, xlab = "", ylab = 'vol (m3)', main = "volume total")
-# plot(areatot$area ~ areatot$date, pch = 16, xlab = "", ylab = 'area (ha)', main = "surface total")
-# lines(areatot$area ~ areatot$date)
-# abline(h = mean(areatot$area), col = 'red')
-#
-# # plot surface
-# ggplot(data = area, aes(x = date, y = area, group = comment1, col = comment1))+
-#   geom_line()
+# BA
+ggplot(data = df, aes(x = date, y = basalArea_m2, group = standId, col = standId)) +
+  geom_line() +
+  scale_color_gradient2(low="blue", mid="green", high="red", midpoint = mean(df$standColor)) +
+  # geom_point() +
+  facet_grid(compo ~ managType)
+
+# RDI
+ggplot(data = df, aes(x = date, y = density_01, group = standId, col = standId)) +
+  geom_line() +
+  scale_color_gradient2(low="blue", mid="green", high="red", midpoint = mean(df$standColor)) +
+  # geom_point() +
+  facet_grid(compo ~ managType)
