@@ -240,11 +240,11 @@ shapefile(forestPlots, filename = 'forestPlots', overwrite = TRUE)
 # ownership ----------------------------------
 --> "Private"
 sum(area(forestPlots[forestPlots$owner == "Priv" & !is.na(forestPlots$owner),])) / 10000
-[1] 31137.81   -- polymerge --> 31122.03
+[1] 31137.81   -- polymerge --> 30918.04
 
 --> "Public"
 sum(area(forestPlots[forestPlots$owner == "Pub" & !is.na(forestPlots$owner),])) / 10000
-[1] 21687.13   -- polymerge --> 21702.97
+[1] 21687.13   -- polymerge --> 21680.52
 
 --> "NA"
 sum(area(forestPlots[is.na(forestPlots$owner),])) / 10000
@@ -252,48 +252,48 @@ sum(area(forestPlots[is.na(forestPlots$owner),])) / 10000
 
 # nonHarv ----------------------------------
 sum(area(forestPlots[forestPlots$nonHarv == 0,])) / 10000
-[1] 4230.202   -- polymerge --> 4225.428
+[1] 4230.202   -- polymerge --> 4206.674
 
 sum(area(forestPlots[forestPlots$nonHarv == 1,])) / 10000
-[1] 48594.81   -- polymerge --> 48599.58
+[1] 48594.81   -- polymerge --> 48391.88
 
 # dist ----------------------------------
 sum(area(forestPlots[forestPlots$dist == 0,])) / 10000
-[1] 23239.67   -- polymerge --> 23243.34
+[1] 23145.33   -- polymerge --> 23053.91
 
 sum(area(forestPlots[forestPlots$dist == 1,])) / 10000
-[1] 14685.22   -- polymerge --> 14680.7
+[1] 12145.08   -- polymerge --> 12055.45
 
 sum(area(forestPlots[forestPlots$dist == 2,])) / 10000
-[1] 14900.12   -- polymerge --> 14900.97
+[1] 17534.59   -- polymerge --> 17489.19
 
 ############################################################### rasters
 # under QGIS
 # --> clip raster with polygon
 # --> polygoniser
 # --> save shp
-test <- readOGR(dsn = "C:/Users/raphael.aussenac/Documents/GitHub/PROTEST", layer = "test", encoding = "UTF-8", use_iconv = TRUE)
+test <- readOGR(dsn = "C:/Users/raphael.aussenac/Documents/GitHub/PROTEST", layer = "test03", encoding = "UTF-8", use_iconv = TRUE)
 
 # ownership ----------------------------------
 sum(area(test[test$DN == 1,]))/10000
-[1] 31230.38
+[1] 31228.44
 
 sum(area(test[test$DN == 2,]))/10000
-[1] 21610.72
+[1] 21597.92
 
 # nonHarv ----------------------------------
 sum(area(test[test$DN == 1,])) / 10000
-[1] 4237.11
+[1] 4235.743
 
 sum(area(test[test$DN == 0,])) / 10000
-[1] 48603.69
+[1] 48590.31
 
 # dist ----------------------------------
 sum(area(test[test$DN == 0,])) / 10000
-[1] 23272.07
+[1] 23267.67
 
 sum(area(test[test$DN == 1,])) / 10000
-[1] 14678.06
+[1] 12143.89
 
 sum(area(test[test$DN == 2,])) / 10000
-[1] 14891.02
+[1] 17415.04

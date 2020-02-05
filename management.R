@@ -29,9 +29,57 @@ rdmSelect <- function(plotSubset, threshold, switch, plotCons){
       remainingG <- plotSubsetG[!(plotSubsetG$STAND_ID %in% plots),]
       # print(length(remainingG))
     }
-  }
+  } #else if(switch == 3){
+  #   # choose in priority plots with Dg1 and Dg2 < 40
+  #   # first, retrieve dg1 and dg2 of each plot
+  #   plotSubsetDg <- forestPlots[forestPlots$STAND_ID %in% plotSubset, c("STAND_ID", "FOREST_TYPE_CODE","DG_1", "DG_2")]
+  #   # second, keep only plots with Dg1 and Dg2 < 20 for oak and beech and < 40 for fir and spruce
+  #   oak <- plotSubsetDg[0,]
+  #   beech <- plotSubsetDg[0,]
+  #   fir <- plotSubsetDg[0,]
+  #   spruce <- plotSubsetDg[0,]
+  #   beechFir <- plotSubsetDg[0,]
+  #   beechSpruce <- plotSubsetDg[0,]
+  #   firSpruce<- plotSubsetDg[0,]
+  #   if (nrow(plotSubsetDg[plotSubsetDg$FOREST_TYPE_CODE == 'salem_oak',]) > 0){
+  #     oak <- plotSubsetDg[plotSubsetDg$FOREST_TYPE_CODE == 'salem_oak' & plotSubsetDg$DG_1 <= 20,]
+  #   }
+  #   if (nrow(plotSubsetDg[plotSubsetDg$FOREST_TYPE_CODE == 'salem_beech',]) > 0){
+  #     beech <- plotSubsetDg[plotSubsetDg$FOREST_TYPE_CODE == 'salem_beech' & plotSubsetDg$DG_1 <= 20,]
+  #   }
+  #   if (nrow(plotSubsetDg[plotSubsetDg$FOREST_TYPE_CODE == 'salem_fir',]) > 0){
+  #     fir <- plotSubsetDg[plotSubsetDg$FOREST_TYPE_CODE == 'salem_fir' & plotSubsetDg$DG_1 <= 40,]
+  #   }
+  #   if (nrow(plotSubsetDg[plotSubsetDg$FOREST_TYPE_CODE == 'salem_spruce',]) > 0){
+  #     spruce <- plotSubsetDg[plotSubsetDg$FOREST_TYPE_CODE == 'salem_spruce' & plotSubsetDg$DG_1 <= 40,]
+  #   }
+  #   if (nrow(plotSubsetDg[plotSubsetDg$FOREST_TYPE_CODE == 'salem_beech_fir',]) > 0){
+  #     beechFir <- plotSubsetDg[plotSubsetDg$FOREST_TYPE_CODE == 'salem_beech_fir' & plotSubsetDg$DG_1 <= 20 & plotSubsetDg$DG_2 <= 40,]
+  #   }
+  #   if (nrow(plotSubsetDg[plotSubsetDg$FOREST_TYPE_CODE == 'salem_beech_spruce',]) > 0){
+  #     beechSpruce <- plotSubsetDg[plotSubsetDg$FOREST_TYPE_CODE == 'salem_beech_spruce' & plotSubsetDg$DG_1 <= 20 & plotSubsetDg$DG_2 <= 40,]
+  #   }
+  #   if (nrow(plotSubsetDg[plotSubsetDg$FOREST_TYPE_CODE == 'salem_fir_spruce',]) > 0){
+  #     firSpruce <- plotSubsetDg[plotSubsetDg$FOREST_TYPE_CODE == 'salem_fir_spruce' & plotSubsetDg$DG_1 <= 40 & plotSubsetDg$DG_2 <= 40,]
+  #   }
+  #   plotSubsetDg <- rbind(oak, beech, fir, spruce, beechFir, beechSpruce, firSpruce)
+  #   plotSubsetDg <- plotSubsetDg[, 'STAND_ID']
+  #   # then, randomly pick a plot in the subset
+  #   plots <- plotSubsetDg[round(runif(1, min = 1, max = length(plotSubsetDg)))]
+  #   remainingDg <- plotSubsetDg[!(plotSubsetDg %in% plots)]
   #
-  if (switch != 2){
+  #   # add new plots till the threshold is reached
+  #   while(sum(forestPlots[forestPlots$STAND_ID %in% plots, 'AREA']) < threshold && length(remainingDg) > 0){
+  #     # select 1 more plot with highest G
+  #     addplot <- remainingDg[round(runif(1, min = 1, max = length(remainingDg)))]
+  #     plots <- c(plots, addplot)
+  #     # list of remainingDg plots
+  #     remainingDg <- plotSubsetDg[!(plotSubsetDg %in% plots)]
+  #     # print(length(remainingDg))
+  #   }
+  # }
+  #
+  if (!(switch %in% c(2,3))){
     # add new plots till the threshold is reached
     while(sum(forestPlots[forestPlots$STAND_ID %in% plots, 'AREA']) < threshold && length(remaining) > 0){
       # randomly select 1 more plot
@@ -102,11 +150,13 @@ management <- function(type, plotList, conservationThresh, HarvThresh,
 
   # final Harvest --------------------------------------------------------------
   plotHarv <- c()
+  # switch <- 3
   if (HarvThresh > 0){
     HarvThresh <- area * HarvThresh
     plotHarv <- rdmSelect(plotSubset = plotList[!(plotList %in% plotCons)], threshold = HarvThresh, switch = switch, plotCons = plotCons)
     forestPlots[forestPlots$STAND_ID %in% plotHarv, "COMMENT"] <- paste("Har", type, sep = "")
   }
+  # switch <- 1
 
   # thinning and harvest -------------------------------------------------------
   plotThinHarv <- c()

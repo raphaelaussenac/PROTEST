@@ -238,11 +238,17 @@ beechFirSprucePrivList <- forestPlots[forestPlots$STAND_ID %in% beechFirSpruceLi
 # management scenario
 ###############################################################
 
-# alculate plot total basal area
+# calculate plot total basal area
 forestPlots$Gsp1 <- (forestPlots$NHA_1 * pi * ((forestPlots$DG_1/100)^2)) / 4
 forestPlots$Gsp2 <- 0
 forestPlots[forestPlots$NHA_2 > 0, "Gsp2"] <- (forestPlots[forestPlots$NHA_2 > 0, "NHA_2"] * pi * ((forestPlots[forestPlots$NHA_2 > 0, "DG_2"]/100)^2)) / 4
 forestPlots$G <- forestPlots$Gsp1 + forestPlots$Gsp2
+
+# force plots nonHarv == 0 to be inaccessible
+forestPlots[forestPlots$nonHarv == 0, "dist"] <- 0
+
+# set whether plots dist = 2 are accesible (1) or not (0)
+forestPlots[forestPlots$dist == 2, "dist"] <- 0
 
 source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/sc1_BAU.R')
 

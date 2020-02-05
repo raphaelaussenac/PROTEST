@@ -13,7 +13,7 @@ library(plyr)
 setwd("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST")
 
 # load SIMMEM output file
-df <- read.csv(file="./input/exportSimuTESTIRR.txt", sep = "\t", skip = 3)
+df <- read.csv(file="./input/exportSimuCorrectif200.txt", sep = "\t", skip = 3)
 colnames(df)[1] <- "standId"
 
 # load SIMMEM input to retrieve plot surface
@@ -60,21 +60,6 @@ df <- df[order(df$standId, df$date), ]
 # remove repeated clearcut
 ###############################################################
 
-# pb <- txtProgressBar(min = 0, max = length(unique(df$standId)), style = 3)
-# count <- 1
-# for (i in unique(df$standId)){
-#   count <- count + 1
-#   Sys.sleep(.1)
-#   setTxtProgressBar(pb,count)
-#   dfTemp <- df[df$standId == i,]
-#   for (j in nrow(dfTemp):2){
-#     if (dfTemp[j, "volumeRemoved_m3"] == dfTemp[j-1, "volumeRemoved_m3"]){
-#       df[df$standId == i & df$date == dfTemp[j, "date"], "volumeRemoved_m3"] <- 0
-#     }
-#   }
-# }
-#
-
 df$nextYear <- df$date + 3
 df$standId_year <- paste(df$standId, df$date, sep = "_")
 df$standId_nextYear <- paste(df$standId, df$nextYear, sep = "_")
@@ -91,31 +76,6 @@ test$nextYear <- NULL
 test$standId_year <- NULL
 df <- test
 colnames(df)[colnames(df) == "volumeRemoved_m3.x"] <- 'volumeRemoved_m3'
-
-###############################################################
-# check growth
-###############################################################
-
-# # Calculate basal area increment
-# df$deltaG <- 9999
-#
-# df <- df[1:1000,]
-#
-# for (i in unique(df$standId)){
-#   dfTemp <- df[df$standId == i,]
-#   for (j in nrow(dfTemp):2){
-#     deltaG <- dfTemp[j, "basalArea_m2"] - dfTemp[j-1, "basalArea_m2"]
-#     df[df$standId == i & df$date == dfTemp[j, "date"], "deltaG"] <- deltaG/3
-#   }
-# }
-#
-# hist(df[df$deltaG != 9999 & df$deltaG >= 0, "deltaG"], breaks = 100)
-#
-# # remove BAI when thinning / harvesting
-# BAI <- df[df$deltaG < 0, ]
-#
-# # save table
-# write.table(BAI, file="./output/BAI.txt", row.names = FALSE, sep = '\t')
 
 
 ###############################################################
@@ -168,6 +128,12 @@ lines(areatot$area ~ areatot$date)
 # total area harvested/thinned each year for each managType
 area <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, managType), summarise, area = sum(annualAREA))
 ggplot(data = area, aes(x = date, y = area, group = managType, col = managType)) +
+  geom_line() +
+  geom_point()
+
+# surface harvested each year for each ownership type
+areaPP <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, domainType), summarise, area = sum(annualAREA))
+ggplot(data = areaPP, aes(x = date, y = area, group = domainType, col = domainType)) +
   geom_line() +
   geom_point()
 

@@ -176,14 +176,14 @@ dist <- raster("X:/ProjetsCommuns/PROTEST/T1/Accessibilite/sylvaccess/sylvaccess
 crs(dist) <- crs(pnr)
 # plot(dist, col=colorRampPalette(c("black", "red"))(255))
 
-# retrieve area < 500m
-near <- dist < 500
+# retrieve area < 200m
+near <- dist < 200
 isBecomes <- cbind(c(0, 1),
                    c(NA, 1))
 near <- reclassify(near, rcl = isBecomes)
 
-# retrieve area > 500m
-far <- dist > 500
+# retrieve area > 200m
+far <- dist > 200
 isBecomes <- cbind(c(0, 1),
                    c(NA, 2))
 far <- reclassify(far, rcl = isBecomes)
@@ -194,6 +194,7 @@ dist <- mosaic(near, far, fun = sum)
 #                    c(0, 1, 2))
 # dist <- reclassify(dist, rcl = isBecomes)
 # plot(dist, col=colorRampPalette(c("black", "red"))(255))
+# writeRaster(dist, "Testdist.tif")
 
 ###############################################################
 # prepare NFI data for extraction
