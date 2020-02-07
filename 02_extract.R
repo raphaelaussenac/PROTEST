@@ -174,27 +174,32 @@ nonHarv <- reclassify(nonHarv, rcl = isBecomes)
 dist <- raster("X:/ProjetsCommuns/PROTEST/T1/Accessibilite/sylvaccess/sylvaccessv3.3/Skidder/PNRfilled_F.distance.tif")
 # set projection
 crs(dist) <- crs(pnr)
+# remove extreme (error) value
+dist[dist > 100000] <- NA
+# transform NA into -1000
+# dist[is.na(dist[])] <- -1000
+
 # plot(dist, col=colorRampPalette(c("black", "red"))(255))
 
-# retrieve area < 200m
-near <- dist < 200
-isBecomes <- cbind(c(0, 1),
-                   c(NA, 1))
-near <- reclassify(near, rcl = isBecomes)
-
-# retrieve area > 200m
-far <- dist > 200
-isBecomes <- cbind(c(0, 1),
-                   c(NA, 2))
-far <- reclassify(far, rcl = isBecomes)
-
-# merge rasters --> [f]ree [e]volution [f]orest
-dist <- mosaic(near, far, fun = sum)
-# isBecomes <- cbind(c(NA, 1, 2), # replace NA -> 0
-#                    c(0, 1, 2))
-# dist <- reclassify(dist, rcl = isBecomes)
-# plot(dist, col=colorRampPalette(c("black", "red"))(255))
-# writeRaster(dist, "Testdist.tif")
+# # retrieve area < 100000m
+# near <- dist < 100000
+# isBecomes <- cbind(c(0, 1),
+#                    c(NA, 1))
+# near <- reclassify(near, rcl = isBecomes)
+#
+# # retrieve area > 100000m
+# far <- dist > 100000
+# isBecomes <- cbind(c(0, 1),
+#                    c(NA, 2))
+# far <- reclassify(far, rcl = isBecomes)
+#
+# # merge rasters --> [f]ree [e]volution [f]orest
+# dist <- mosaic(near, far, fun = sum)
+# # isBecomes <- cbind(c(NA, 1, 2), # replace NA -> 0
+# #                    c(0, 1, 2))
+# # dist <- reclassify(dist, rcl = isBecomes)
+# # plot(dist, col=colorRampPalette(c("black", "red"))(255))
+# # writeRaster(dist, "Testdist.tif")
 
 ###############################################################
 # prepare NFI data for extraction
@@ -356,22 +361,40 @@ getprop <- function(x) {
 }
 nonHarvExt <- nonHarvVr$extract(sp = forestPlots, fun = getprop, small = TRUE)
 
+# # extract dist
+# # Create a function to calculate the proportion of dist 0, 1 and 2 on each plot
+# # and set a threshold to determine wether the entire plot will become 0 or 1 or 2
+# # ex with a threshold of 40: if more than 40% of a plot is 0 and the rest of it is 1
+# # it becomes entirely 0 (favor 0 when 0,1 otherwise (0,2 - 1,2 - 1,2,3) take the mode)
+# threshold01 <- 40
+# getpropdist <- function(x) {
+#   uniqv <- sort(unique(x)) # 0, 1
+#   uniqv <- uniqv[!is.na(uniqv)]
+#   if (length(uniqv)==2 & sum(uniqv) == 1){ # if dist is 0,1 --> favor 0
+#     uniqv[which(tabulate(match(x, uniqv)) * 100 / sum(tabulate(match(x, uniqv))) > threshold01)][1]
+#   } else {
+#     uniqv[which.max(tabulate(match(x, uniqv)))] # mode
+#   }
+# }
+# distExt <- distVr$extract(sp = forestPlots, fun = getpropdist, small = TRUE)
+
+
+
+
+
 # extract dist
-# Create a function to calculate the proportion of dist 0, 1 and 2 on each plot
-# and set a threshold to determine wether the entire plot will become 0 or 1 or 2
-# ex with a threshold of 40: if more than 40% of a plot is 0 and the rest of it is 1
-# it becomes entirely 0 (favor 0 when 0,1 otherwise (0,2 - 1,2 - 1,2,3) take the mode)
-threshold01 <- 40
-getpropdist <- function(x) {
-  uniqv <- sort(unique(x)) # 0, 1
-  uniqv <- uniqv[!is.na(uniqv)]
-  if (length(uniqv)==2 & sum(uniqv) == 1){ # if dist is 0,1 --> favor 0
-    uniqv[which(tabulate(match(x, uniqv)) * 100 / sum(tabulate(match(x, uniqv))) > threshold01)][1]
+# if most of the plot is inaccessible (x = NA) -> inaccessible (i.e. plot dist = NA)
+# if most of the plot is accessible (x != NA) -> dist = mean(dist != NA)
+getdist <- function(x) {
+  inaccess <- length(x[is.na(x)])
+  access <- length(x[!is.na(x)])
+  if (inaccess > access){
+    NA
   } else {
-    uniqv[which.max(tabulate(match(x, uniqv)))] # mode
+    mean(x, na.rm = TRUE)
   }
 }
-distExt <- distVr$extract(sp = forestPlots, fun = getpropdist, small = TRUE)
+distExt <- distVr$extract(sp = forestPlots, fun = getdist, small = TRUE)
 
 # extract elevation
 elevExt <- elevVr$extract(sp = forestPlots, fun = mean, small = TRUE)
