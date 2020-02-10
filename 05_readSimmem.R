@@ -13,7 +13,7 @@ library(plyr)
 setwd("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST")
 
 # load SIMMEM output file
-df <- read.csv(file="./input/exportSimuCorrectif200.txt", sep = "\t", skip = 3)
+df <- read.csv(file="./input/autoBAU.txt", sep = "\t", skip = 3)
 colnames(df)[1] <- "standId"
 
 # load SIMMEM input to retrieve plot surface
@@ -77,9 +77,28 @@ test$standId_year <- NULL
 df <- test
 colnames(df)[colnames(df) == "volumeRemoved_m3.x"] <- 'volumeRemoved_m3'
 
+###############################################################
+# basal area and density (rdi)
+###############################################################
+df$standColor <- as.numeric(as.factor(df$standId))
+
+# BA
+ggplot(data = df, aes(x = date, y = basalArea_m2, group = standId, col = standId)) +
+  geom_line() +
+  scale_color_gradient2(low="blue", mid="green", high="red", midpoint = mean(df$standColor)) +
+  # geom_point() +
+  facet_grid(compo ~ managType)
+
+# RDI
+ggplot(data = df, aes(x = date, y = density_01, group = standId, col = standId)) +
+  geom_line() +
+  scale_color_gradient2(low="blue", mid="green", high="red", midpoint = mean(df$standColor)) +
+  # geom_point() +
+  facet_grid(compo ~ managType)
+
 
 ###############################################################
-# Annual volume  removed
+# Annual volume removed
 ###############################################################
 
 # time step = 3 yrs
@@ -113,7 +132,7 @@ ggplot(data = vol, aes(x = date, y = vol, group = compo)) +
   facet_grid(compo ~ managType)
 
 ###############################################################
-# surface output
+# Annual surface harvested/thinned
 ###############################################################
 
 # time step = 3 yrs
@@ -142,24 +161,4 @@ area <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, managType, compo), summarise
 ggplot(data = area, aes(x = date, y = area, group = managType)) +
   geom_line() +
   geom_point() +
-  facet_grid(compo ~ managType)
-
-
-###############################################################
-# basal area and density (rdi)
-###############################################################
-df$standColor <- as.numeric(as.factor(df$standId))
-
-# BA
-ggplot(data = df, aes(x = date, y = basalArea_m2, group = standId, col = standId)) +
-  geom_line() +
-  scale_color_gradient2(low="blue", mid="green", high="red", midpoint = mean(df$standColor)) +
-  # geom_point() +
-  facet_grid(compo ~ managType)
-
-# RDI
-ggplot(data = df, aes(x = date, y = density_01, group = standId, col = standId)) +
-  geom_line() +
-  scale_color_gradient2(low="blue", mid="green", high="red", midpoint = mean(df$standColor)) +
-  # geom_point() +
   facet_grid(compo ~ managType)

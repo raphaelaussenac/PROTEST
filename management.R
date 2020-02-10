@@ -118,8 +118,8 @@ management <- function(type, plotList, conservationThresh, HarvThresh,
   irrThresh <- propRemaining * irrThresh
 
   # inaccessible plots are also classified in conservation
-  plotCons <- c(plotCons, forestPlots[forestPlots$STAND_ID %in% plotList & forestPlots$nonHarv == 1 & forestPlots$dist == 0, 'STAND_ID'])
-  propInaccess <- sum(forestPlots[forestPlots$STAND_ID %in% plotList & forestPlots$nonHarv == 1 & forestPlots$dist == 0, 'AREA']) / area
+  plotCons <- c(plotCons, forestPlots[forestPlots$STAND_ID %in% plotList & forestPlots$nonHarv == 1 & is.na(forestPlots$dist), 'STAND_ID'])
+  propInaccess <- sum(forestPlots[forestPlots$STAND_ID %in% plotList & forestPlots$nonHarv == 1 & is.na(forestPlots$dist), 'AREA']) / area
 
   # 2 possible cases:
   # propInaccess < conservationThresh
@@ -160,13 +160,13 @@ management <- function(type, plotList, conservationThresh, HarvThresh,
 
   # thinning and harvest -------------------------------------------------------
   plotThinHarv <- c()
-  switch <- 2
+  # switch <- 2
   if (thinHarvThresh > 0){
     thinHarvThresh <- area * thinHarvThresh
     plotThinHarv <- rdmSelect(plotSubset = plotList[!(plotList %in% c(plotCons, plotHarv))], threshold = thinHarvThresh, switch = switch, plotCons = plotCons)
     forestPlots[forestPlots$STAND_ID %in% plotThinHarv, "COMMENT"] <- paste("Thi", type, sep = "")
   }
-  switch <- 1
+  # switch <- 1
 
   # irregular ------------------------------------------------------------------
   plotIrr <- c()

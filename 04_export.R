@@ -75,12 +75,12 @@ forestPlots <- merge(forestPlots, wkt[, c('WKTid', 'WKT')], by = 'WKTid')
 # define exploitability
 ###############################################################
 
-forestPlots$access <- as.character(forestPlots$access)
-# non-expoitable sites
-forestPlots[!(forestPlots$access %in% c("dist 1 harv 1")), "access"] <- 0 # , "dist 2 harv 1"
-# exploitable sites
-forestPlots[forestPlots$access %in% c("dist 1 harv 1"), "access"] <- 1
-forestPlots$access <- as.factor(forestPlots$access)
+# forestPlots$access <- as.character(forestPlots$access)
+# # non-expoitable sites
+# forestPlots[!(forestPlots$access %in% c("dist 1 harv 1")), "access"] <- 0 # , "dist 2 harv 1"
+# # exploitable sites
+# forestPlots[forestPlots$access %in% c("dist 1 harv 1"), "access"] <- 1
+# forestPlots$access <- as.factor(forestPlots$access)
 
 ###############################################################
 # format
@@ -235,7 +235,7 @@ beechFirSprucePubList <- forestPlots[forestPlots$STAND_ID %in% beechFirSpruceLis
 beechFirSprucePrivList <- forestPlots[forestPlots$STAND_ID %in% beechFirSpruceList & forestPlots$DOMAINE_TYPE == "Priv", "STAND_ID"]
 
 ###############################################################
-# management scenario
+# assign management type to each stand
 ###############################################################
 
 # calculate plot total basal area
@@ -245,10 +245,32 @@ forestPlots[forestPlots$NHA_2 > 0, "Gsp2"] <- (forestPlots[forestPlots$NHA_2 > 0
 forestPlots$G <- forestPlots$Gsp1 + forestPlots$Gsp2
 
 # force plots nonHarv == 0 to be inaccessible
-forestPlots[forestPlots$nonHarv == 0, "dist"] <- 0
+forestPlots[forestPlots$nonHarv == 0 & !is.na(forestPlots$dist), "dist"]<- NA
 
-# set whether plots dist = 2 are accesible (1) or not (0)
-forestPlots[forestPlots$dist == 2, "dist"] <- 0
+
+# set exploitation probability of accessible plots
+forestPlots$proba <- -1
+forestPlots[!is.na(forestPlots$dist), "proba"] <- 1 - (log(forestPlots[!is.na(forestPlots$dist), "dist"]) / log(max(forestPlots[!is.na(forestPlots$dist), "dist"])))
+plot(forestPlots[!is.na(forestPlots$dist), "proba"] ~ forestPlots[!is.na(forestPlots$dist), "dist"], ylim = c(0,1))
+forestPlots$EXPLOITABILITY <- -99
+forestPlots[is.na(forestPlots$dist), 'EXPLOITABILITY'] <- 0
+subsetNonAcc <- forestPlots[forestPlots$EXPLOITABILITY == 0,]
+subsetAcc <- forestPlots[forestPlots$EXPLOITABILITY != 0,]
+for (i in 1:nrow(subsetAcc)){
+  subsetAcc[i, 'EXPLOITABILITY'] <- sample(x = c(1,0), prob = c(subsetAcc[i, "proba"], 1-subsetAcc[i, "proba"]), size = 1)
+}
+plot(subsetAcc$proba ~ subsetAcc$dist)
+plot(subsetAcc$EXPLOITABILITY ~ subsetAcc$dist)
+
+# define accesible plots with EXPLOITABILITY = 0 as inaccessible
+subsetAcc[subsetAcc$EXPLOITABILITY == 0, 'dist'] <- NA
+
+# merge Acc and nonAcc plots
+forestPlots <- rbind(subsetNonAcc, subsetAcc)
+
+# define extra plots as non accessible = non harvested
+# -- exemple 1 plot sur 2 en chêne privé ne sera pas géré/exploité
+# modofier exploitability et dist
 
 source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/sc1_BAU.R')
 
@@ -260,7 +282,13 @@ forestPlots$dist <- NULL
 forestPlots$Gsp1 <- NULL
 forestPlots$Gsp2 <- NULL
 forestPlots$G <- NULL
+forestPlots$proba <- NULL
 
+###############################################################
+# create management scenario java file to run SIMMEM
+###############################################################
+
+source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/managementRulesSimmem.R')
 
 ###############################################################
 # verification

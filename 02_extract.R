@@ -378,10 +378,6 @@ nonHarvExt <- nonHarvVr$extract(sp = forestPlots, fun = getprop, small = TRUE)
 # }
 # distExt <- distVr$extract(sp = forestPlots, fun = getpropdist, small = TRUE)
 
-
-
-
-
 # extract dist
 # if most of the plot is inaccessible (x = NA) -> inaccessible (i.e. plot dist = NA)
 # if most of the plot is accessible (x != NA) -> dist = mean(dist != NA)
