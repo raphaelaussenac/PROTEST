@@ -25,7 +25,7 @@ pnr <- readOGR(dsn = "Z:/Private/PNR Bauges/Sans_Trou", layer = "parc_filled", e
 # elevation
 ###############################################################
 
-elev <- raster("MNT_all_5m.tif")
+elev <- raster("./data/MNT_all_5m.tif")
 # set projection
 crs(elev) <- crs(pnr)
 # plot(elev, col=colorRampPalette(c("black", "white"))(255))
@@ -55,7 +55,7 @@ greco <- spTransform(greco, crs(pnr)) # change projection
 # writeRaster(grecoRaster, "grecoRaster.tif")
 
 # load grecoRaster raster
-grecoRaster <- raster('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/grecoRaster.tif')
+grecoRaster <- raster('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/data/grecoRaster.tif')
 # plot(grecoRaster, col=colorRampPalette(c("green", "blue"))(255))
 
 ###############################################################
@@ -151,7 +151,7 @@ r <- raster('Z:/Private/rasterVanneck/r.tif')
 ###############################################################
 
 # load ownership raster
-ownership <- raster('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/BDForetv2_foret_PNRfilled_propriete_5m.tif')
+ownership <- raster('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/data/BDForetv2_foret_PNRfilled_propriete_5m.tif')
 # plot(ownership, col=colorRampPalette(c("green", "blue"))(255))
 
 ###############################################################
@@ -234,7 +234,7 @@ plot(ifnCircular, add = TRUE, col = 'red', border = 'red')
 # geological data
 ###############################################################
 
-geol <- readOGR(dsn = ".", layer = "geol", encoding = "UTF-8", use_iconv = TRUE)
+geol <- readOGR(dsn = "./data", layer = "geol", encoding = "UTF-8", use_iconv = TRUE)
 
 # intersection NFI points / geol polygone
 ifnGeol <- intersect(baugesIfnPts, geol)
@@ -327,13 +327,13 @@ ifnCircular@data <- cbind(ifnCircular@data, grecoExtDf, elevExtDf, sloExtDf,
                       orienExtDf, phExtDf, rumExtDf)
 
 # save
-shapefile(ifnCircular, filename = 'ifnCircular', overwrite = TRUE)
+shapefile(ifnCircular, filename = './data/ifnCircular', overwrite = TRUE)
 
 ###############################################################
 # extract values for all forest plots
 ###############################################################
 
-forestPlots <- readOGR(dsn = ".", layer = "BDid_1", encoding = "UTF-8", use_iconv = TRUE)
+forestPlots <- readOGR(dsn = "./data", layer = "BDid_1", encoding = "UTF-8", use_iconv = TRUE)
 crs(forestPlots) <- crs(pnr)
 # add unique id
 forestPlots$WKTid <- c(1:nrow(forestPlots@data))
@@ -505,7 +505,7 @@ forestPlots@data <- cbind(forestPlots@data, grecoExtDf, ownershipExtDf,
 # load geol classification
 ###############################################################
 
-classGeol <- read.csv("classificationGeol.csv", header = TRUE, sep = ";")
+classGeol <- read.csv("./data/classificationGeol.csv", header = TRUE, sep = ";")
 classGeol <- classGeol[, c('NOTATION', 'Code_carbonate', 'Code_hydro')]
 classGeol$rocheCalc <- 0
 classGeol[classGeol$Code_carbonate > 0, 'rocheCalc'] <- 1
@@ -520,4 +520,4 @@ forestPlots <- merge(forestPlots, classGeol, by.x = "geolNotation", by.y = 'NOTA
 # save
 ###############################################################
 
-shapefile(forestPlots, filename = 'forestPlots3Ha', overwrite = TRUE)
+shapefile(forestPlots, filename = './data/forestPlots3Ha', overwrite = TRUE)

@@ -33,4 +33,4 @@ plot(PNR, add = TRUE, col = "green")
 # shapefile(geol, filename = 'geol')
 
 # save new shapefile
-shapefile(shs, filename = 'geol', overwrite = TRUE)
+shapefile(shs, filename = './data/geol', overwrite = TRUE)

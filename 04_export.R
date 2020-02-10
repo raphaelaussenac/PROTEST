@@ -66,7 +66,7 @@ forestPlots <- forestPlots[!forestPlots$WKTid %in% disapearedPlots, ]
 forestPlots <- forestPlots@data
 
 # import non-truncated WKT
-wkt <- read.csv("BDid_1.csv", header = TRUE, sep = "\t")
+wkt <- read.csv("./data/BDid_1.csv", header = TRUE, sep = "\t")
 wkt$WKTid <- c(1:nrow(wkt))
 # replace wkt in forestPlots
 forestPlots <- merge(forestPlots, wkt[, c('WKTid', 'WKT')], by = 'WKTid')
@@ -288,7 +288,7 @@ forestPlots$proba <- NULL
 # create management scenario java file to run SIMMEM
 ###############################################################
 
-source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/managementRulesSimmem.R')
+source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/simmemRulesGenerator.R')
 
 ###############################################################
 # verification

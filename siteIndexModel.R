@@ -9,7 +9,7 @@ setwd("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST")
 # data (slope, expoNS...)
 ###############################################################
 
-ifnCircular <- readOGR(dsn = ".", layer = "ifnCircular", encoding = "UTF-8", use_iconv = TRUE)
+ifnCircular <- readOGR(dsn = "./data", layer = "ifnCircular", encoding = "UTF-8", use_iconv = TRUE)
 bdBauges <- ifnCircular@data
 
 # add a column to plot ifn points (and set the point shape)
@@ -19,7 +19,7 @@ bdBauges$ifnPt <- "NFI points"
 # load geol classification
 ###############################################################
 
-classGeol <- read.csv("classificationGeol.csv", header = TRUE, sep = ";")
+classGeol <- read.csv("./data/classificationGeol.csv", header = TRUE, sep = ";")
 classGeol <- classGeol[, c('NOTATION', 'Code_carbonate', 'Code_hydro')]
 colnames(classGeol) <- c('NOTATION', 'Cd_crbn', 'Cd_hydr')
 

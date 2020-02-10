@@ -44,11 +44,11 @@ BDforet <- BDforet[, c('CODE_TFV', 'INSEE_DEP')]
 BDforet$BDid <- paste(c(1:nrow(BDforet@data)), 'BDid', sep = "")
 
 # save the attribute table with the unqiue ID and the rest of the data
-write.table(BDforet@data, file = "BDid.csv", sep = "\t", row.names = FALSE)
+write.table(BDforet@data, file = "./data/BDid.csv", sep = "\t", row.names = FALSE)
 
 # remove all other colums from the shapefile attribute table
 BDforet@data <- data.frame(BDforet$BDid)
 colnames(BDforet@data) <- "BDid"
 
 # save new shapefile
-shapefile(BDforet, filename = 'BDid', overwrite = T)
+shapefile(BDforet, filename = './data/BDid', overwrite = T)

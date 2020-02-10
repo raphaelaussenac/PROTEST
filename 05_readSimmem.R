@@ -13,10 +13,10 @@ library(plyr)
 setwd("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST")
 
 # load SIMMEM output file
-df <- read.csv(file="./input/autoBAU.txt", sep = "\t", skip = 3)
+df <- read.csv(file="./simmem/simmemOutput/exportAutoBAU.txt", sep = "\t", skip = 3)
 colnames(df)[1] <- "standId"
 
-# load SIMMEM input to retrieve plot surface
+# load SIMMEM input file to retrieve plot surface
 forestPlots <- read.csv(file="./output/forestPlots.txt", sep = "\t", skip = 8)
 colnames(forestPlots)[1] <- "STAND_ID"
 

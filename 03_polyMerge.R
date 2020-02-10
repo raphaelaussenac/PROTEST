@@ -13,7 +13,7 @@ library(rgeos)
 setwd("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST")
 
 # import polygons
-forestPlots <- readOGR(dsn = ".", layer = "forestPlots3Ha", encoding = "UTF-8", use_iconv = TRUE)
+forestPlots <- readOGR(dsn = "./data", layer = "forestPlots3Ha", encoding = "UTF-8", use_iconv = TRUE)
 forestPlots$area <- area(forestPlots)
 forestPlots$id <- paste(c(1:nrow(forestPlots@data)), 'id', sep = "")
 
@@ -186,7 +186,7 @@ end_time - start_time
 # time elapsed
 # 5.450937 hours with threshold == 5000 m²
 
-shapefile(forestPlots, filename = 'forestPlots3HaPolyMerge', overwrite = TRUE)
+shapefile(forestPlots, filename = './data/forestPlots3HaPolyMerge', overwrite = TRUE)
 
 ###############################################################
 # filters
@@ -225,7 +225,7 @@ forestPlots$id <- NULL
 # save
 ###############################################################
 
-shapefile(forestPlots, filename = 'forestPlots', overwrite = TRUE)
+shapefile(forestPlots, filename = './data/forestPlots', overwrite = TRUE)
 
 
 

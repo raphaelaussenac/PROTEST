@@ -27,16 +27,16 @@ irr <- paste('        <int>', irr, '</int>', sep = '')
 ###############################################################
 
 # read text file
-sc1 <- readLines("./managementScenario/1scBAU")
-sc2 <- readLines("./managementScenario/2scBAU")
-sc3 <- readLines("./managementScenario/3scBAU")
-sc4 <- readLines("./managementScenario/4scBAU")
-sc5 <- readLines("./managementScenario/5scBAU")
-sc6 <- readLines("./managementScenario/6scBAU")
+sc1 <- readLines("./simmem/simmemRules/1scBAU")
+sc2 <- readLines("./simmem/simmemRules/2scBAU")
+sc3 <- readLines("./simmem/simmemRules/3scBAU")
+sc4 <- readLines("./simmem/simmemRules/4scBAU")
+sc5 <- readLines("./simmem/simmemRules/5scBAU")
+sc6 <- readLines("./simmem/simmemRules/6scBAU")
 
 
 ###############################################################
 # save scenario
 ###############################################################
 
-writeLines(c(sc1, con, sc2, har, sc3, thiPu, sc4, thiPrPP, sc5, irr, sc6), con = "./managementScenario/BAU")
+writeLines(c(sc1, con, sc2, har, sc3, thiPu, sc4, thiPrPP, sc5, irr, sc6), con = "./output/BAU")

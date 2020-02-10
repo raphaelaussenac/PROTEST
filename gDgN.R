@@ -490,8 +490,8 @@ range(ratDgFirSpruce$dgSp1 / ratDgFirSpruce$dgSp2)
 ###############################################################
 
 # comparer dg ifn / protest /lidar et simulé
-ifn <- read.csv("forRaph.csv", sep = " ")       # --> ifn data (dg > 7.5)
-load(file="placette.protest.rda")               # --> protest data (dg > 7.5)
+ifn <- read.csv("./data/forRaph.csv", sep = " ")       # --> ifn data (dg > 7.5)
+load(file="./data/placette.protest.rda")               # --> protest data (dg > 7.5)
 dgPred <- raster('X:/ProjetsCommuns/PROTEST/T1/Observatoire/Analyse/rastDg75error.clean.tif') # LIDAR data (dg > 7.5)
 
 plot(density(dgPred), col = 'orange', ylim = c(0,0.08))
