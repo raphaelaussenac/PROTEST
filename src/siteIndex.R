@@ -11,7 +11,7 @@ library(sf)
 library(gridExtra)
 
 # load models
-source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/siteIndexModel.R')
+source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/src/siteIndexModel.R')
 
 ###############################################################
 # prediction : assign potential index to each forest plot

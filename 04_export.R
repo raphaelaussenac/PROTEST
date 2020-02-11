@@ -10,7 +10,7 @@ library(reshape2)
 ###############################################################
 
 # Site index
-source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/siteIndex.R')
+source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/src/siteIndex.R')
 
 forestPlots
 dim(forestPlots)
@@ -22,7 +22,7 @@ forestPlotsSiteIndex <- forestPlots
 rm(list=setdiff(ls(), c('forestPlotsSiteIndex', 'mod03', 'mod09', 'mod61', 'mod62', 'predFert')))
 
 # compo g Dg and N
-source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/gDgN.R')
+source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/src/gDgN.R')
 
 forestPlots
 dim(forestPlots)
@@ -272,7 +272,7 @@ forestPlots <- rbind(subsetNonAcc, subsetAcc)
 # -- exemple 1 plot sur 2 en chêne privé ne sera pas géré/exploité
 # modofier exploitability et dist
 
-source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/sc1_BAU.R')
+source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/src/sc1_BAU.R')
 
 # TODO: arriver a ce stade -> executer tous les scenarios de gestion avec le même forestPLot
 # (car attention -> processus rdm en amont)
@@ -288,7 +288,7 @@ forestPlots$proba <- NULL
 # create management scenario java file to run SIMMEM
 ###############################################################
 
-source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/simmemRulesGenerator.R')
+source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/simmem/simmemRules/simmemRulesGenerator.R')
 
 ###############################################################
 # verification

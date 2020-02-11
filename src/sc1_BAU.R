@@ -1,5 +1,5 @@
 # load management function function
-source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/management.R')
+source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/src/management.R')
 
 ###############################################################
 # assign management type to each plot
