@@ -20,4 +20,6 @@ notes.R
 *.txt
 *.xml
 *.rda
-simmem
+simmemOutput
+*scBAU
+scSIMMEM
