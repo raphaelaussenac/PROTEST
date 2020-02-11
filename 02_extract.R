@@ -35,6 +35,8 @@ slo <- terrain(elev, opt = 'slope', unit = 'degrees', neighbors = 8)
 
 # orientation
 orien <- terrain(elev, opt = 'aspect', unit = 'degrees', neighbors = 8)
+expoNS <- cos(orien*pi/180)
+expoEW <- sin(orien*pi/180)
 
 ###############################################################
 # greco
@@ -246,7 +248,9 @@ ifnGeol <- intersect(baugesIfnPts, geol)
 # convert "Raster" into "VeloxRaster"
 elevVr <- velox(elev)
 sloVr <- velox(slo)
-orienVr <- velox(orien)
+# orienVr <- velox(orien)
+expoNSVr <- velox(expoNS)
+expoEWVr <- velox(expoEW)
 grecoVr <- velox(grecoRaster)
 ownershipVr <- velox(ownership)
 nonHarvVr <- velox(nonHarv)
@@ -286,7 +290,9 @@ elevExt <- elevVr$extract(sp = ifnCircular, fun = mean, small = TRUE)
 sloExt <- sloVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
 
 # extract orientation
-orienExt <- orienVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+# orienExt <- orienVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+expoNSExt <- expoNSVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+expoEWExt <- expoEWVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
 
 # extract silvae data
 phExt <- phVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
@@ -300,8 +306,12 @@ elevExtDf <- data.frame(elevExt)
 colnames(elevExtDf) <- "alti"
 sloExtDf <- data.frame(sloExt)
 colnames(sloExtDf) <- "slope"
-orienExtDf <- data.frame(orienExt)
-colnames(orienExtDf) <- "orient"
+# orienExtDf <- data.frame(orienExt)
+# colnames(orienExtDf) <- "orient"
+expoNSExtDf <- data.frame(expoNSExt)
+colnames(expoNSExtDf) <- "expoNS"
+expoEWExtDf <- data.frame(expoEWExt)
+colnames(expoEWExtDf) <- "expoEW"
 phExtDf <- data.frame(phExt)
 colnames(phExtDf) <- "ph"
 rumExtDf <- data.frame(rumExt)
@@ -310,10 +320,10 @@ colnames(rumExtDf) <- "rum"
 # convert slope degrees into percent
 sloExtDf$slope <- tan(sloExtDf$slope*pi/180)*100
 
-# convert orientation degrees into cos(radians)
-orienExtDf$expoNS <- cos(orienExtDf$orient*pi/180)
-orienExtDf$expoEW <- sin(orienExtDf$orient*pi/180)
-orienExtDf <- orienExtDf[,c("expoNS", "expoEW")]
+# # convert orientation degrees into cos(radians)
+# orienExtDf$expoNS <- cos(orienExtDf$orient*pi/180)
+# orienExtDf$expoEW <- sin(orienExtDf$orient*pi/180)
+# orienExtDf <- orienExtDf[,c("expoNS", "expoEW")]
 
 # add geol data
 ifnCircular <- as_Spatial(ifnCircular)
@@ -324,7 +334,7 @@ colnames(ifnCircular@data) <- c(c("idp", "X", "Y", "potentiel_03", "potentiel_09
                                 "potentiel_61", "potentiel_62", 'unknownPart03',
                                 'unknownPart09', 'unknownPart61', 'unknownPart62', 'geolNotation'))
 ifnCircular@data <- cbind(ifnCircular@data, grecoExtDf, elevExtDf, sloExtDf,
-                      orienExtDf, phExtDf, rumExtDf)
+                      expoNSExtDf, expoEWExtDf, phExtDf, rumExtDf)
 
 # save
 shapefile(ifnCircular, filename = './data/ifnCircular', overwrite = TRUE)
@@ -399,7 +409,9 @@ elevExt <- elevVr$extract(sp = forestPlots, fun = mean, small = TRUE)
 sloExt <- sloVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
 
 # extract orientation
-orienExt <- orienVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+# orienExt <- orienVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+expoNSExt <- expoNSVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
+expoEWExt <- expoEWVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
 
 # extract silvae data
 phExt <- phVr$extract(sp = forestPlots, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
@@ -451,8 +463,12 @@ elevExtDf <- data.frame(elevExt)
 colnames(elevExtDf) <- "alti"
 sloExtDf <- data.frame(sloExt)
 colnames(sloExtDf) <- "slope"
-orienExtDf <- data.frame(orienExt)
-colnames(orienExtDf) <- "orient"
+# orienExtDf <- data.frame(orienExt)
+# colnames(orienExtDf) <- "orient"
+expoNSExtDf <- data.frame(expoNSExt)
+colnames(expoNSExtDf) <- "expoNS"
+expoEWExtDf <- data.frame(expoEWExt)
+colnames(expoEWExtDf) <- "expoEW"
 forProtecExtDf <- data.frame(forProtecExt)
 colnames(forProtecExtDf) <- "forProtec"
 niExtDf <- data.frame(niExt)
@@ -489,15 +505,15 @@ colnames(forestPlots@data)[colnames(forestPlots@data) == 'coordForest$NOTATION']
 # convert slope degrees into percent
 sloExtDf$slope <- tan(sloExtDf$slope*pi/180)*100
 
-# convert orientation degrees into cos(radians)
-orienExtDf$expoNS <- cos(orienExtDf$orient*pi/180)
-orienExtDf$expoEW <- sin(orienExtDf$orient*pi/180)
-orienExtDf <- orienExtDf[,c("expoNS", "expoEW")]
+# # convert orientation degrees into cos(radians)
+# orienExtDf$expoNS <- cos(orienExtDf$orient*pi/180)
+# orienExtDf$expoEW <- sin(orienExtDf$orient*pi/180)
+# orienExtDf <- orienExtDf[,c("expoNS", "expoEW")]
 
 # integrate into the shp file
 forestPlots@data <- cbind(forestPlots@data, grecoExtDf, ownershipExtDf,
                       nonHarvExtDf, distExtDf, elevExtDf, sloExtDf,
-                      orienExtDf, forProtecExtDf, dgPredExtDf, gPredExtDf,
+                      expoNSExtDf, expoEWExtDf, forProtecExtDf, dgPredExtDf, gPredExtDf,
                       ggbPredExtDf, p100gfPredExtDf, phExtDf,
                       rumExtDf, kExtDf, lsExtDf, pExtDf, rExtDf)
 
