@@ -61,7 +61,8 @@ bdBauges03 <- bdBauges
 #           I(Cd_crbn == "0") + I(Cd_crbn == "1") + I(Cd_crbn == "2")
 
 # glm Gamma
-mod03 <- glm(ptnt_03 ~ alti + rum + expoNS +
+mod03 <- glm(ptnt_03 ~ rum + expoNS + I(alti^2) +
+          I(greco == "H") +
           I(Cd_hydr == "1") +
           I(Cd_crbn == "1") + I(Cd_crbn == "2"),
           family = Gamma(link = "identity"),
@@ -119,7 +120,7 @@ bdBauges61 <- bdBauges
 #           I(Cd_crbn == "0") + I(Cd_crbn == "1") + I(Cd_crbn == "2")
 
 # glm Gamma
-mod61 <- glm(ptnt_61 ~ alti + I(rum^2) +
+mod61 <- glm(ptnt_61 ~ alti + expoNS + I(rum^2) +
           I(greco == "H") +
           I(Cd_crbn == "2"),
           family = Gamma(link = "identity"),
