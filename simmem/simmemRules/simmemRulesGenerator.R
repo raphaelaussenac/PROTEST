@@ -3,23 +3,23 @@
 ###############################################################
 
 # create list of CON plots
-con <- forestPlots[substr(forestPlots$COMMENT, 1, 3) == "Con", "STAND_ID"]
+con <- forestStands[substr(forestStands$COMMENT, 1, 3) == "Con", "STAND_ID"]
 con <- paste('        <int>', con, '</int>', sep = '')
 
 # create list of HAR plots
-har <- forestPlots[substr(forestPlots$COMMENT, 1, 3) == "Har", "STAND_ID"]
+har <- forestStands[substr(forestStands$COMMENT, 1, 3) == "Har", "STAND_ID"]
 har <- paste('        <int>', har, '</int>', sep = '')
 
 # create list of THI Pu plots
-thiPu <- forestPlots[substr(forestPlots$COMMENT, 1, 3) == "Thi" & substr(forestPlots$COMMENT, 7, 8) == "Pu", "STAND_ID"]
+thiPu <- forestStands[substr(forestStands$COMMENT, 1, 3) == "Thi" & substr(forestStands$COMMENT, 7, 8) == "Pu", "STAND_ID"]
 thiPu <- paste('        <int>', thiPu, '</int>', sep = '')
 
 # create list of THI Pr & PP plots
-thiPrPP <- forestPlots[substr(forestPlots$COMMENT, 1, 3) == "Thi" & substr(forestPlots$COMMENT, 7, 8) != "Pu", "STAND_ID"]
+thiPrPP <- forestStands[substr(forestStands$COMMENT, 1, 3) == "Thi" & substr(forestStands$COMMENT, 7, 8) != "Pu", "STAND_ID"]
 thiPrPP <- paste('        <int>', thiPrPP, '</int>', sep = '')
 
 # create list of CON plots
-irr <- forestPlots[substr(forestPlots$COMMENT, 1, 3) == "Irr", "STAND_ID"]
+irr <- forestStands[substr(forestStands$COMMENT, 1, 3) == "Irr", "STAND_ID"]
 irr <- paste('        <int>', irr, '</int>', sep = '')
 
 ###############################################################

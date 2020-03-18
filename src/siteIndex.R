@@ -2,7 +2,7 @@
 # initialisation
 ###############################################################
 # clean up environment
-rm(list = ls())
+rm(list = setdiff(ls(), "user"))
 
 # load packages
 library(ggplot2)
@@ -11,33 +11,33 @@ library(sf)
 library(gridExtra)
 
 # load models
-source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/src/siteIndexModel.R')
+source(paste0(user$WorkingDir, "/src/siteIndexModel.R"))
 
 ###############################################################
 # prediction : assign potential index to each forest plot
 ###############################################################
 
 # load forest plots
-forestPlots <- readOGR(dsn = "./data", layer = "forestPlots", encoding = "UTF-8", use_iconv = TRUE)
-# plot(forestPlots, col = forestPlots$CODE_TFV, border = forestPlots$CODE_TFV)
-plot(coordinates(forestPlots), asp = 1)
+forestStands <- readOGR(dsn = "./data", layer = "forestPlots", encoding = "UTF-8", use_iconv = TRUE)
+# plot(forestStands, col = forestStands$CODE_TFV, border = forestStands$CODE_TFV)
+plot(coordinates(forestStands), asp = 1)
 
 # add the coordinates of the polygons' centroids (since X and Y may be used
 # in the models)
-coord <- data.frame(coordinates(forestPlots))
+coord <- data.frame(coordinates(forestStands))
 colnames(coord) <- c("X", "Y")
-forestPlots@data <- cbind(forestPlots@data, coord)
+forestStands@data <- cbind(forestStands@data, coord)
 
 # create df with variables used in the models
-modDf <- forestPlots@data
+modDf <- forestStands@data
 modDf <- modDf[, c("alti", "slope", "greco", "expoNS", "expoEW", "ph", "rum", 'gelNttn' ,'Cd_crbn', 'Cd_hydr', 'rochClc', 'X', 'Y')]
 
 # max slope = 200 --> remove cliff effect
 modDf[modDf$slope > 200, "slope"] <- 200
 
 # plot area histogram
-hist(area(forestPlots), breaks = 1000)
-# hist(area(forestPlots)[area(forestPlots)<20], breaks = 10)
+hist(area(forestStands), breaks = 1000)
+# hist(area(forestStands)[area(forestStands)<20], breaks = 10)
 
 # predict fertility index
 modDf <- predFert(mod03, modDf, "03")
@@ -49,15 +49,15 @@ modDf <- predFert(mod62, modDf, "62")
 # control model quality and create fertility maps
 ###############################################################
 
-forestPlots@data <- cbind(forestPlots@data, modDf[,c('pot03', 'pot03Epsilon',
+forestStands@data <- cbind(forestStands@data, modDf[,c('pot03', 'pot03Epsilon',
                                             'pot09', 'pot09Epsilon', 'pot61',
                                             'pot61Epsilon', 'pot62',
                                             'pot62Epsilon')])
 
 # convert to export to ggplot
-forestPlotsPts <- fortify(forestPlots, region="WKTid")
-colnames(forestPlotsPts)[colnames(forestPlotsPts) == 'id'] <- 'WKTid'
-forestPlotsDf <- join(forestPlotsPts, forestPlots@data, by= 'WKTid')
+forestStandsPts <- fortify(forestStands, region="WKTid")
+colnames(forestStandsPts)[colnames(forestStandsPts) == 'id'] <- 'WKTid'
+forestStandsDf <- join(forestStandsPts, forestStands@data, by= 'WKTid')
 
 # plot
 plotMap <- function(sp){
@@ -82,7 +82,7 @@ plotMap <- function(sp){
   colnames(bd)[colnames(bd) == paste('pot', sp, sep ='')] <- 'pot'
   colnames(bd)[colnames(bd) == paste('ptnt_', sp, sep ='')] <- 'ptnt'
   colnames(bd)[colnames(bd) == paste('pot', sp, 'Epsilon', sep ='')] <- 'potEpsilon'
-  forestDf <- forestPlotsDf
+  forestDf <- forestStandsDf
   colnames(forestDf)[colnames(forestDf) == paste('pot', sp, sep ='')] <- 'pot'
   colnames(forestDf)[colnames(forestDf) == paste('pot', sp, 'Epsilon', sep ='')] <- 'potEpsilon'
   mDf <- modDf

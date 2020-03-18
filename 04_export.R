@@ -1,5 +1,5 @@
 # clean up environment
-rm(list = ls())
+rm(list = setdiff(ls(), "user"))
 
 # load packages
 library(plyr)
@@ -10,190 +10,190 @@ library(reshape2)
 ###############################################################
 
 # Site index
-source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/src/siteIndex.R')
+source(paste0(user$WorkingDir, "/src/siteIndex.R"))
 
-forestPlots
-dim(forestPlots)
-sum(area(forestPlots)) / 10000
-length(forestPlots@polygons)
-length(unique(forestPlots$WKTid))
+forestStands
+dim(forestStands)
+sum(area(forestStands)) / 10000
+length(forestStands@polygons)
+length(unique(forestStands$WKTid))
 
-forestPlotsSiteIndex <- forestPlots
-rm(list=setdiff(ls(), c('forestPlotsSiteIndex', 'mod03', 'mod09', 'mod61', 'mod62', 'predFert')))
+forestStandsSiteIndex <- forestStands
+rm(list=setdiff(ls(), c('forestStandsSiteIndex', 'mod03', 'mod09', 'mod61', 'mod62', 'predFert', 'user')))
 
 # compo g Dg and N
-source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/src/gDgN.R')
+source(paste0(user$WorkingDir,"/src/gDgN.R"))
 
-forestPlots
-dim(forestPlots)
-sum(area(forestPlots)) / 10000
-length(forestPlots@polygons)
-length(unique(forestPlots$WKTid))
+forestStands
+dim(forestStands)
+sum(area(forestStands)) / 10000
+length(forestStands@polygons)
+length(unique(forestStands$WKTid))
 
-forestPlotsCompogDgN <- forestPlots
-rm(list=setdiff(ls(), c('forestPlotsCompogDgN', 'forestPlotsSiteIndex', 'mod03', 'mod09', 'mod61', 'mod62', 'predFert')))
+forestStandsCompogDgN <- forestStands
+rm(list=setdiff(ls(), c('forestStandsCompogDgN', 'forestStandsSiteIndex', 'mod03', 'mod09', 'mod61', 'mod62', 'predFert')))
 
-# missing plots? ###############################################################
+# missing stands? ###############################################################
 # check this --> might be those plots belonging to "unwanted" TFV types (FO0, FF0)
 
-disapearedPlots <- forestPlotsSiteIndex$WKTid[!forestPlotsSiteIndex$WKTid %in% forestPlotsCompogDgN$WKTid]
-forestPlotsSiteIndex@data[forestPlotsSiteIndex@data$WKTid %in% disapearedPlots,]
+disapearedPlots <- forestStandsSiteIndex$WKTid[!forestStandsSiteIndex$WKTid %in% forestStandsCompogDgN$WKTid]
+forestStandsSiteIndex@data[forestStandsSiteIndex@data$WKTid %in% disapearedPlots,]
 
-table(forestPlotsSiteIndex$CODE_TF)
-table(forestPlotsCompogDgN$CODE_TF)
+table(forestStandsSiteIndex$CODE_TF)
+table(forestStandsCompogDgN$CODE_TF)
 
 ###############################################################
 # merge
 ###############################################################
 
-forestPlots <- merge(forestPlotsSiteIndex[, c('WKTid', 'pot03', 'pot03Epsilon',
+forestStands <- merge(forestStandsSiteIndex[, c('WKTid', 'pot03', 'pot03Epsilon',
                                                                 'pot09', 'pot09Epsilon', 'pot61',
                                                                 'pot61Epsilon', 'pot62',
                                                                 'pot62Epsilon', 'INSEE_D', 'owner', 'access', 'nonHarv', 'dist')],
-                     forestPlotsCompogDgN[, c('WKTid', 'compoSp', 'area', "gBeech", "gOak", "gFir", "gSpruce",
+                     forestStandsCompogDgN[, c('WKTid', 'compoSp', 'area', "gBeech", "gOak", "gFir", "gSpruce",
                                                                 "dgBeech", "dgOak", "dgFir", "dgSpruce", "nBeech",
                                                                 "nOak", "nFir", "nSpruce")],
                       by = 'WKTid')
 
 # retrieve spatial extent
-xmin <- extent(forestPlots)@xmin
-ymin <- extent(forestPlots)@ymin
-xmax <- extent(forestPlots)@xmax
-ymax <- extent(forestPlots)@ymax
+xmin <- extent(forestStands)@xmin
+ymin <- extent(forestStands)@ymin
+xmax <- extent(forestStands)@xmax
+ymax <- extent(forestStands)@ymax
 
 # remove 'disapearedPlots'
-forestPlots <- forestPlots[!forestPlots$WKTid %in% disapearedPlots, ]
-forestPlots <- forestPlots@data
+forestStands <- forestStands[!forestStands$WKTid %in% disapearedPlots, ]
+forestStands <- forestStands@data
 
 # import non-truncated WKT
 wkt <- read.csv("./data/BDid_1.csv", header = TRUE, sep = "\t")
 wkt$WKTid <- c(1:nrow(wkt))
-# replace wkt in forestPlots
-forestPlots <- merge(forestPlots, wkt[, c('WKTid', 'WKT')], by = 'WKTid')
+# replace wkt in forestStands
+forestStands <- merge(forestStands, wkt[, c('WKTid', 'WKT')], by = 'WKTid')
 
 ###############################################################
 # define exploitability
 ###############################################################
 
-# forestPlots$access <- as.character(forestPlots$access)
+# forestStands$access <- as.character(forestStands$access)
 # # non-expoitable sites
-# forestPlots[!(forestPlots$access %in% c("dist 1 harv 1")), "access"] <- 0 # , "dist 2 harv 1"
+# forestStands[!(forestStands$access %in% c("dist 1 harv 1")), "access"] <- 0 # , "dist 2 harv 1"
 # # exploitable sites
-# forestPlots[forestPlots$access %in% c("dist 1 harv 1"), "access"] <- 1
-# forestPlots$access <- as.factor(forestPlots$access)
+# forestStands[forestStands$access %in% c("dist 1 harv 1"), "access"] <- 1
+# forestStands$access <- as.factor(forestStands$access)
 
 ###############################################################
 # format
 ###############################################################
 
 # id
-colnames(forestPlots)[colnames(forestPlots) == "WKTid"] <- 'STAND_ID'
+colnames(forestStands)[colnames(forestStands) == "WKTid"] <- 'STAND_ID'
 
 # transform diversity
-forestPlots[forestPlots$compoSp == 'beech', 'compoSp'] <- 'salem_beech'
-forestPlots[forestPlots$compoSp == 'oak', 'compoSp'] <- 'salem_oak'
-forestPlots[forestPlots$compoSp == 'fir', 'compoSp'] <- 'salem_fir'
-forestPlots[forestPlots$compoSp == 'spruce', 'compoSp'] <- 'salem_spruce'
-forestPlots[forestPlots$compoSp == 'beech-spruce', 'compoSp'] <- 'salem_beech_spruce'
-forestPlots[forestPlots$compoSp == 'beech-fir', 'compoSp'] <- 'salem_beech_fir'
-forestPlots[forestPlots$compoSp == 'fir-spruce', 'compoSp'] <- 'salem_fir_spruce'
-colnames(forestPlots)[colnames(forestPlots) == "compoSp"] <- 'FOREST_TYPE_CODE'
+forestStands[forestStands$compoSp == 'beech', 'compoSp'] <- 'salem_beech'
+forestStands[forestStands$compoSp == 'oak', 'compoSp'] <- 'salem_oak'
+forestStands[forestStands$compoSp == 'fir', 'compoSp'] <- 'salem_fir'
+forestStands[forestStands$compoSp == 'spruce', 'compoSp'] <- 'salem_spruce'
+forestStands[forestStands$compoSp == 'beech-spruce', 'compoSp'] <- 'salem_beech_spruce'
+forestStands[forestStands$compoSp == 'beech-fir', 'compoSp'] <- 'salem_beech_fir'
+forestStands[forestStands$compoSp == 'fir-spruce', 'compoSp'] <- 'salem_fir_spruce'
+colnames(forestStands)[colnames(forestStands) == "compoSp"] <- 'FOREST_TYPE_CODE'
 
 # FOREST_TYPE_NAME
-forestPlots$FOREST_TYPE_NAME <- 'RAS'
+forestStands$FOREST_TYPE_NAME <- 'RAS'
 
 # area
-colnames(forestPlots)[colnames(forestPlots) == "area"] <- 'AREA'
+colnames(forestStands)[colnames(forestStands) == "area"] <- 'AREA'
 
 # ...
-forestPlots$AGE_1 <- -1
-forestPlots$HDOM_1 <- -1
-forestPlots$DDOM_1 <- -1
-forestPlots$HG_1 <- -1
-forestPlots$AGE_2 <- -1
-forestPlots$HDOM_2 <- -1
-forestPlots$DDOM_2 <- -1
-forestPlots$HG_2 <- -1
-forestPlots$COMMENT <- -1
+forestStands$AGE_1 <- -1
+forestStands$HDOM_1 <- -1
+forestStands$DDOM_1 <- -1
+forestStands$HG_1 <- -1
+forestStands$AGE_2 <- -1
+forestStands$HDOM_2 <- -1
+forestStands$DDOM_2 <- -1
+forestStands$HG_2 <- -1
+forestStands$COMMENT <- -1
 
 # wkt_geom
-colnames(forestPlots)[colnames(forestPlots) == "WKT"] <- 'WKT-GEOM'
+colnames(forestStands)[colnames(forestStands) == "WKT"] <- 'WKT-GEOM'
 
 # departement
-colnames(forestPlots)[colnames(forestPlots) == "INSEE_D"] <- 'DEPARTMENT'
+colnames(forestStands)[colnames(forestStands) == "INSEE_D"] <- 'DEPARTMENT'
 
 # city
-forestPlots$CITY <- 'city'
+forestStands$CITY <- 'city'
 
 # forest
-forestPlots$FOREST <- 'BAUGES'
+forestStands$FOREST <- 'BAUGES'
 
 # inventory
-forestPlots$INVENTORY_DATE	 <- 2016
+forestStands$INVENTORY_DATE	 <- 2016
 
 # DOMAINE_TYPE
-colnames(forestPlots)[colnames(forestPlots) == "owner"] <- 'DOMAINE_TYPE'
+colnames(forestStands)[colnames(forestStands) == "owner"] <- 'DOMAINE_TYPE'
 
 # EXPLOITABILITY
-colnames(forestPlots)[colnames(forestPlots) == "access"] <- 'EXPLOITABILITY'
+colnames(forestStands)[colnames(forestStands) == "access"] <- 'EXPLOITABILITY'
 
 ######################################
 
 # site index, n, dg
-forestPlots$SITE_INDEX_1 <- -1
-forestPlots$NHA_1 <- -1
-forestPlots$DG_1 <- -1
-forestPlots$SITE_INDEX_2 <- -1
-forestPlots$NHA_2 <- -1
-forestPlots$DG_2 <- -1
+forestStands$SITE_INDEX_1 <- -1
+forestStands$NHA_1 <- -1
+forestStands$DG_1 <- -1
+forestStands$SITE_INDEX_2 <- -1
+forestStands$NHA_2 <- -1
+forestStands$DG_2 <- -1
 
 # sp1 = beech
-forestPlots[forestPlots$FOREST_TYPE_CODE %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "SITE_INDEX_1"] <-
-                                                  forestPlots[forestPlots$FOREST_TYPE_CODE  %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "pot09Epsilon"]
-forestPlots[forestPlots$FOREST_TYPE_CODE  %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "NHA_1"] <-
-                                                  forestPlots[forestPlots$FOREST_TYPE_CODE  %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "nBeech"] /
-                                                  (forestPlots[forestPlots$FOREST_TYPE_CODE  %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "AREA"] / 10000)
-forestPlots[forestPlots$FOREST_TYPE_CODE  %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "DG_1"] <-
-                                                  forestPlots[forestPlots$FOREST_TYPE_CODE  %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "dgBeech"]
+forestStands[forestStands$FOREST_TYPE_CODE %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "SITE_INDEX_1"] <-
+                                                  forestStands[forestStands$FOREST_TYPE_CODE  %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "pot09Epsilon"]
+forestStands[forestStands$FOREST_TYPE_CODE  %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "NHA_1"] <-
+                                                  forestStands[forestStands$FOREST_TYPE_CODE  %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "nBeech"] /
+                                                  (forestStands[forestStands$FOREST_TYPE_CODE  %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "AREA"] / 10000)
+forestStands[forestStands$FOREST_TYPE_CODE  %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "DG_1"] <-
+                                                  forestStands[forestStands$FOREST_TYPE_CODE  %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "dgBeech"]
 
 # sp1 = oak
-forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_oak", "SITE_INDEX_1"] <- forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_oak", "pot03Epsilon"]
-forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_oak", "NHA_1"] <- forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_oak", "nOak"] /
-                                                                     (forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_oak", "AREA"] / 10000)
-forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_oak", "DG_1"] <- forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_oak", "dgOak"]
+forestStands[forestStands$FOREST_TYPE_CODE == "salem_oak", "SITE_INDEX_1"] <- forestStands[forestStands$FOREST_TYPE_CODE == "salem_oak", "pot03Epsilon"]
+forestStands[forestStands$FOREST_TYPE_CODE == "salem_oak", "NHA_1"] <- forestStands[forestStands$FOREST_TYPE_CODE == "salem_oak", "nOak"] /
+                                                                     (forestStands[forestStands$FOREST_TYPE_CODE == "salem_oak", "AREA"] / 10000)
+forestStands[forestStands$FOREST_TYPE_CODE == "salem_oak", "DG_1"] <- forestStands[forestStands$FOREST_TYPE_CODE == "salem_oak", "dgOak"]
 
 # sp1 = fir
-forestPlots[forestPlots$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "SITE_INDEX_1"] <-
-                                                  forestPlots[forestPlots$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "pot61Epsilon"]
-forestPlots[forestPlots$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "NHA_1"] <-
-                                                  forestPlots[forestPlots$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "nFir"] /
-                                                  (forestPlots[forestPlots$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "AREA"] / 10000)
-forestPlots[forestPlots$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "DG_1"] <-
-                                                  forestPlots[forestPlots$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "dgFir"]
+forestStands[forestStands$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "SITE_INDEX_1"] <-
+                                                  forestStands[forestStands$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "pot61Epsilon"]
+forestStands[forestStands$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "NHA_1"] <-
+                                                  forestStands[forestStands$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "nFir"] /
+                                                  (forestStands[forestStands$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "AREA"] / 10000)
+forestStands[forestStands$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "DG_1"] <-
+                                                  forestStands[forestStands$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "dgFir"]
 
 # sp1 = spruce
-forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_spruce", "SITE_INDEX_1"] <- forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_spruce", "pot62Epsilon"]
-forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_spruce", "NHA_1"] <- forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_spruce", "nSpruce"] /
-                                                                        (forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_spruce", "AREA"] / 10000)
-forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_spruce", "DG_1"] <- forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_spruce", "dgSpruce"]
+forestStands[forestStands$FOREST_TYPE_CODE == "salem_spruce", "SITE_INDEX_1"] <- forestStands[forestStands$FOREST_TYPE_CODE == "salem_spruce", "pot62Epsilon"]
+forestStands[forestStands$FOREST_TYPE_CODE == "salem_spruce", "NHA_1"] <- forestStands[forestStands$FOREST_TYPE_CODE == "salem_spruce", "nSpruce"] /
+                                                                        (forestStands[forestStands$FOREST_TYPE_CODE == "salem_spruce", "AREA"] / 10000)
+forestStands[forestStands$FOREST_TYPE_CODE == "salem_spruce", "DG_1"] <- forestStands[forestStands$FOREST_TYPE_CODE == "salem_spruce", "dgSpruce"]
 
 # sp2 = fir
-forestPlots[forestPlots$FOREST_TYPE_CODE == 'salem_beech_fir', "SITE_INDEX_2"] <- forestPlots[forestPlots$FOREST_TYPE_CODE == 'salem_beech_fir', "pot61Epsilon"]
-forestPlots[forestPlots$FOREST_TYPE_CODE == 'salem_beech_fir', "NHA_2"] <- forestPlots[forestPlots$FOREST_TYPE_CODE == 'salem_beech_fir', "nFir"] /
-                                                                           (forestPlots[forestPlots$FOREST_TYPE_CODE == 'salem_beech_fir', "AREA"] / 10000)
-forestPlots[forestPlots$FOREST_TYPE_CODE == 'salem_beech_fir', "DG_2"] <- forestPlots[forestPlots$FOREST_TYPE_CODE == 'salem_beech_fir', "dgFir"]
+forestStands[forestStands$FOREST_TYPE_CODE == 'salem_beech_fir', "SITE_INDEX_2"] <- forestStands[forestStands$FOREST_TYPE_CODE == 'salem_beech_fir', "pot61Epsilon"]
+forestStands[forestStands$FOREST_TYPE_CODE == 'salem_beech_fir', "NHA_2"] <- forestStands[forestStands$FOREST_TYPE_CODE == 'salem_beech_fir', "nFir"] /
+                                                                           (forestStands[forestStands$FOREST_TYPE_CODE == 'salem_beech_fir', "AREA"] / 10000)
+forestStands[forestStands$FOREST_TYPE_CODE == 'salem_beech_fir', "DG_2"] <- forestStands[forestStands$FOREST_TYPE_CODE == 'salem_beech_fir', "dgFir"]
 
 # sp2 = spruce
-forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "SITE_INDEX_2"] <-
-                                                  forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "pot62Epsilon"]
-forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "NHA_2"] <-
-                                                  forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "nSpruce"] /
-                                                  (forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "AREA"] / 10000)
-forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "DG_2"] <-
-                                                  forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "dgSpruce"]
+forestStands[forestStands$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "SITE_INDEX_2"] <-
+                                                  forestStands[forestStands$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "pot62Epsilon"]
+forestStands[forestStands$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "NHA_2"] <-
+                                                  forestStands[forestStands$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "nSpruce"] /
+                                                  (forestStands[forestStands$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "AREA"] / 10000)
+forestStands[forestStands$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "DG_2"] <-
+                                                  forestStands[forestStands$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "dgSpruce"]
 
 # final table
-forestPlots <- forestPlots[, c('STAND_ID',	'FOREST_TYPE_CODE',	'FOREST_TYPE_NAME',	'AREA',	'SITE_INDEX_1', 'NHA_1',
+forestStands <- forestStands[, c('STAND_ID',	'FOREST_TYPE_CODE',	'FOREST_TYPE_NAME',	'AREA',	'SITE_INDEX_1', 'NHA_1',
                               'AGE_1',	'HDOM_1',	'DDOM_1',	'HG_1',	'DG_1',	'SITE_INDEX_2', 'NHA_2',	'AGE_2',	'HDOM_2',
                               'DDOM_2',	'HG_2',	'DG_2',	'EXPLOITABILITY',	'DOMAINE_TYPE',	'FOREST',
                               'INVENTORY_DATE',	'DEPARTMENT',	'CITY',	'COMMENT',	'WKT-GEOM', 'nonHarv', 'dist')]
@@ -203,59 +203,59 @@ forestPlots <- forestPlots[, c('STAND_ID',	'FOREST_TYPE_CODE',	'FOREST_TYPE_NAME
 ###############################################################
 
 # convert dg m -> cm
-forestPlots$DG_1 <- forestPlots$DG_1 * 100
-forestPlots[forestPlots$DG_2 != -1, 'DG_2'] <- forestPlots[forestPlots$DG_2 != -1, 'DG_2']  * 100
+forestStands$DG_1 <- forestStands$DG_1 * 100
+forestStands[forestStands$DG_2 != -1, 'DG_2'] <- forestStands[forestStands$DG_2 != -1, 'DG_2']  * 100
 
 # reduce file size
-# forestPlots <- forestPlots[forestPlots$EXPLOITABILITY == 1,]
-# forestPlots <- forestPlots[1:1000,]
+# forestStands <- forestStands[forestStands$EXPLOITABILITY == 1,]
+# forestStands <- forestStands[1:1000,]
 
 ###############################################################
-# list of plots and total area of each forest type
+# list of stands and total area of each forest type
 ###############################################################
 
 # fir + spruce + fir-spruce
-firSpruceList <- forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_fir" |
-                             forestPlots$FOREST_TYPE_CODE == "salem_spruce" |
-                             forestPlots$FOREST_TYPE_CODE == "salem_fir_spruce", "STAND_ID"]
-firSprucePubList <- forestPlots[forestPlots$STAND_ID %in% firSpruceList & forestPlots$DOMAINE_TYPE == "Pub", "STAND_ID"]
-firSprucePrivList <- forestPlots[forestPlots$STAND_ID %in% firSpruceList & forestPlots$DOMAINE_TYPE == "Priv", "STAND_ID"]
+firSpruceList <- forestStands[forestStands$FOREST_TYPE_CODE == "salem_fir" |
+                             forestStands$FOREST_TYPE_CODE == "salem_spruce" |
+                             forestStands$FOREST_TYPE_CODE == "salem_fir_spruce", "STAND_ID"]
+firSprucePubList <- forestStands[forestStands$STAND_ID %in% firSpruceList & forestStands$DOMAINE_TYPE == "Pub", "STAND_ID"]
+firSprucePrivList <- forestStands[forestStands$STAND_ID %in% firSpruceList & forestStands$DOMAINE_TYPE == "Priv", "STAND_ID"]
 
 # beech
-beechList <- forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_beech", "STAND_ID"]
+beechList <- forestStands[forestStands$FOREST_TYPE_CODE == "salem_beech", "STAND_ID"]
 
 # oak
-oakList <- forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_oak", "STAND_ID"]
+oakList <- forestStands[forestStands$FOREST_TYPE_CODE == "salem_oak", "STAND_ID"]
 
 # beach-fir + beech-spruce Public
-beechFirSpruceList <- forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_beech_fir" |
-                             forestPlots$FOREST_TYPE_CODE == "salem_beech_spruce", "STAND_ID"]
+beechFirSpruceList <- forestStands[forestStands$FOREST_TYPE_CODE == "salem_beech_fir" |
+                             forestStands$FOREST_TYPE_CODE == "salem_beech_spruce", "STAND_ID"]
 
-beechFirSprucePubList <- forestPlots[forestPlots$STAND_ID %in% beechFirSpruceList & forestPlots$DOMAINE_TYPE == "Pub", "STAND_ID"]
-beechFirSprucePrivList <- forestPlots[forestPlots$STAND_ID %in% beechFirSpruceList & forestPlots$DOMAINE_TYPE == "Priv", "STAND_ID"]
+beechFirSprucePubList <- forestStands[forestStands$STAND_ID %in% beechFirSpruceList & forestStands$DOMAINE_TYPE == "Pub", "STAND_ID"]
+beechFirSprucePrivList <- forestStands[forestStands$STAND_ID %in% beechFirSpruceList & forestStands$DOMAINE_TYPE == "Priv", "STAND_ID"]
 
 ###############################################################
 # assign management type to each stand
 ###############################################################
 
-# calculate plot total basal area
-forestPlots$Gsp1 <- (forestPlots$NHA_1 * pi * ((forestPlots$DG_1/100)^2)) / 4
-forestPlots$Gsp2 <- 0
-forestPlots[forestPlots$NHA_2 > 0, "Gsp2"] <- (forestPlots[forestPlots$NHA_2 > 0, "NHA_2"] * pi * ((forestPlots[forestPlots$NHA_2 > 0, "DG_2"]/100)^2)) / 4
-forestPlots$G <- forestPlots$Gsp1 + forestPlots$Gsp2
+# calculate stand total basal area
+forestStands$Gsp1 <- (forestStands$NHA_1 * pi * ((forestStands$DG_1/100)^2)) / 4
+forestStands$Gsp2 <- 0
+forestStands[forestStands$NHA_2 > 0, "Gsp2"] <- (forestStands[forestStands$NHA_2 > 0, "NHA_2"] * pi * ((forestStands[forestStands$NHA_2 > 0, "DG_2"]/100)^2)) / 4
+forestStands$G <- forestStands$Gsp1 + forestStands$Gsp2
 
 # force plots nonHarv == 0 to be inaccessible
-forestPlots[forestPlots$nonHarv == 0 & !is.na(forestPlots$dist), "dist"]<- NA
+forestStands[forestStands$nonHarv == 0 & !is.na(forestStands$dist), "dist"]<- NA
 
 
 # set exploitation probability of accessible plots
-forestPlots$proba <- -1
-forestPlots[!is.na(forestPlots$dist), "proba"] <- 1 - (log(forestPlots[!is.na(forestPlots$dist), "dist"]) / log(max(forestPlots[!is.na(forestPlots$dist), "dist"])))
-plot(forestPlots[!is.na(forestPlots$dist), "proba"] ~ forestPlots[!is.na(forestPlots$dist), "dist"], ylim = c(0,1))
-forestPlots$EXPLOITABILITY <- -99
-forestPlots[is.na(forestPlots$dist), 'EXPLOITABILITY'] <- 0
-subsetNonAcc <- forestPlots[forestPlots$EXPLOITABILITY == 0,]
-subsetAcc <- forestPlots[forestPlots$EXPLOITABILITY != 0,]
+forestStands$proba <- -1
+forestStands[!is.na(forestStands$dist), "proba"] <- 1 - (log(forestStands[!is.na(forestStands$dist), "dist"]) / log(max(forestStands[!is.na(forestStands$dist), "dist"])))
+plot(forestStands[!is.na(forestStands$dist), "proba"] ~ forestStands[!is.na(forestStands$dist), "dist"], ylim = c(0,1))
+forestStands$EXPLOITABILITY <- -99
+forestStands[is.na(forestStands$dist), 'EXPLOITABILITY'] <- 0
+subsetNonAcc <- forestStands[forestStands$EXPLOITABILITY == 0,]
+subsetAcc <- forestStands[forestStands$EXPLOITABILITY != 0,]
 for (i in 1:nrow(subsetAcc)){
   subsetAcc[i, 'EXPLOITABILITY'] <- sample(x = c(1,0), prob = c(subsetAcc[i, "proba"], 1-subsetAcc[i, "proba"]), size = 1)
 }
@@ -266,63 +266,63 @@ plot(subsetAcc$EXPLOITABILITY ~ subsetAcc$dist)
 subsetAcc[subsetAcc$EXPLOITABILITY == 0, 'dist'] <- NA
 
 # merge Acc and nonAcc plots
-forestPlots <- rbind(subsetNonAcc, subsetAcc)
+forestStands <- rbind(subsetNonAcc, subsetAcc)
 
 # define extra plots as non accessible = non harvested
 # -- exemple 1 plot sur 2 en chêne privé ne sera pas géré/exploité
-# modofier exploitability et dist
+# modfier exploitability et dist
 
-source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/src/sc1_BAU.R')
+source('./src/sc1_BAU.R')
 
 # TODO: arriver a ce stade -> executer tous les scenarios de gestion avec le même forestPLot
 # (car attention -> processus rdm en amont)
 
-forestPlots$nonHarv <- NULL
-forestPlots$dist <- NULL
-forestPlots$Gsp1 <- NULL
-forestPlots$Gsp2 <- NULL
-forestPlots$G <- NULL
-forestPlots$proba <- NULL
+forestStands$nonHarv <- NULL
+forestStands$dist <- NULL
+forestStands$Gsp1 <- NULL
+forestStands$Gsp2 <- NULL
+forestStands$G <- NULL
+forestStands$proba <- NULL
 
 ###############################################################
 # create management scenario java file to run SIMMEM
 ###############################################################
 
-source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/simmem/simmemRules/simmemRulesGenerator.R')
+source("./simmem/simmemRules/simmemRulesGenerator.R")
 
 ###############################################################
 # verification
 ###############################################################
 
 # Site Index
-hist(forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_beech', 'salem_beech-spruce', 'salem_beech-fir') , 'SITE_INDEX_1'], breaks = 100, border = 'green', ylim = c(0, 350), xlim = c(-10, 130), main = '', xlab = 'site index')
-hist(c(forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_fir', 'salem_fir-spruce') , 'SITE_INDEX_1'], forestPlots[forestPlots$FOREST_TYPE_CODE == 'salem_beech_fir', 'SITE_INDEX_2']), breaks = 100, add = TRUE, border = 'blue')
-hist(c(forestPlots[forestPlots$FOREST_TYPE_CODE == 'salem_spruce' , 'SITE_INDEX_1'], forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_fir-spruce', 'salem_beech-spruce') , 'SITE_INDEX_2']), breaks = 100, add = TRUE, border = 'orange')
-hist(forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_oak" , 'SITE_INDEX_1'], breaks = 100, col = 'black', add = TRUE)
+hist(forestStands[forestStands$FOREST_TYPE_CODE %in% c('salem_beech', 'salem_beech-spruce', 'salem_beech-fir') , 'SITE_INDEX_1'], breaks = 100, border = 'green', ylim = c(0, 350), xlim = c(-10, 130), main = '', xlab = 'site index')
+hist(c(forestStands[forestStands$FOREST_TYPE_CODE %in% c('salem_fir', 'salem_fir-spruce') , 'SITE_INDEX_1'], forestStands[forestStands$FOREST_TYPE_CODE == 'salem_beech_fir', 'SITE_INDEX_2']), breaks = 100, add = TRUE, border = 'blue')
+hist(c(forestStands[forestStands$FOREST_TYPE_CODE == 'salem_spruce' , 'SITE_INDEX_1'], forestStands[forestStands$FOREST_TYPE_CODE %in% c('salem_fir-spruce', 'salem_beech-spruce') , 'SITE_INDEX_2']), breaks = 100, add = TRUE, border = 'orange')
+hist(forestStands[forestStands$FOREST_TYPE_CODE == "salem_oak" , 'SITE_INDEX_1'], breaks = 100, col = 'black', add = TRUE)
 
 # Dg
-hist(forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_beech', 'salem_beech-spruce', 'salem_beech-fir') , 'DG_1'], breaks = 200, border = 'green', xlim = c(5, 90), main = '', xlab = 'Dg')
-hist(c(forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_fir', 'salem_fir-spruce') , 'DG_1'], forestPlots[forestPlots$FOREST_TYPE_CODE == 'salem_beech_fir', 'DG_2']), breaks = 200, add = TRUE, border = 'blue')
-hist(c(forestPlots[forestPlots$FOREST_TYPE_CODE == 'salem_spruce' , 'DG_1'], forestPlots[forestPlots$FOREST_TYPE_CODE %in% c('salem_fir-spruce', 'salem_beech-spruce') , 'DG_2']), breaks = 200, add = TRUE, border = 'orange')
-hist(forestPlots[forestPlots$FOREST_TYPE_CODE == "salem_oak" , 'DG_1'], breaks = 200, col = 'black', add = TRUE)
+hist(forestStands[forestStands$FOREST_TYPE_CODE %in% c('salem_beech', 'salem_beech-spruce', 'salem_beech-fir') , 'DG_1'], breaks = 200, border = 'green', xlim = c(5, 90), main = '', xlab = 'Dg')
+hist(c(forestStands[forestStands$FOREST_TYPE_CODE %in% c('salem_fir', 'salem_fir-spruce') , 'DG_1'], forestStands[forestStands$FOREST_TYPE_CODE == 'salem_beech_fir', 'DG_2']), breaks = 200, add = TRUE, border = 'blue')
+hist(c(forestStands[forestStands$FOREST_TYPE_CODE == 'salem_spruce' , 'DG_1'], forestStands[forestStands$FOREST_TYPE_CODE %in% c('salem_fir-spruce', 'salem_beech-spruce') , 'DG_2']), breaks = 200, add = TRUE, border = 'orange')
+hist(forestStands[forestStands$FOREST_TYPE_CODE == "salem_oak" , 'DG_1'], breaks = 200, col = 'black', add = TRUE)
 
 # n / ha
 # pure plots
-hist(forestPlots[forestPlots$NHA_2 == -1, 'NHA_1'] , breaks = 100, ylim = c(0,600), col = 'black')
+hist(forestStands[forestStands$NHA_2 == -1, 'NHA_1'] , breaks = 100, ylim = c(0,600), col = 'black')
 # mixed plots
-hist(forestPlots[forestPlots$NHA_2 != -1, 'NHA_1'] + forestPlots[forestPlots$NHA_2 != -1, 'NHA_2'], breaks = 100, border = 'blue3', add = TRUE)
+hist(forestStands[forestStands$NHA_2 != -1, 'NHA_1'] + forestStands[forestStands$NHA_2 != -1, 'NHA_2'], breaks = 100, border = 'blue3', add = TRUE)
 
 ###############################################################
 # format
 ###############################################################
 
-cat('# 1. Global Level\n', file="./output/forestPlots.txt")
-cat("DATE=2016\n", file="./output/forestPlots.txt", append=TRUE)
-cat('TOTAL_AREA=', sum(forestPlots$AREA), file="./output/forestPlots.txt", append=TRUE)
-cat('\nXMIN=', xmin, sep = '', file="./output/forestPlots.txt", append=TRUE)
-cat('\nYMIN=', ymin, sep = '', file="./output/forestPlots.txt", append=TRUE)
-cat('\nXMAX=', xmax, sep = '', file="./output/forestPlots.txt", append=TRUE)
-cat('\nYMAX=', ymax, sep = '', file="./output/forestPlots.txt", append=TRUE)
-cat('\n# 2. Forest Unit Level', file="./output/forestPlots.txt", append=TRUE)
-cat('\n#', file="./output/forestPlots.txt", append=TRUE)
-write.table(forestPlots, file="./output/forestPlots.txt", row.names = FALSE, append=TRUE, quote = FALSE, sep = '\t')
+cat('# 1. Global Level\n', file="./output/forestStands.txt")
+cat("DATE=2016\n", file="./output/forestStands.txt", append=TRUE)
+cat('TOTAL_AREA=', sum(forestStands$AREA), file="./output/forestStands.txt", append=TRUE)
+cat('\nXMIN=', xmin, sep = '', file="./output/forestStands.txt", append=TRUE)
+cat('\nYMIN=', ymin, sep = '', file="./output/forestStands.txt", append=TRUE)
+cat('\nXMAX=', xmax, sep = '', file="./output/forestStands.txt", append=TRUE)
+cat('\nYMAX=', ymax, sep = '', file="./output/forestStands.txt", append=TRUE)
+cat('\n# 2. Forest Unit Level', file="./output/forestStands.txt", append=TRUE)
+cat('\n#', file="./output/forestStands.txt", append=TRUE)
+write.table(forestStands, file="./output/forestStands.txt", row.names = FALSE, append=TRUE, quote = FALSE, sep = '\t')

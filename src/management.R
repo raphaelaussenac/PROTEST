@@ -15,13 +15,13 @@ rdmSelect <- function(plotSubset, threshold, switch, plotCons){
   } else if(switch == 2){
     # choose in priority plots with highest basal Area
     # first, retrieve BA of each plot
-    plotSubsetG <- forestPlots[forestPlots$STAND_ID %in% plotSubset, c("STAND_ID", "G")]
+    plotSubsetG <- forestStands[forestStands$STAND_ID %in% plotSubset, c("STAND_ID", "G")]
     # then, pick the first plot
     plots <- plotSubsetG[plotSubsetG$G == max(plotSubsetG$G), "STAND_ID"]
     remainingG <- plotSubsetG[!(plotSubsetG$STAND_ID %in% plots),]
 
     # add new plots till the threshold is reached
-    while(sum(forestPlots[forestPlots$STAND_ID %in% plots, 'AREA']) < threshold && length(remainingG) > 0){
+    while(sum(forestStands[forestStands$STAND_ID %in% plots, 'AREA']) < threshold && length(remainingG) > 0){
       # select 1 more plot with highest G
       addplot <- remainingG[remainingG$G == max(remainingG$G), "STAND_ID"]
       plots <- c(plots, addplot)
@@ -32,7 +32,7 @@ rdmSelect <- function(plotSubset, threshold, switch, plotCons){
   } #else if(switch == 3){
   #   # choose in priority plots with Dg1 and Dg2 < 40
   #   # first, retrieve dg1 and dg2 of each plot
-  #   plotSubsetDg <- forestPlots[forestPlots$STAND_ID %in% plotSubset, c("STAND_ID", "FOREST_TYPE_CODE","DG_1", "DG_2")]
+  #   plotSubsetDg <- forestStands[forestStands$STAND_ID %in% plotSubset, c("STAND_ID", "FOREST_TYPE_CODE","DG_1", "DG_2")]
   #   # second, keep only plots with Dg1 and Dg2 < 20 for oak and beech and < 40 for fir and spruce
   #   oak <- plotSubsetDg[0,]
   #   beech <- plotSubsetDg[0,]
@@ -69,7 +69,7 @@ rdmSelect <- function(plotSubset, threshold, switch, plotCons){
   #   remainingDg <- plotSubsetDg[!(plotSubsetDg %in% plots)]
   #
   #   # add new plots till the threshold is reached
-  #   while(sum(forestPlots[forestPlots$STAND_ID %in% plots, 'AREA']) < threshold && length(remainingDg) > 0){
+  #   while(sum(forestStands[forestStands$STAND_ID %in% plots, 'AREA']) < threshold && length(remainingDg) > 0){
   #     # select 1 more plot with highest G
   #     addplot <- remainingDg[round(runif(1, min = 1, max = length(remainingDg)))]
   #     plots <- c(plots, addplot)
@@ -81,7 +81,7 @@ rdmSelect <- function(plotSubset, threshold, switch, plotCons){
   #
   if (!(switch %in% c(2,3))){
     # add new plots till the threshold is reached
-    while(sum(forestPlots[forestPlots$STAND_ID %in% plots, 'AREA']) < threshold && length(remaining) > 0){
+    while(sum(forestStands[forestStands$STAND_ID %in% plots, 'AREA']) < threshold && length(remaining) > 0){
       # randomly select 1 more plot
       addplot <- remaining[round(runif(1, min = 1, max = length(remaining)))]
       plots <- c(plots, addplot)
@@ -100,17 +100,17 @@ rdmSelect <- function(plotSubset, threshold, switch, plotCons){
 management <- function(type, plotList, conservationThresh, HarvThresh,
                                                 thinHarvThresh, irrThresh){
   # calculate area
-  area <- sum(forestPlots[forestPlots$STAND_ID %in% plotList, 'AREA'])
+  area <- sum(forestStands[forestStands$STAND_ID %in% plotList, 'AREA'])
 
   # conservation ---------------------------------------------------------------
   plotCons <- c()
 
   # all non-harvestable plots are necessarily in conservation
-  plotCons <- forestPlots[forestPlots$STAND_ID %in% plotList & forestPlots$nonHarv == 0, 'STAND_ID']
+  plotCons <- forestStands[forestStands$STAND_ID %in% plotList & forestStands$nonHarv == 0, 'STAND_ID']
 
   # the proportion are only applied to the remaining plots
   # remaining plots proportion
-  propRemaining <- (area - sum(forestPlots[forestPlots$STAND_ID %in% plotCons, 'AREA'])) / area
+  propRemaining <- (area - sum(forestStands[forestStands$STAND_ID %in% plotCons, 'AREA'])) / area
   # correct proportions
   conservationThresh <- propRemaining * conservationThresh
   HarvThresh <- propRemaining * HarvThresh
@@ -118,8 +118,8 @@ management <- function(type, plotList, conservationThresh, HarvThresh,
   irrThresh <- propRemaining * irrThresh
 
   # inaccessible plots are also classified in conservation
-  plotCons <- c(plotCons, forestPlots[forestPlots$STAND_ID %in% plotList & forestPlots$nonHarv == 1 & is.na(forestPlots$dist), 'STAND_ID'])
-  propInaccess <- sum(forestPlots[forestPlots$STAND_ID %in% plotList & forestPlots$nonHarv == 1 & is.na(forestPlots$dist), 'AREA']) / area
+  plotCons <- c(plotCons, forestStands[forestStands$STAND_ID %in% plotList & forestStands$nonHarv == 1 & is.na(forestStands$dist), 'STAND_ID'])
+  propInaccess <- sum(forestStands[forestStands$STAND_ID %in% plotList & forestStands$nonHarv == 1 & is.na(forestStands$dist), 'AREA']) / area
 
   # 2 possible cases:
   # propInaccess < conservationThresh
@@ -128,13 +128,13 @@ management <- function(type, plotList, conservationThresh, HarvThresh,
     switch <- 0
     conservationThresh <- area * (conservationThresh + (1- propRemaining))
     plotCons <- rdmSelect(plotSubset = plotList, threshold = conservationThresh, switch = switch, plotCons = plotCons)
-    forestPlots[forestPlots$STAND_ID %in% plotCons, "COMMENT"] <- paste("Con", type, sep = "")
+    forestStands[forestStands$STAND_ID %in% plotCons, "COMMENT"] <- paste("Con", type, sep = "")
     switch <- 1
   }
 
   # propInaccess > conservationThresh
   if(propInaccess > conservationThresh){
-    propRemaining2 <- (area - sum(forestPlots[forestPlots$STAND_ID %in% plotCons, 'AREA'])) / area
+    propRemaining2 <- (area - sum(forestStands[forestStands$STAND_ID %in% plotCons, 'AREA'])) / area
     # convert prortion of other types of management to "relative" proportion
     totalPropRemainingType <- HarvThresh + thinHarvThresh + irrThresh
     # calculate relative proportion of each type
@@ -145,7 +145,7 @@ management <- function(type, plotList, conservationThresh, HarvThresh,
     HarvThresh <- propRemaining2 * HarvThresh
     thinHarvThresh <- propRemaining2 * thinHarvThresh
     irrThresh <- propRemaining2 * irrThresh
-    forestPlots[forestPlots$STAND_ID %in% plotCons, "COMMENT"] <- paste("Con", type, sep = "")
+    forestStands[forestStands$STAND_ID %in% plotCons, "COMMENT"] <- paste("Con", type, sep = "")
   }
 
   # final Harvest --------------------------------------------------------------
@@ -154,7 +154,7 @@ management <- function(type, plotList, conservationThresh, HarvThresh,
   if (HarvThresh > 0){
     HarvThresh <- area * HarvThresh
     plotHarv <- rdmSelect(plotSubset = plotList[!(plotList %in% plotCons)], threshold = HarvThresh, switch = switch, plotCons = plotCons)
-    forestPlots[forestPlots$STAND_ID %in% plotHarv, "COMMENT"] <- paste("Har", type, sep = "")
+    forestStands[forestStands$STAND_ID %in% plotHarv, "COMMENT"] <- paste("Har", type, sep = "")
   }
   # switch <- 1
 
@@ -164,7 +164,7 @@ management <- function(type, plotList, conservationThresh, HarvThresh,
   if (thinHarvThresh > 0){
     thinHarvThresh <- area * thinHarvThresh
     plotThinHarv <- rdmSelect(plotSubset = plotList[!(plotList %in% c(plotCons, plotHarv))], threshold = thinHarvThresh, switch = switch, plotCons = plotCons)
-    forestPlots[forestPlots$STAND_ID %in% plotThinHarv, "COMMENT"] <- paste("Thi", type, sep = "")
+    forestStands[forestStands$STAND_ID %in% plotThinHarv, "COMMENT"] <- paste("Thi", type, sep = "")
   }
   # switch <- 1
 
@@ -173,9 +173,9 @@ management <- function(type, plotList, conservationThresh, HarvThresh,
   if (irrThresh > 0){
     irrThresh <- area * irrThresh
     plotIrr <- rdmSelect(plotSubset = plotList[!(plotList %in% c(plotCons, plotHarv, plotThinHarv))], threshold = irrThresh, switch = switch, plotCons = plotCons)
-    forestPlots[forestPlots$STAND_ID %in% plotIrr, "COMMENT"] <- paste("Irr", type, sep = "")
+    forestStands[forestStands$STAND_ID %in% plotIrr, "COMMENT"] <- paste("Irr", type, sep = "")
   }
 
-  return(forestPlots)
+  return(forestStands)
 
 }

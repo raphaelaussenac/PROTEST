@@ -3,22 +3,22 @@
 ###############################################################
 
 # clean up environment
-rm(list = ls())
+rm(list = setdiff(ls(), "user"))
 
 # load packages
 library(ggplot2)
 library(plyr)
 
 # set work directory
-setwd("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST")
+setwd(user$WorkingDir)
 
 # load SIMMEM output file
 df <- read.csv(file="./simmem/simmemOutput/exportAutoBAU.txt", sep = "\t", skip = 3)
 colnames(df)[1] <- "standId"
 
 # load SIMMEM input file to retrieve plot surface
-forestPlots <- read.csv(file="./output/forestPlots.txt", sep = "\t", skip = 8)
-colnames(forestPlots)[1] <- "STAND_ID"
+forestStands <- read.csv(file="./output/forestStands.txt", sep = "\t", skip = 8)
+colnames(forestStands)[1] <- "STAND_ID"
 
 ###############################################################
 # manage format
@@ -41,7 +41,7 @@ df[df$realSpecies1 == 'Abies alba;Picea abies', 'realSpecies1'] <- 'Abies alba'
 # TODO: separate Ddom1 and Ddom2
 
 # retrieve area
-df <- merge(df, forestPlots[,c("STAND_ID", "AREA")], by.x = "standId", by.y = "STAND_ID")
+df <- merge(df, forestStands[,c("STAND_ID", "AREA")], by.x = "standId", by.y = "STAND_ID")
 
 # managType
 df$managType <- substr(df$comment, 1, 3)

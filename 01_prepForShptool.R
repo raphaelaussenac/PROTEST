@@ -13,25 +13,25 @@
 #
 # 5 - a csv file is created --> make a copie of it before closing shptool
 #
-# 5 - run the "extract" script on this new shp
+# 6 - run the "extract" script on this new shp
 #
 ###############################################################
 # initialisation
 ###############################################################
 
 # clean up environment
-rm(list = ls())
+rm(list = setdiff(ls(), "user"))
 
 # load packages
-library(rgdal)
-library(raster)
-library(rgeos)
+# library(rgdal)
+# library(raster)
+# library(rgeos)
 
 # set work directory
-setwd("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST")
+setwd(user$WorkingDir)
 
 # load BDforet shapefile
-BDforet <- readOGR(dsn = "X:/ProjetsCommuns/PROTEST/T1/Donnees_SIG/BD_Foret", layer = "BD_Foret_V2_PNRfilled_Foret_2014", encoding = "UTF-8", use_iconv = TRUE)
+BDforet <- rgdal::readOGR(dsn = paste0(user$NetworkProtestDir, "T1/Donnees_SIG/BD_Foret"), layer = "BD_Foret_V2_PNRfilled_Foret_2014", encoding = "UTF-8", use_iconv = TRUE)
 
 ###############################################################
 # create new shapefile with only ID
@@ -51,4 +51,4 @@ BDforet@data <- data.frame(BDforet$BDid)
 colnames(BDforet@data) <- "BDid"
 
 # save new shapefile
-shapefile(BDforet, filename = './data/BDid', overwrite = T)
+raster::shapefile(BDforet, filename = './data/BDid', overwrite = T)

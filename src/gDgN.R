@@ -4,7 +4,7 @@ library(betareg)
 # import objects from compoTfv.R
 ###############################################################
 
-source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/src/composition.R')
+source(paste0(user$WorkingDir,"/src/composition.R"))
 
 ###############################################################
 # retrieve Gsp1, Gsp2, Dgsp1 and Dgsp2 of "TRUE" mixtures
@@ -84,34 +84,34 @@ ratGDg <- function(plotList, sp1, sp2){
 # assign species G to all forest plots
 ###############################################################
 
-forestPlotsDf$gBeech <- NA
-forestPlotsDf$gOak <- NA
-forestPlotsDf$gFir <- NA
-forestPlotsDf$gSpruce <- NA
+forestStandsDf$gBeech <- NA
+forestStandsDf$gOak <- NA
+forestStandsDf$gFir <- NA
+forestStandsDf$gSpruce <- NA
 
 # 1 - First case: pure stands --------------------------------------------------
 # --> nothing to calculate, gPred is available
 # beech
-forestPlotsDf[forestPlotsDf$compoSp == 'beech', "gBeech"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech', "gPred"]
+forestStandsDf[forestStandsDf$compoSp == 'beech', "gBeech"] <- forestStandsDf[forestStandsDf$compoSp == 'beech', "gPred"]
 # oak
-forestPlotsDf[forestPlotsDf$compoSp == 'oak', "gOak"] <- forestPlotsDf[forestPlotsDf$compoSp == 'oak', "gPred"]
+forestStandsDf[forestStandsDf$compoSp == 'oak', "gOak"] <- forestStandsDf[forestStandsDf$compoSp == 'oak', "gPred"]
 # fir
-forestPlotsDf[forestPlotsDf$compoSp == 'fir', "gFir"] <- forestPlotsDf[forestPlotsDf$compoSp == 'fir', "gPred"]
+forestStandsDf[forestStandsDf$compoSp == 'fir', "gFir"] <- forestStandsDf[forestStandsDf$compoSp == 'fir', "gPred"]
 # spruce
-forestPlotsDf[forestPlotsDf$compoSp == 'spruce', "gSpruce"] <- forestPlotsDf[forestPlotsDf$compoSp == 'spruce', "gPred"]
+forestStandsDf[forestStandsDf$compoSp == 'spruce', "gSpruce"] <- forestStandsDf[forestStandsDf$compoSp == 'spruce', "gPred"]
 
 # 2 - Second case: deciduous - coniferous mixtures -----------------------------
 # g deciduous and g coniferous are available
 # beech - fir
-forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "gBeech"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "gPred"] *
-                                                                      forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "p100gfP"] / 100
-forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "gFir"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "gPred"] *
-                                                                      (100 - forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "p100gfP"]) / 100
+forestStandsDf[forestStandsDf$compoSp == 'beech-fir', "gBeech"] <- forestStandsDf[forestStandsDf$compoSp == 'beech-fir', "gPred"] *
+                                                                      forestStandsDf[forestStandsDf$compoSp == 'beech-fir', "p100gfP"] / 100
+forestStandsDf[forestStandsDf$compoSp == 'beech-fir', "gFir"] <- forestStandsDf[forestStandsDf$compoSp == 'beech-fir', "gPred"] *
+                                                                      (100 - forestStandsDf[forestStandsDf$compoSp == 'beech-fir', "p100gfP"]) / 100
 # beech - spruce
-forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "gBeech"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "gPred"] *
-                                                                      forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "p100gfP"] / 100
-forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "gSpruce"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "gPred"] *
-                                                                      (100 - forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "p100gfP"]) / 100
+forestStandsDf[forestStandsDf$compoSp == 'beech-spruce', "gBeech"] <- forestStandsDf[forestStandsDf$compoSp == 'beech-spruce', "gPred"] *
+                                                                      forestStandsDf[forestStandsDf$compoSp == 'beech-spruce', "p100gfP"] / 100
+forestStandsDf[forestStandsDf$compoSp == 'beech-spruce', "gSpruce"] <- forestStandsDf[forestStandsDf$compoSp == 'beech-spruce', "gPred"] *
+                                                                      (100 - forestStandsDf[forestStandsDf$compoSp == 'beech-spruce', "p100gfP"]) / 100
 
 # 3 - Third case: coniferous - coniferous mixtures -----------------------------
 # fir - spruce
@@ -133,14 +133,14 @@ summary(modgFirSpruce)
 
 # b <- pred
 # bNoise <- pred & beta noise
-forestPlotsDf$b <- -999
-forestPlotsDf$bNoise <- -999
+forestStandsDf$b <- -999
+forestStandsDf$bNoise <- -999
 
-pred <- predict(modgFirSpruce, newdata = forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', ], type = 'response')
-forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "b"] <- pred
-N <- nrow(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', ])
+pred <- predict(modgFirSpruce, newdata = forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', ], type = 'response')
+forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "b"] <- pred
+N <- nrow(forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', ])
 phi <- as.numeric(modgFirSpruce$coefficient$precision)
-forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "bNoise"] <- rbeta(N, pred * phi, (1 - pred) * phi)
+forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "bNoise"] <- rbeta(N, pred * phi, (1 - pred) * phi)
 
 # plot prediction and noise
 plot(density(ratGFirSpruce$ratG), ylim = c(0,5))
@@ -150,13 +150,13 @@ phi <- as.numeric(modgFirSpruce$coefficient$precision)
 noise <- rbeta(N, mu * phi, (1 - mu) * phi)
 lines(density(noise), col = 'cyan')
 lines(density(pred), col = 'green4')
-lines(density(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "bNoise"]), col = 'green')
+lines(density(forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "bNoise"]), col = 'green')
 
 # gSpruce
-forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gSpruce"] <- forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gPred"] * (1 - forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "bNoise"])
+forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "gSpruce"] <- forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "gPred"] * (1 - forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "bNoise"])
 
 # gFir
-forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gFir"] <- forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gPred"] * forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "bNoise"]
+forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "gFir"] <- forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "gPred"] * forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "bNoise"]
 
 ###############################################################
 # model Dg1/Dg2 ratio with available variables
@@ -223,156 +223,156 @@ summary(modFirSpruce)
 # assign species Dg to all forest plots
 ###############################################################
 
-forestPlotsDf$dgBeech <- NA
-forestPlotsDf$dgOak <- NA
-forestPlotsDf$dgFir <- NA
-forestPlotsDf$dgSpruce <- NA
+forestStandsDf$dgBeech <- NA
+forestStandsDf$dgOak <- NA
+forestStandsDf$dgFir <- NA
+forestStandsDf$dgSpruce <- NA
 
 # 1 - First case: pure stands --------------------------------------------------
 # --> nothing to calculate, gPred is available
 # beech
-forestPlotsDf[forestPlotsDf$compoSp == 'beech', "dgBeech"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech', "dgPred"]
+forestStandsDf[forestStandsDf$compoSp == 'beech', "dgBeech"] <- forestStandsDf[forestStandsDf$compoSp == 'beech', "dgPred"]
 # oak
-forestPlotsDf[forestPlotsDf$compoSp == 'oak', "dgOak"] <- forestPlotsDf[forestPlotsDf$compoSp == 'oak', "dgPred"]
+forestStandsDf[forestStandsDf$compoSp == 'oak', "dgOak"] <- forestStandsDf[forestStandsDf$compoSp == 'oak', "dgPred"]
 # fir
-forestPlotsDf[forestPlotsDf$compoSp == 'fir', "dgFir"] <- forestPlotsDf[forestPlotsDf$compoSp == 'fir', "dgPred"]
+forestStandsDf[forestStandsDf$compoSp == 'fir', "dgFir"] <- forestStandsDf[forestStandsDf$compoSp == 'fir', "dgPred"]
 # spruce
-forestPlotsDf[forestPlotsDf$compoSp == 'spruce', "dgSpruce"] <- forestPlotsDf[forestPlotsDf$compoSp == 'spruce', "dgPred"]
+forestStandsDf[forestStandsDf$compoSp == 'spruce', "dgSpruce"] <- forestStandsDf[forestStandsDf$compoSp == 'spruce', "dgPred"]
 
 # 2 - Second case: mixed stands ------------------------------------------------
 
-forestPlotsDf$a <- -999
-forestPlotsDf$aNoise <- -999
+forestStandsDf$a <- -999
+forestStandsDf$aNoise <- -999
 
 # Beech - Fir ------------------------------------------------------------------
-pred <- predict(modBeechFir, newdata = forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', ], type = 'response')
-forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', 'a'] <- pred
+pred <- predict(modBeechFir, newdata = forestStandsDf[forestStandsDf$compoSp == 'beech-fir', ], type = 'response')
+forestStandsDf[forestStandsDf$compoSp == 'beech-fir', 'a'] <- pred
 
-N <- nrow(forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', ])
+N <- nrow(forestStandsDf[forestStandsDf$compoSp == 'beech-fir', ])
 shape_estim  <- drop(MASS::gamma.shape(modBeechFir)[1]$alpha)
-forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', 'aNoise'] <- rgamma(N, rate = shape_estim / pred, shape = shape_estim)
+forestStandsDf[forestStandsDf$compoSp == 'beech-fir', 'aNoise'] <- rgamma(N, rate = shape_estim / pred, shape = shape_estim)
 
 plot(density(ratDgBeechFir$ratDg), lwd = 2, xlim = c(0, 2), ylim = c(0,3))
 lines(density(predict(modBeechFir, type = 'response')), col = "blue")
 lines(density(rgamma(nrow(ratDgBeechFir), rate = shape_estim / predict(modBeechFir, type = 'response'), shape = shape_estim)), col = "cyan")
 lines(density(pred), col = 'green4')
-lines(density(forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', 'aNoise']), col = 'green')
+lines(density(forestStandsDf[forestStandsDf$compoSp == 'beech-fir', 'aNoise']), col = 'green')
 
 # Dg Beech
-forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "dgBeech"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "dgPred"] *
-                                                              sqrt((forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "gBeech"] +
-                                                              ((forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "aNoise"]^2) *
-                                                              forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "gFir"])) /
-                                                              (forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "gBeech"] +
-                                                              forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "gFir"]))
+forestStandsDf[forestStandsDf$compoSp == 'beech-fir', "dgBeech"] <- forestStandsDf[forestStandsDf$compoSp == 'beech-fir', "dgPred"] *
+                                                              sqrt((forestStandsDf[forestStandsDf$compoSp == 'beech-fir', "gBeech"] +
+                                                              ((forestStandsDf[forestStandsDf$compoSp == 'beech-fir', "aNoise"]^2) *
+                                                              forestStandsDf[forestStandsDf$compoSp == 'beech-fir', "gFir"])) /
+                                                              (forestStandsDf[forestStandsDf$compoSp == 'beech-fir', "gBeech"] +
+                                                              forestStandsDf[forestStandsDf$compoSp == 'beech-fir', "gFir"]))
 # Dg Fir
-forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "dgFir"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "dgBeech"] /
-                                                              forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "aNoise"]
+forestStandsDf[forestStandsDf$compoSp == 'beech-fir', "dgFir"] <- forestStandsDf[forestStandsDf$compoSp == 'beech-fir', "dgBeech"] /
+                                                              forestStandsDf[forestStandsDf$compoSp == 'beech-fir', "aNoise"]
 
 # Beech - Spruce ---------------------------------------------------------------
-pred <- predict(modBeechSpruce, newdata = forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', ], type = 'response')
-forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', 'a'] <- pred
+pred <- predict(modBeechSpruce, newdata = forestStandsDf[forestStandsDf$compoSp == 'beech-spruce', ], type = 'response')
+forestStandsDf[forestStandsDf$compoSp == 'beech-spruce', 'a'] <- pred
 
-N <- nrow(forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', ])
+N <- nrow(forestStandsDf[forestStandsDf$compoSp == 'beech-spruce', ])
 shape_estim  <- drop(MASS::gamma.shape(modBeechSpruce)[1]$alpha)
-forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', 'aNoise'] <- rgamma(N, rate = shape_estim / pred, shape = shape_estim)
+forestStandsDf[forestStandsDf$compoSp == 'beech-spruce', 'aNoise'] <- rgamma(N, rate = shape_estim / pred, shape = shape_estim)
 
 plot(density(ratDgBeechSpruce$ratDg), lwd = 2, xlim = c(0, 3), ylim = c(0,2.5))
 lines(density(predict(modBeechSpruce, type = 'response')), col = "blue")
 lines(density(rgamma(nrow(ratDgBeechSpruce), rate = shape_estim / predict(modBeechSpruce, type = 'response'), shape = shape_estim)), col = "cyan")
 lines(density(pred), col = 'green4')
-lines(density(forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', 'aNoise']), col = 'green')
+lines(density(forestStandsDf[forestStandsDf$compoSp == 'beech-spruce', 'aNoise']), col = 'green')
 
 # Dg Beech
-forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "dgBeech"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "dgPred"] *
-                                                              sqrt((forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "gBeech"] +
-                                                              ((forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "aNoise"]^2) *
-                                                              forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "gSpruce"])) /
-                                                              (forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "gBeech"] +
-                                                              forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "gSpruce"]))
+forestStandsDf[forestStandsDf$compoSp == 'beech-spruce', "dgBeech"] <- forestStandsDf[forestStandsDf$compoSp == 'beech-spruce', "dgPred"] *
+                                                              sqrt((forestStandsDf[forestStandsDf$compoSp == 'beech-spruce', "gBeech"] +
+                                                              ((forestStandsDf[forestStandsDf$compoSp == 'beech-spruce', "aNoise"]^2) *
+                                                              forestStandsDf[forestStandsDf$compoSp == 'beech-spruce', "gSpruce"])) /
+                                                              (forestStandsDf[forestStandsDf$compoSp == 'beech-spruce', "gBeech"] +
+                                                              forestStandsDf[forestStandsDf$compoSp == 'beech-spruce', "gSpruce"]))
 
 # Dg Spruce
-forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "dgSpruce"] <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "dgBeech"] /
-                                                              forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "aNoise"]
+forestStandsDf[forestStandsDf$compoSp == 'beech-spruce', "dgSpruce"] <- forestStandsDf[forestStandsDf$compoSp == 'beech-spruce', "dgBeech"] /
+                                                              forestStandsDf[forestStandsDf$compoSp == 'beech-spruce', "aNoise"]
 
 # Fir - Spruce -----------------------------------------------------------------
-pred <- predict(modFirSpruce, newdata = forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', ], type = 'response')
-forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', 'a'] <- pred
+pred <- predict(modFirSpruce, newdata = forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', ], type = 'response')
+forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', 'a'] <- pred
 
-N <- nrow(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', ])
+N <- nrow(forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', ])
 shape_estim  <- drop(MASS::gamma.shape(modFirSpruce)[1]$alpha)
-forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', 'aNoise'] <- rgamma(N, rate = shape_estim / pred, shape = shape_estim)
+forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', 'aNoise'] <- rgamma(N, rate = shape_estim / pred, shape = shape_estim)
 
 plot(density(ratDgFirSpruce$ratDg), lwd = 2, xlim = c(0, 3), ylim = c(0,2.5))
 lines(density(predict(modFirSpruce, type = 'response')), col = "blue")
 lines(density(rgamma(nrow(ratDgFirSpruce), rate = shape_estim / predict(modFirSpruce, type = 'response'), shape = shape_estim)), col = "cyan")
 lines(density(pred), col = 'green4')
-lines(density(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', 'aNoise']), col = 'green')
+lines(density(forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', 'aNoise']), col = 'green')
 
 # Dg Fir
-forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "dgFir"] <- forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "dgPred"] *
-                                                              sqrt((forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gFir"] +
-                                                              ((forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "aNoise"]^2) *
-                                                              forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gSpruce"])) /
-                                                              (forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gFir"] +
-                                                              forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gSpruce"]))
+forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "dgFir"] <- forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "dgPred"] *
+                                                              sqrt((forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "gFir"] +
+                                                              ((forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "aNoise"]^2) *
+                                                              forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "gSpruce"])) /
+                                                              (forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "gFir"] +
+                                                              forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "gSpruce"]))
 # Dg Spruce
-forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "dgSpruce"] <- forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "dgFir"] /
-                                                              forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "aNoise"]
+forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "dgSpruce"] <- forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "dgFir"] /
+                                                              forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "aNoise"]
 
 ###############################################################
 # calculate nSp1 & nSp2 from g and dg
 ###############################################################
 
-forestPlotsDf$nBeech <- NA
-forestPlotsDf$nOak <- NA
-forestPlotsDf$nFir <- NA
-forestPlotsDf$nSpruce <- NA
+forestStandsDf$nBeech <- NA
+forestStandsDf$nOak <- NA
+forestStandsDf$nFir <- NA
+forestStandsDf$nSpruce <- NA
 
 # beech
-forestPlotsDf[forestPlotsDf$compoSp == "beech", "nBeech"] <- (4 * forestPlotsDf[forestPlotsDf$compoSp == "beech", "gBeech"]) /
-                                                             (pi * forestPlotsDf[forestPlotsDf$compoSp == "beech", "dgBeech"]^2)
+forestStandsDf[forestStandsDf$compoSp == "beech", "nBeech"] <- (4 * forestStandsDf[forestStandsDf$compoSp == "beech", "gBeech"]) /
+                                                             (pi * forestStandsDf[forestStandsDf$compoSp == "beech", "dgBeech"]^2)
 
 # oak
-forestPlotsDf[forestPlotsDf$compoSp == "oak", "nOak"] <- (4 * forestPlotsDf[forestPlotsDf$compoSp == "oak", "gOak"]) /
-                                                             (pi * forestPlotsDf[forestPlotsDf$compoSp == "oak", "dgOak"]^2)
+forestStandsDf[forestStandsDf$compoSp == "oak", "nOak"] <- (4 * forestStandsDf[forestStandsDf$compoSp == "oak", "gOak"]) /
+                                                             (pi * forestStandsDf[forestStandsDf$compoSp == "oak", "dgOak"]^2)
 
 # fir
-forestPlotsDf[forestPlotsDf$compoSp == "fir", "nFir"] <- (4 * forestPlotsDf[forestPlotsDf$compoSp == "fir", "gFir"]) /
-                                                             (pi * forestPlotsDf[forestPlotsDf$compoSp == "fir", "dgFir"]^2)
+forestStandsDf[forestStandsDf$compoSp == "fir", "nFir"] <- (4 * forestStandsDf[forestStandsDf$compoSp == "fir", "gFir"]) /
+                                                             (pi * forestStandsDf[forestStandsDf$compoSp == "fir", "dgFir"]^2)
 
 # spruce
-forestPlotsDf[forestPlotsDf$compoSp == "spruce", "nSpruce"] <- (4 * forestPlotsDf[forestPlotsDf$compoSp == "spruce", "gSpruce"]) /
-                                                             (pi * forestPlotsDf[forestPlotsDf$compoSp == "spruce", "dgSpruce"]^2)
+forestStandsDf[forestStandsDf$compoSp == "spruce", "nSpruce"] <- (4 * forestStandsDf[forestStandsDf$compoSp == "spruce", "gSpruce"]) /
+                                                             (pi * forestStandsDf[forestStandsDf$compoSp == "spruce", "dgSpruce"]^2)
 
 # beech-fir
-forestPlotsDf[forestPlotsDf$compoSp == "beech-fir", "nBeech"] <- (4 * forestPlotsDf[forestPlotsDf$compoSp == "beech-fir", "gBeech"]) /
-                                                             (pi * forestPlotsDf[forestPlotsDf$compoSp == "beech-fir", "dgBeech"]^2)
+forestStandsDf[forestStandsDf$compoSp == "beech-fir", "nBeech"] <- (4 * forestStandsDf[forestStandsDf$compoSp == "beech-fir", "gBeech"]) /
+                                                             (pi * forestStandsDf[forestStandsDf$compoSp == "beech-fir", "dgBeech"]^2)
 
-forestPlotsDf[forestPlotsDf$compoSp == "beech-fir", "nFir"] <- (4 * forestPlotsDf[forestPlotsDf$compoSp == "beech-fir", "gFir"]) /
-                                                             (pi * forestPlotsDf[forestPlotsDf$compoSp == "beech-fir", "dgFir"]^2)
+forestStandsDf[forestStandsDf$compoSp == "beech-fir", "nFir"] <- (4 * forestStandsDf[forestStandsDf$compoSp == "beech-fir", "gFir"]) /
+                                                             (pi * forestStandsDf[forestStandsDf$compoSp == "beech-fir", "dgFir"]^2)
 
 # beech-spruce
-forestPlotsDf[forestPlotsDf$compoSp == "beech-spruce", "nBeech"] <- (4 * forestPlotsDf[forestPlotsDf$compoSp == "beech-spruce", "gBeech"]) /
-                                                             (pi * forestPlotsDf[forestPlotsDf$compoSp == "beech-spruce", "dgBeech"]^2)
+forestStandsDf[forestStandsDf$compoSp == "beech-spruce", "nBeech"] <- (4 * forestStandsDf[forestStandsDf$compoSp == "beech-spruce", "gBeech"]) /
+                                                             (pi * forestStandsDf[forestStandsDf$compoSp == "beech-spruce", "dgBeech"]^2)
 
-forestPlotsDf[forestPlotsDf$compoSp == "beech-spruce", "nSpruce"] <- (4 * forestPlotsDf[forestPlotsDf$compoSp == "beech-spruce", "gSpruce"]) /
-                                                             (pi * forestPlotsDf[forestPlotsDf$compoSp == "beech-spruce", "dgSpruce"]^2)
+forestStandsDf[forestStandsDf$compoSp == "beech-spruce", "nSpruce"] <- (4 * forestStandsDf[forestStandsDf$compoSp == "beech-spruce", "gSpruce"]) /
+                                                             (pi * forestStandsDf[forestStandsDf$compoSp == "beech-spruce", "dgSpruce"]^2)
 
 # fir-spruce
-forestPlotsDf[forestPlotsDf$compoSp == "fir-spruce", "nFir"] <- (4 * forestPlotsDf[forestPlotsDf$compoSp == "fir-spruce", "gFir"]) /
-                                                             (pi * forestPlotsDf[forestPlotsDf$compoSp == "fir-spruce", "dgFir"]^2)
+forestStandsDf[forestStandsDf$compoSp == "fir-spruce", "nFir"] <- (4 * forestStandsDf[forestStandsDf$compoSp == "fir-spruce", "gFir"]) /
+                                                             (pi * forestStandsDf[forestStandsDf$compoSp == "fir-spruce", "dgFir"]^2)
 
-forestPlotsDf[forestPlotsDf$compoSp == "fir-spruce", "nSpruce"] <- (4 * forestPlotsDf[forestPlotsDf$compoSp == "fir-spruce", "gSpruce"]) /
-                                                             (pi * forestPlotsDf[forestPlotsDf$compoSp == "fir-spruce", "dgSpruce"]^2)
+forestStandsDf[forestStandsDf$compoSp == "fir-spruce", "nSpruce"] <- (4 * forestStandsDf[forestStandsDf$compoSp == "fir-spruce", "gSpruce"]) /
+                                                             (pi * forestStandsDf[forestStandsDf$compoSp == "fir-spruce", "dgSpruce"]^2)
 #
 
 ###############################################################
-# save in forestPlots object
+# save in forestStands object
 ###############################################################
 
 # put back g Dg and N in the SpatialPolygonDataframe
-forestPlots@data <- merge(forestPlots@data, forestPlotsDf[, c('WKTid', "gBeech", "gOak", "gFir", "gSpruce",
+forestStands@data <- merge(forestStands@data, forestStandsDf[, c('WKTid', "gBeech", "gOak", "gFir", "gSpruce",
                                           "dgBeech", "dgOak", "dgFir", "dgSpruce", "nBeech",
                                           "nOak", "nFir", "nSpruce")], by = 'WKTid', all = TRUE)
 
@@ -380,81 +380,81 @@ forestPlots@data <- merge(forestPlots@data, forestPlotsDf[, c('WKTid', "gBeech",
 # test dg
 ###############################################################
 
-forestPlotsDf$dTot <- NA
+forestStandsDf$dTot <- NA
 
 # Beech - Fir
-a <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "gBeech"]
-b <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "gFir"]
-c <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "dgBeech"]^2
-d <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "dgFir"]^2
-forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "dTot"] <- (a + b) / ((a / c) + (b / d))
-hist(sqrt(forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "dTot"]) - forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir', "dgPred"])
+a <- forestStandsDf[forestStandsDf$compoSp == 'beech-fir', "gBeech"]
+b <- forestStandsDf[forestStandsDf$compoSp == 'beech-fir', "gFir"]
+c <- forestStandsDf[forestStandsDf$compoSp == 'beech-fir', "dgBeech"]^2
+d <- forestStandsDf[forestStandsDf$compoSp == 'beech-fir', "dgFir"]^2
+forestStandsDf[forestStandsDf$compoSp == 'beech-fir', "dTot"] <- (a + b) / ((a / c) + (b / d))
+hist(sqrt(forestStandsDf[forestStandsDf$compoSp == 'beech-fir', "dTot"]) - forestStandsDf[forestStandsDf$compoSp == 'beech-fir', "dgPred"])
 
 # Beech - Spruce
-a <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "gBeech"]
-b <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "gSpruce"]
-c <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "dgBeech"]^2
-d <- forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "dgSpruce"]^2
-forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "dTot"] <- (a + b) / ((a / c) + (b / d))
-hist(sqrt(forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "dTot"]) - forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce', "dgPred"])
+a <- forestStandsDf[forestStandsDf$compoSp == 'beech-spruce', "gBeech"]
+b <- forestStandsDf[forestStandsDf$compoSp == 'beech-spruce', "gSpruce"]
+c <- forestStandsDf[forestStandsDf$compoSp == 'beech-spruce', "dgBeech"]^2
+d <- forestStandsDf[forestStandsDf$compoSp == 'beech-spruce', "dgSpruce"]^2
+forestStandsDf[forestStandsDf$compoSp == 'beech-spruce', "dTot"] <- (a + b) / ((a / c) + (b / d))
+hist(sqrt(forestStandsDf[forestStandsDf$compoSp == 'beech-spruce', "dTot"]) - forestStandsDf[forestStandsDf$compoSp == 'beech-spruce', "dgPred"])
 
 # Fir - Spruce
-a <- forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gFir"]
-b <- forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gSpruce"]
-c <- forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "dgFir"]^2
-d <- forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "dgSpruce"]^2
-forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "dTot"] <- (a + b) / ((a / c) + (b / d))
-hist(sqrt(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "dTot"]) - forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "dgPred"])
+a <- forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "gFir"]
+b <- forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "gSpruce"]
+c <- forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "dgFir"]^2
+d <- forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "dgSpruce"]^2
+forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "dTot"] <- (a + b) / ((a / c) + (b / d))
+hist(sqrt(forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "dTot"]) - forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "dgPred"])
 
 ###############################################################
 # test g
 ###############################################################
 
 # closing the balance of G (fir - spruce mixtures)
-hist(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gSpruce"] + forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gFir"] - forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gPred"])
+hist(forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "gSpruce"] + forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "gFir"] - forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "gPred"])
 
 # G proportion of species (must be between 0.25 and 0.75)
-range(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gFir"] / forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gPred"])
-range(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gSpruce"] / forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', "gPred"])
+range(forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "gFir"] / forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "gPred"])
+range(forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "gSpruce"] / forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', "gPred"])
 
 # g
-# here we do not look at the density of protest Gsp1 vs forestPlots Gsp1
-# because protest Gsp1 is measured on a small plot while forestPlots are
+# here we do not look at the density of protest Gsp1 vs forestStands Gsp1
+# because protest Gsp1 is measured on a small plot while forestStands are
 # 1 ha large
 # we therefore look at G proportion here:
 
 plot(density(ratGFirSpruce$gSp1 / (ratGFirSpruce$gSp1 + ratGFirSpruce$gSp2)), ylim = c(0, 2.6))
-lines(density(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', 'gFir'] / forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', 'gPred']), col = 'green')
+lines(density(forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', 'gFir'] / forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', 'gPred']), col = 'green')
 
 plot(density(ratGFirSpruce$gSp2 / (ratGFirSpruce$gSp1 + ratGFirSpruce$gSp2)), ylim = c(0, 2.6))
-lines(density(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', 'gSpruce'] / forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce', 'gPred']), col = 'green')
+lines(density(forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', 'gSpruce'] / forestStandsDf[forestStandsDf$compoSp == 'fir-spruce', 'gPred']), col = 'green')
 
 ###############################################################
 # test n --> ((n1*dg1²) + (n2*dg2²)) / n1 + n2   = dgt²
 ###############################################################
 
 # beech - fir
-dgPred <- forestPlotsDf[forestPlotsDf$compoSp == "beech-fir", "dgPred"]
-n1  <- forestPlotsDf[forestPlotsDf$compoSp == "beech-fir", "nBeech"]
-n2  <- forestPlotsDf[forestPlotsDf$compoSp == "beech-fir", "nFir"]
-dg1 <- forestPlotsDf[forestPlotsDf$compoSp == "beech-fir", "dgBeech"]
-dg2 <- forestPlotsDf[forestPlotsDf$compoSp == "beech-fir", "dgFir"]
+dgPred <- forestStandsDf[forestStandsDf$compoSp == "beech-fir", "dgPred"]
+n1  <- forestStandsDf[forestStandsDf$compoSp == "beech-fir", "nBeech"]
+n2  <- forestStandsDf[forestStandsDf$compoSp == "beech-fir", "nFir"]
+dg1 <- forestStandsDf[forestStandsDf$compoSp == "beech-fir", "dgBeech"]
+dg2 <- forestStandsDf[forestStandsDf$compoSp == "beech-fir", "dgFir"]
 hist((((n1*dg1^2) + (n2*dg2^2)) / (n1 + n2)) - dgPred^2)
 
 # beech - spruce
-dgPred <- forestPlotsDf[forestPlotsDf$compoSp == "beech-spruce", "dgPred"]
-n1  <- forestPlotsDf[forestPlotsDf$compoSp == "beech-spruce", "nBeech"]
-n2  <- forestPlotsDf[forestPlotsDf$compoSp == "beech-spruce", "nSpruce"]
-dg1 <- forestPlotsDf[forestPlotsDf$compoSp == "beech-spruce", "dgBeech"]
-dg2 <- forestPlotsDf[forestPlotsDf$compoSp == "beech-spruce", "dgSpruce"]
+dgPred <- forestStandsDf[forestStandsDf$compoSp == "beech-spruce", "dgPred"]
+n1  <- forestStandsDf[forestStandsDf$compoSp == "beech-spruce", "nBeech"]
+n2  <- forestStandsDf[forestStandsDf$compoSp == "beech-spruce", "nSpruce"]
+dg1 <- forestStandsDf[forestStandsDf$compoSp == "beech-spruce", "dgBeech"]
+dg2 <- forestStandsDf[forestStandsDf$compoSp == "beech-spruce", "dgSpruce"]
 hist((((n1*dg1^2) + (n2*dg2^2)) / (n1 + n2)) - dgPred^2)
 
 # fir - spruce
-dgPred <- forestPlotsDf[forestPlotsDf$compoSp == "fir-spruce", "dgPred"]
-n1  <- forestPlotsDf[forestPlotsDf$compoSp == "fir-spruce", "nFir"]
-n2  <- forestPlotsDf[forestPlotsDf$compoSp == "fir-spruce", "nSpruce"]
-dg1 <- forestPlotsDf[forestPlotsDf$compoSp == "fir-spruce", "dgFir"]
-dg2 <- forestPlotsDf[forestPlotsDf$compoSp == "fir-spruce", "dgSpruce"]
+dgPred <- forestStandsDf[forestStandsDf$compoSp == "fir-spruce", "dgPred"]
+n1  <- forestStandsDf[forestStandsDf$compoSp == "fir-spruce", "nFir"]
+n2  <- forestStandsDf[forestStandsDf$compoSp == "fir-spruce", "nSpruce"]
+dg1 <- forestStandsDf[forestStandsDf$compoSp == "fir-spruce", "dgFir"]
+dg2 <- forestStandsDf[forestStandsDf$compoSp == "fir-spruce", "dgSpruce"]
 hist((((n1*dg1^2) + (n2*dg2^2)) / (n1 + n2)) - dgPred^2)
 
 ###############################################################
@@ -463,26 +463,26 @@ hist((((n1*dg1^2) + (n2*dg2^2)) / (n1 + n2)) - dgPred^2)
 
 # beech - fir
 # hist
-hist(forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir' , 'aNoise'], breaks = 100)
+hist(forestStandsDf[forestStandsDf$compoSp == 'beech-fir' , 'aNoise'], breaks = 100)
 hist(ratDgBeechFir$dgSp1 / ratDgBeechFir$dgSp2, add = TRUE, col ='red')
 # range
-range(forestPlotsDf[forestPlotsDf$compoSp == 'beech-fir' , 'aNoise'])
+range(forestStandsDf[forestStandsDf$compoSp == 'beech-fir' , 'aNoise'])
 range(ratDgBeechFir$dgSp1 / ratDgBeechFir$dgSp2)
 
 # beech - spruce
 # hist
-hist(forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce' , 'aNoise'], breaks = 100)
+hist(forestStandsDf[forestStandsDf$compoSp == 'beech-spruce' , 'aNoise'], breaks = 100)
 hist(ratDgBeechSpruce$dgSp1 / ratDgBeechSpruce$dgSp2, add = TRUE, col ='red')
 # range
-range(forestPlotsDf[forestPlotsDf$compoSp == 'beech-spruce' , 'aNoise'])
+range(forestStandsDf[forestStandsDf$compoSp == 'beech-spruce' , 'aNoise'])
 range(ratDgBeechSpruce$dgSp1 / ratDgBeechSpruce$dgSp2)
 
 # fir - spruce
 # hist
-hist(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce' , 'aNoise'], breaks = 100)
+hist(forestStandsDf[forestStandsDf$compoSp == 'fir-spruce' , 'aNoise'], breaks = 100)
 hist(ratDgFirSpruce$dgSp1 / ratDgFirSpruce$dgSp2, add = TRUE, col ='red')
 # range
-range(forestPlotsDf[forestPlotsDf$compoSp == 'fir-spruce' , 'aNoise'])
+range(forestStandsDf[forestStandsDf$compoSp == 'fir-spruce' , 'aNoise'])
 range(ratDgFirSpruce$dgSp1 / ratDgFirSpruce$dgSp2)
 
 ###############################################################
@@ -492,9 +492,10 @@ range(ratDgFirSpruce$dgSp1 / ratDgFirSpruce$dgSp2)
 # comparer dg ifn / protest /lidar et simulé
 ifn <- read.csv("./data/forRaph.csv", sep = " ")       # --> ifn data (dg > 7.5)
 load(file="./data/placette.protest.rda")               # --> protest data (dg > 7.5)
-dgPred <- raster('X:/ProjetsCommuns/PROTEST/T1/Observatoire/Analyse/rastDg75error.clean.tif') # LIDAR data (dg > 7.5)
+dgPred <- raster(paste0(user$NetworkProtestDir,"/T1/Observatoire/Analyse/rastDg75error.clean.tif")) # LIDAR data (dg > 7.5)
 
 plot(density(dgPred), col = 'orange', ylim = c(0,0.08))
 lines(density(ifn$DgTotFinal))
-lines(density(forestPlots$dgPred * 100), col = 'green') # LIDAR after having create forestPlots +- 3 ha
+lines(density(forestStands$dgPred * 100), col = 'green') # LIDAR after having create forestStands +- 3 ha
 lines(density(placette.mes$Dg75), col = 'blue3')
+legend("topright", c("lidarPixels","ifnPlots", "lidarforestStands", "protestPlots"), fill=c("orange", "black", "green", "blue3"))

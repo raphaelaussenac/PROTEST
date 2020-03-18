@@ -13,7 +13,7 @@ library(rgdal)
 library(raster)
 
 # set work directory
-setwd("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST")
+setwd(user$WorkingDir)
 
 # load NFI points within the study area (bdBauges)
 # set model method
@@ -21,13 +21,13 @@ setwd("C:/Users/raphael.aussenac/Documents/GitHub/PROTEST")
 # source('C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/modfertInd.R')
 
 # load correspondence NFI point / code BDforet
-correspond <- read.csv("Z:/Private/croisementIfn.csv", header = TRUE, sep = ";")
+correspond <- read.csv("./data/croisementIfn.csv", header = TRUE, sep = ";")
 
 # load PROTEST points
-protestPt <- load(file = "Z:/Private/protestPt.rda")
+protestPt <- load(file = "./data/protestPt.rda")
 
 # load BDforet
-forestPlots <- readOGR(dsn = "./data", layer = "forestPlots", encoding = "UTF-8", use_iconv = TRUE)
+forestStands <- readOGR(dsn = "./data", layer = "forestPlots", encoding = "UTF-8", use_iconv = TRUE)
 
 ###############################################################
 # retrieve code TFV for all NFI points within the study area
@@ -46,13 +46,13 @@ forestPlots <- readOGR(dsn = "./data", layer = "forestPlots", encoding = "UTF-8"
 
 # convert placette.mes into a SpatialPointsDataFrame
 xy <- placette.mes[, c('Xplac_recale', 'Yplac_recale')]
-protestPlots <- SpatialPointsDataFrame(coords = xy, data = placette.mes, proj4string = crs(forestPlots))
+protestPlots <- SpatialPointsDataFrame(coords = xy, data = placette.mes, proj4string = crs(forestStands))
 
 # intersect
-protestPlots <- intersect(protestPlots, forestPlots)
+protestPlots <- intersect(protestPlots, forestStands)
 
 # plot
-# plot(forestPlots, col = forestPlots$CODE_TF, border = forestPlots$CODE_TF)
+# plot(forestStands, col = forestStands$CODE_TF, border = forestStands$CODE_TF)
 # points(protestPlots, asp = 1, pch = 16, col = 'red')
 
 ###############################################################
@@ -60,14 +60,16 @@ protestPlots <- intersect(protestPlots, forestPlots)
 ###############################################################
 
 # surface for each TFV type throughout the study area
-surfaceTfv <- data.frame("tfv" = NA, "surface" = NA)
-for (i in unique(forestPlots$CODE_TF)){
-  surf <- sum(area(forestPlots[forestPlots$CODE_TF == i,]))
-  aa <- c(i, surf)
-  surfaceTfv <- rbind(surfaceTfv, aa)
-}
-surfaceTfv <- surfaceTfv[-1, ]
-surfaceTfv$surface <- as.numeric(surfaceTfv$surface)
+# surfaceTfv <- data.frame("tfv" = NA, "surface" = NA)
+# for (i in unique(forestStands$CODE_TF)){
+#   surf <- sum(area(forestStands[forestStands$CODE_TF == i,]))
+#   aa <- c(i, surf)
+#   surfaceTfv <- rbind(surfaceTfv, aa)
+# }
+# surfaceTfv <- surfaceTfv[-1, ]
+# surfaceTfv$surface <- as.numeric(surfaceTfv$surface)
+surfaceTfv <- stats::aggregate(area(forestStands), by=list(forestStands$CODE_TF), FUN=sum)
+names(surfaceTfv) <- c("tfv", "surface")
 surfaceTfv$surface <- surfaceTfv$surface / 10000 # convert into hectars
 
 # number of inventory points for each TFV type throughout the study area
@@ -135,12 +137,12 @@ protestPlotsDf <- protestPlots@data
 protestPlotsDf$CODE_TF <- as.character(protestPlotsDf$CODE_TF)
 protestPlotsDf <- groupTfv(protestPlotsDf)
 
-# forestPlotsDf
+# forestStandsDf
 # convert to be able to export to ggplot
-forestPlots@data$area <- area(forestPlots)
-forestPlotsDf <- forestPlots@data
-forestPlotsDf$CODE_TF <- as.character(forestPlotsDf$CODE_TF)
-forestPlotsDf <- groupTfv(forestPlotsDf)
+forestStands@data$area <- area(forestStands)
+forestStandsDf <- forestStands@data
+forestStandsDf$CODE_TF <- as.character(forestStandsDf$CODE_TF)
+forestStandsDf <- groupTfv(forestStandsDf)
 
 ###############################################################
 # Classsify protest plots in one of those composition
@@ -357,12 +359,12 @@ protestPlotsDf[protestPlotsDf$Id_plac %in% mixedFirSpruce, "compoSp"] <- "fir-sp
 # base on the basal area proportion of each (threshold = 75%)
 ###############################################################
 
-forestPlotsDf$compoDCM <- NA
-forestPlotsDf[forestPlotsDf$p100gfP > 75, 'compoDCM'] <- 'D' # deciduous
-forestPlotsDf[forestPlotsDf$p100gfP < 25, 'compoDCM'] <- 'C' # conifers
-forestPlotsDf[forestPlotsDf$p100gfP >= 25 & forestPlotsDf$p100gfP <= 75, 'compoDCM'] <- 'MDC' # mixte
+forestStandsDf$compoDCM <- NA
+forestStandsDf[forestStandsDf$p100gfP > 75, 'compoDCM'] <- 'D' # deciduous
+forestStandsDf[forestStandsDf$p100gfP < 25, 'compoDCM'] <- 'C' # conifers
+forestStandsDf[forestStandsDf$p100gfP >= 25 & forestStandsDf$p100gfP <= 75, 'compoDCM'] <- 'MDC' # mixte
 # prepare columns to assign species to each forest plot
-forestPlotsDf$compoSp <- NA
+forestStandsDf$compoSp <- NA
 
 ###############################################################
 # retrieve PROTEST plot species composition within each TFV types
@@ -374,7 +376,7 @@ deciduous <- c('beech', 'oak')
 coniferous <- c('fir', 'spruce', 'fir-spruce')
 mixed <- c('beech-fir', 'beech-spruce')
 
-for (i in unique(forestPlotsDf$CODE_TF)){
+for (i in unique(forestStandsDf$CODE_TF)){
   # retrieve distribution of composition in a specific TFV type
   distrib <- protestPlotsDf[protestPlotsDf$CODE_TF == i & !is.na(protestPlotsDf$compoSp), "compoSp"]
   # split species distribution into a deciduous part a coniferous part
@@ -384,39 +386,39 @@ for (i in unique(forestPlotsDf$CODE_TF)){
   distribM <- as.character(distrib[distrib %in% mixed])
   # assign species to each forest plot
   # deciduous forest plots
-  nbD <- nrow(forestPlotsDf[forestPlotsDf$compoDCM == 'D'
-                & forestPlotsDf$CODE_TF == i,])
-  forestPlotsDf[forestPlotsDf$compoDCM == 'D'
-                & forestPlotsDf$CODE_TF == i, 'compoSp'] <- distribD[round(runif(nbD, min = 1, max = length(distribD)))]
+  nbD <- nrow(forestStandsDf[forestStandsDf$compoDCM == 'D'
+                & forestStandsDf$CODE_TF == i,])
+  forestStandsDf[forestStandsDf$compoDCM == 'D'
+                & forestStandsDf$CODE_TF == i, 'compoSp'] <- distribD[round(runif(nbD, min = 1, max = length(distribD)))]
   # coniferous forest plots
-  nbC <- nrow(forestPlotsDf[forestPlotsDf$compoDCM == 'C'
-                & forestPlotsDf$CODE_TF == i,])
-  forestPlotsDf[forestPlotsDf$compoDCM == 'C'
-                & forestPlotsDf$CODE_TF == i, 'compoSp'] <- distribC[round(runif(nbC, min = 1, max = length(distribC)))]
+  nbC <- nrow(forestStandsDf[forestStandsDf$compoDCM == 'C'
+                & forestStandsDf$CODE_TF == i,])
+  forestStandsDf[forestStandsDf$compoDCM == 'C'
+                & forestStandsDf$CODE_TF == i, 'compoSp'] <- distribC[round(runif(nbC, min = 1, max = length(distribC)))]
   # mixte forest plots
-  nbM <- nrow(forestPlotsDf[forestPlotsDf$compoDCM == 'MDC'
-                & forestPlotsDf$CODE_TF == i,])
-  forestPlotsDf[forestPlotsDf$compoDCM == 'MDC'
-                & forestPlotsDf$CODE_TF == i, 'compoSp'] <- distribM[round(runif(nbM, min = 1, max = length(distribM)))]
+  nbM <- nrow(forestStandsDf[forestStandsDf$compoDCM == 'MDC'
+                & forestStandsDf$CODE_TF == i,])
+  forestStandsDf[forestStandsDf$compoDCM == 'MDC'
+                & forestStandsDf$CODE_TF == i, 'compoSp'] <- distribM[round(runif(nbM, min = 1, max = length(distribM)))]
 }
 
 # 'mixture composition' --> pure / mixed
-forestPlotsDf$compo <- NA
-forestPlotsDf[forestPlotsDf$compoSp %in% c('beech', 'oak', 'spruce', 'fir'), 'compo'] <- 'pure'
-forestPlotsDf[forestPlotsDf$compoSp %in% c('beech-fir', 'beech-spruce', 'fir-spruce'), 'compo'] <- 'mixed'
+forestStandsDf$compo <- NA
+forestStandsDf[forestStandsDf$compoSp %in% c('beech', 'oak', 'spruce', 'fir'), 'compo'] <- 'pure'
+forestStandsDf[forestStandsDf$compoSp %in% c('beech-fir', 'beech-spruce', 'fir-spruce'), 'compo'] <- 'mixed'
 
 ###############################################################
 # Plots and verifications
 ###############################################################
 
 # verifications
-table(forestPlotsDf[forestPlotsDf$CODE_TF == "FF1-00-00","compoSp"], forestPlotsDf[forestPlotsDf$CODE_TF == "FF1-00-00","compoDCM"])
-table(forestPlotsDf[forestPlotsDf$compoDCM == "D", 'compoSp'])
-table(forestPlotsDf[forestPlotsDf$compoDCM == "C", 'compoSp'])
-table(forestPlotsDf[forestPlotsDf$compoDCM == "MDC", 'compoSp'])
+table(forestStandsDf[forestStandsDf$CODE_TF == "FF1-00-00","compoSp"], forestStandsDf[forestStandsDf$CODE_TF == "FF1-00-00","compoDCM"])
+table(forestStandsDf[forestStandsDf$compoDCM == "D", 'compoSp'])
+table(forestStandsDf[forestStandsDf$compoDCM == "C", 'compoSp'])
+table(forestStandsDf[forestStandsDf$compoDCM == "MDC", 'compoSp'])
 
 # plot area for each type of composition
-surfaceCompoSp <- ddply(forestPlotsDf, .(compoSp), summarise, area = sum(area))
+surfaceCompoSp <- ddply(forestStandsDf, .(compoSp), summarise, area = sum(area))
 surfaceCompoSp$area <- surfaceCompoSp$area / 10000
 surfaceCompoSp <- surfaceCompoSp[order(surfaceCompoSp$area, decreasing = TRUE),]
 bp <- barplot(surfaceCompoSp$area, names.arg = surfaceCompoSp$compoSp, las = 2, main = "Surface (ha) covered by each composition")
@@ -424,20 +426,20 @@ text(bp, surfaceCompoSp$area - 500, label = round(surfaceCompoSp$area,1), cex = 
 
 # composition map
 # put back compositions in the SpatialPolygonDataframe
-forestPlots@data <- merge(forestPlots@data, forestPlotsDf[, c('WKTid', 'compoDCM', 'compoSp')], by = 'WKTid', all = TRUE)
-forestPlots <- forestPlots[!is.na(forestPlots$compoSp), ]
+forestStands@data <- merge(forestStands@data, forestStandsDf[, c('WKTid', 'compoDCM', 'compoSp')], by = 'WKTid', all = TRUE)
+forestStands <- forestStands[!is.na(forestStands$compoSp), ]
 # convert for ggplot
-forestPlotsPts <- fortify(forestPlots, region="WKTid")
-colnames(forestPlotsPts)[colnames(forestPlotsPts) == 'id'] <- 'WKTid'
-forestNewSp <- join(forestPlotsPts, forestPlots@data, by="WKTid")
+forestStandsPts <- fortify(forestStands, region="WKTid")
+colnames(forestStandsPts)[colnames(forestStandsPts) == 'id'] <- 'WKTid'
+forestNewSp <- join(forestStandsPts, forestStands@data, by="WKTid")
 
 # plot
-pnr <- readOGR(dsn = "Z:/Private/PNR Bauges/Sans_Trou", layer = "parc_filled", encoding = "UTF-8", use_iconv = TRUE)
+pnr <- rgdal::readOGR(dsn = paste0(user$NetworkProtestDir, "T1/Donnees_SIG/PNR"), layer = "parc_filled", encoding = "UTF-8", use_iconv = TRUE)
 colnames(pnr@data)[colnames(pnr@data) == "ID"] <- 'id'
 pnrPts <- fortify(pnr, region="id")
 pnrNew <- join(pnrPts, pnr@data, by="id")
 
-pdf(file="C:/Users/raphael.aussenac/Documents/GitHub/PROTEST/output/mapCompo.pdf", width = 20, height = 10)
+pdf(file=paste0(user$WorkingDir, "/output/mapCompo.pdf"), width = 20, height = 10)
 ggplot() +
   geom_polygon(data = forestNewSp, aes(long,lat,group=group,fill=compoSp)) +
   geom_polygon(data = pnrNew, aes(long,lat,group=group), alpha = 0.1) +
