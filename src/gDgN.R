@@ -499,3 +499,4 @@ lines(density(ifn$DgTotFinal))
 lines(density(forestStands$dgPred * 100), col = 'green') # LIDAR after having create forestStands +- 3 ha
 lines(density(placette.mes$Dg75), col = 'blue3')
 legend("topright", c("lidarPixels","ifnPlots", "lidarforestStands", "protestPlots"), fill=c("orange", "black", "green", "blue3"))
+

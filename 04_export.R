@@ -13,9 +13,9 @@ library(reshape2)
 source(paste0(user$WorkingDir, "/src/siteIndex.R"))
 
 forestStands
-dim(forestStands)
+# dim(forestStands)
 sum(area(forestStands)) / 10000
-length(forestStands@polygons)
+# length(forestStands@polygons)
 length(unique(forestStands$WKTid))
 
 forestStandsSiteIndex <- forestStands
@@ -252,6 +252,7 @@ forestStands[forestStands$nonHarv == 0 & !is.na(forestStands$dist), "dist"]<- NA
 forestStands$proba <- -1
 forestStands[!is.na(forestStands$dist), "proba"] <- 1 - (log(forestStands[!is.na(forestStands$dist), "dist"]) / log(max(forestStands[!is.na(forestStands$dist), "dist"])))
 plot(forestStands[!is.na(forestStands$dist), "proba"] ~ forestStands[!is.na(forestStands$dist), "dist"], ylim = c(0,1))
+# 
 forestStands$EXPLOITABILITY <- -99
 forestStands[is.na(forestStands$dist), 'EXPLOITABILITY'] <- 0
 subsetNonAcc <- forestStands[forestStands$EXPLOITABILITY == 0,]

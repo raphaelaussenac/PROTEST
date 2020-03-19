@@ -24,12 +24,9 @@ user$mihai <- FALSE
 # LOAD GEOGRAPHICAL DATA
 ###############################################################
 
-
 ###############################################################
 # study area extent
 
-# pnr <- rgdal::readOGR(dsn = "Z:/Private/PNR Bauges/Sans_Trou", layer = "parc_filled", encoding = "UTF-8", use_iconv = TRUE)
-# EST-CE BIEN LE MEME FICHIER ?
 pnr <- rgdal::readOGR(dsn = paste0(user$NetworkProtestDir, "T1/Donnees_SIG/PNR"), layer = "parc_filled", encoding = "UTF-8", use_iconv = TRUE)
 # make sure projection info is Lambert93
 pnr@proj4string <- sp::CRS("+init=epsg:2154")
@@ -37,8 +34,8 @@ pnr@proj4string <- sp::CRS("+init=epsg:2154")
 ###############################################################
 # elevation
 
-# elev <- raster("./data/MNT_all_5m.tif")
-elev <- raster(paste0(user$NetworkProtestDir, "T1/Donnees_SIG/MNT/MNT_all_5m.tif"))
+if (user$confinement) {elev <- raster("./data/MNT_all_5m.tif")} else {elev <- raster(paste0(user$NetworkProtestDir, "T1/Donnees_SIG/MNT/MNT_all_5m.tif"))}
+
 # set projection
 elev@crs <- pnr@proj4string
 # plot(elev, col=colorRampPalette(c("black", "white"))(255))
@@ -62,12 +59,14 @@ elev@crs <- pnr@proj4string
 # raster::plot(cadastreR)
 # raster::writeRaster(cadastreR, file=paste0(user$NetworkProtestDir, "T1/Donnees_SIG/Cadastre/cadastreAREA.tif"))
 # 
+if (user$confinement) {cadastreR <- raster("./data/cadastreAREA.tif")} else {cadastreR <- raster(paste0(user$NetworkProtestDir, "T1/Donnees_SIG/Cadastre/cadastreAREA.tif"))}
 cadastreR <- raster(paste0(user$NetworkProtestDir, "T1/Donnees_SIG/Cadastre/cadastreAREA.tif"))
 
 ###############################################################
 # greco
 
 greco <- sf::st_read(paste0(user$NetworkProtestDir,"T3/scriptIFNPatrick/DonneesIFN/Shapes_SER_GRECO/greco_l93.shp"), quiet=TRUE)
+sf::st_crs(greco) = 2154
 # plot(greco)
 grecoRaster <- fasterize::fasterize(greco, elev, field="CODEGRECO")
 grecoRaster@crs <- pnr@proj4string
@@ -232,12 +231,13 @@ bdBauges <- bdBauges[, c("idp", "xl93", "yl93", "potentiel_03", "potentiel_09",
 baugesIfnPts <- sp::SpatialPointsDataFrame(bdBauges[,c("xl93", "yl93")], data = data.frame(bdBauges), proj4string = CRS(proj4string(pnr)))
   # 1c - convert into sf object
 baugesIfnPtsSf <- sf::st_as_sf(baugesIfnPts)
+sf::st_crs(baugesIfnPtsSf) = 2154
   # 1c - create circular plots around points and set the radius
 ifnCircular <- sf::st_buffer(baugesIfnPtsSf, dist = 15)
 
-plot(elev, col=colorRampPalette(c("black", "white"))(255))
-plot(ifnCircular, add = TRUE, col = 'red', border = 'red')
-plot(pnr, add=TRUE, border="blue")
+# plot(elev, col=colorRampPalette(c("black", "white"))(255))
+# plot(ifnCircular, add = TRUE, col = 'red', border = 'red')
+# plot(pnr, add=TRUE, border="blue")
 
 ###############################################################
 # extract values for IFN plots and forest stands
@@ -255,7 +255,6 @@ if (!user$mihai)
   forestStands$id <- NULL
   checkSurfaces <- TRUE
 } else {
-  # parcelles enquete
   # parcelles enquetees
   forestStands <-rgdal::readOGR("/media/data/travaux/projets/ouigef/Mihai/", layer="EnqOG_Bauges", encoding="latin1")
   forestStands@proj4string <- pnr@proj4string
@@ -275,7 +274,6 @@ getmode <- function(x) {
 
 # extract id of greco region at center of IFN plot location
 plotGreco <- sf::st_intersects(baugesIfnPtsSf, greco)
-# grecoExt <- grecoVr$extract(sp = ifnCircular, fun = getmode, small = TRUE) # previously mode
 #
 # extract GRECO as mode of raster values inside forestStands
 # GRECO surfaces in raster
@@ -289,8 +287,7 @@ rm(grecoVr);gc()
 
 # extract geology at center of IFN plot location
 plotGeol <- sf::st_intersects(baugesIfnPtsSf, geol)
-# intersection NFI points / geol polygone OLD VERSION
-# ifnGeol <- raster::intersect(baugesIfnPts, geol)
+#
 # extract GEOL as mode of raster values inside forestStands
 if (checkSurfaces) {dummy <- as.data.frame(raster::freq(geolRaster*(!is.na(ownership))));dummy$surface <- dummy$count * res(geolRaster)[1]^2/10000;dummy}
 geolVr <- velox::velox(geolRaster)
@@ -386,6 +383,7 @@ plotrum <- rumVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRU
 standrum <- rumVr$extract(sp = forestStands, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
 rm(rumVr)
 gc()
+# ajouter verification pour surface forestiere
 
 ###############################################################
 # BIND DATA FOR IFN PLOTS
@@ -393,23 +391,17 @@ gc()
 
 # CBIND values extracted for ifn plots into df
 grecoExtDf <- data.frame(greco=unlist(plotGreco))
-# colnames(grecoExtDf) <- "greco"
 grecoExtDf$greco <- droplevels(greco$CODEGRECO[grecoExtDf$greco]) # convert back factor numbers into GRECO letters
 geolExtDf <- data.frame(geolNotation=unlist(plotGeol))
-# colnames(geolExtDf) <- "geolNotation"
 geolExtDf$geolNotation <- droplevels(geol$NOTATION[geolExtDf$geolNotation]) # convert back factor numbers into Geol letters
+#
 elevExtDf <- data.frame(alti=plotElev)
-# colnames(elevExtDf) <- "alti"
 sloExtDf <- data.frame(slope=plotSlo)
-# colnames(sloExtDf) <- "slope"
 expoNSExtDf <- data.frame(expoNS=plotExpoNS)
-# colnames(expoNSExtDf) <- "expoNS"
 expoEWExtDf <- data.frame(expoEW=plotExpoEW)
-#colnames(expoEWExtDf) <- "expoEW"
+#
 phExtDf <- data.frame(ph=plotph)
-#colnames(phExtDf) <- "ph"
 rumExtDf <- data.frame(rum=plotrum)
-#colnames(rumExtDf) <- "rum"
 
 # convert slope degrees into percent
 sloExtDf$slope <- tan(sloExtDf$slope*pi/180)*100
@@ -483,8 +475,7 @@ gc()
 ###############################################################
 # extraction accessibility values 
 
-# load non-harvestable forest --------------------------------------------------
-# nonHarv <- raster("X:/ProjetsCommuns/PROTEST/T1/Accessibilite/sylvaccess/sylvaccessv3.3/Skidder/PNRfilled_Foret_non_buch.tif")
+# load non-harvestable forest
 nonHarv <- raster::raster(paste0(user$NetworkProtestDir, "T1/Accessibilite/sylvaccess/sylvaccessv3.3/Skidder/PNRfilled_Foret_non_buch.tif"))
 # set projection
 nonHarv@crs <- pnr@proj4string
@@ -525,7 +516,7 @@ if (checkSurfaces)
   print(paste0("Surface non bucheronnable - raster : ", round(dummy), " ; polygones : ", round(sum((nonHarvExt==0) * forestStands$area)/10000)))
 }
 
-# load skidding distance -------------------------------------------------------
+# load skidding distance
 dist  <- raster::raster(paste0(user$NetworkProtestDir, "T1/Accessibilite/sylvaccess/sylvaccessv3.3/Skidder/PNRfilled_F.distance.tif"))
 # numeric value (transport distance between felling place and roadside) NA (forest not accessible OR not forest not harvestable OR outside forest)
 # set projection
@@ -539,51 +530,10 @@ if (checkSurfaces)
   hist(raster::values(dist)[which(!is.na(raster::values(ownership)))], main="Raster, Skidding distance", freq=TRUE, breaks=seq(from=0, to=7000, by=250))
 }
 
-# transform NA into -1000
-# dist[is.na(dist[])] <- -1000
-
-# plot(dist, col=colorRampPalette(c("black", "red"))(255))
-
-# # retrieve area < 100000m
-# near <- dist < 100000
-# isBecomes <- cbind(c(0, 1),
-#                    c(NA, 1))
-# near <- reclassify(near, rcl = isBecomes)
-#
-# # retrieve area > 100000m
-# far <- dist > 100000
-# isBecomes <- cbind(c(0, 1),
-#                    c(NA, 2))
-# far <- reclassify(far, rcl = isBecomes)
-#
-# # merge rasters --> [f]ree [e]volution [f]orest
-# dist <- mosaic(near, far, fun = sum)
-# # isBecomes <- cbind(c(NA, 1, 2), # replace NA -> 0
-# #                    c(0, 1, 2))
-# # dist <- reclassify(dist, rcl = isBecomes)
-# # plot(dist, col=colorRampPalette(c("black", "red"))(255))
-# # writeRaster(dist, "Testdist.tif")
-
-# # extract dist
-# # Create a function to calculate the proportion of dist 0, 1 and 2 on each plot
-# # and set a threshold to determine wether the entire plot will become 0 or 1 or 2
-# # ex with a threshold of 40: if more than 40% of a plot is 0 and the rest of it is 1
-# # it becomes entirely 0 (favor 0 when 0,1 otherwise (0,2 - 1,2 - 1,2,3) take the mode)
-# threshold01 <- 40
-# getpropdist <- function(x) {
-#   uniqv <- sort(unique(x)) # 0, 1
-#   uniqv <- uniqv[!is.na(uniqv)]
-#   if (length(uniqv)==2 & sum(uniqv) == 1){ # if dist is 0,1 --> favor 0
-#     uniqv[which(tabulate(match(x, uniqv)) * 100 / sum(tabulate(match(x, uniqv))) > threshold01)][1]
-#   } else {
-#     uniqv[which.max(tabulate(match(x, uniqv)))] # mode
-#   }
-# }
-# distExt <- distVr$extract(sp = forestStands, fun = getpropdist, small = TRUE)
-
 # extract dist
 # if most of the plot is inaccessible (x = NA) -> inaccessible (i.e. plot dist = NA)
 # if most of the plot is accessible (x != NA) -> dist = mean(dist != NA)
+# a proportio nof 0.85 is applied so that surfaces are globally consistent between raster and polygons
 getdist <- function(x) {
   inaccess <- length(x[is.na(x)])
   access <- length(x[!is.na(x)])
@@ -637,9 +587,8 @@ if (checkSurfaces)
 }
 rm(p100gfPred)
 rm(gFtotVrExt, gtotfVrExt)
-#
-# p100gfPredExt <- p100gfPredVr$extract(sp = forestStands, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
-# ICIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII
+# 
+# Ni et NiDGi [DISTRIBUTIONS N'ONT PAS ETE VERIFIEES]
 niVr <- velox::velox(ni)
 niExt <- niVr$extract(sp = forestStands, fun = function(x) sum(x, na.rm = TRUE), small = TRUE)
 niDgi2Vr <- velox::velox(niDgi2)
@@ -671,59 +620,39 @@ rm(list=ls(pattern="*Vr"))
 # pExt <- pVr$extract(sp = forestStands, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
 # rExt <- rVr$extract(sp = forestStands, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
 
-# extract geol data 
-# retrieve forest plots centroid coordinates
-# coordForest <- data.frame(coordinates(forestStands))
-# colnames(coordForest) <- c("X", "Y")
-# convert into a spatialPoint ob=object
-# coordForest <- SpatialPointsDataFrame(coordForest[,c("X", "Y")], data = data.frame(coordForest), proj4string = CRS(proj4string(pnr)))
-# intersection forest plots centroid / geol polygone
-# coordForest <- intersect(coordForest, geol)
-
 # convert into df
 grecoExtDf <- data.frame(greco=standGreco)
-#colnames(grecoExtDf) <- "greco"
 grecoExtDf$greco <- droplevels(greco$CODEGRECO[grecoExtDf$greco]) # convert back factor numbers into GRECO letters
+#
 ownershipExtDf <- data.frame(owner=ownershipExt)
-#colnames(ownershipExtDf) <- "owner"
 ownershipExtDf[ownershipExtDf$owner == 2 & !is.na(ownershipExtDf$owner), 'owner'] <- 'Pub'
 ownershipExtDf[ownershipExtDf$owner == 1 & !is.na(ownershipExtDf$owner), 'owner'] <- 'Priv'
 ownershipExtDf$owner <- as.factor(ownershipExtDf$owner)
+#
 cadastreExtDf <- data.frame(meanParcelleArea=standMeanParcellAreaExt)
 nonHarvExtDf <- data.frame(nonHarv=nonHarvExt)
-# colnames(nonHarvExtDf) <- "nonHarv"
 distExtDf <- data.frame(dist=distExt)
-#colnames(distExtDf) <- "dist"
+#
 elevExtDf <- data.frame(alti=standElev)
-# colnames(elevExtDf) <- "alti"
 sloExtDf <- data.frame(slope=standSlo)
-# colnames(sloExtDf) <- "slope"
-# orienExtDf <- data.frame(orienExt)
-# colnames(orienExtDf) <- "orient"
 expoNSExtDf <- data.frame(expoNS=standExpoNS)
-#colnames(expoNSExtDf) <- "expoNS"
 expoEWExtDf <- data.frame(expoEW=standExpoEW)
-#colnames(expoEWExtDf) <- "expoEW"
 # forProtecExtDf <- data.frame(forProtecExt)
 # colnames(forProtecExtDf) <- "forProtec"
 niExtDf <- data.frame(sumNi=niExt)
-# colnames(niExtDf) <- "sumNi"
 niDgi2ExtDf <- data.frame(sumNiDgi2=niDgi2Ext)
-# colnames(niDgi2ExtDf) <- "sumNiDgi2"
 dgPredExtDf <- data.frame(dgPred=sqrt(niDgi2ExtDf / niExtDf))
-# colnames(dgPredExtDf) <- "dgPred"
+names(dgPredExtDf) <- "dgPred"
 gPredExtDf <- data.frame(gPred=gPredExt)
-# colnames(gPredExtDf) <- "gPred"
 # ggbPredExtDf <- data.frame(ggbPredExt)
 # colnames(ggbPredExtDf) <- "ggbPred"
 # nPredExtDf <- data.frame(nPredExt)
 # colnames(nPredExtDf) <- "nPred"
 p100gfPredExtDf <- data.frame(p100gfPred=p100gfPredExt)
-# colnames(p100gfPredExtDf) <- "p100gfPred"
+#
 phExtDf <- data.frame(ph=standph)
-# colnames(phExtDf) <- "ph"
 rumExtDf <- data.frame(rum=standrum)
-# colnames(rumExtDf) <- "rum"
+#
 # kExtDf <- data.frame(kExt)
 # colnames(kExtDf) <- "k"
 # lsExtDf <- data.frame(lsExt)
@@ -734,13 +663,9 @@ rumExtDf <- data.frame(rum=standrum)
 # colnames(rExtDf) <- "r"
 geolExtDf <- data.frame(geolNotation=levels(geol$NOTATION)[standGeol])
 geolExtDf <- droplevels(geolExtDf)
-
+#
 rm(list=ls(pattern="stand*"))
-
-# add geol data
-# forestStands@data <- cbind(forestStands@data, coordForest$NOTATION)
-# colnames(forestStands@data)[colnames(forestStands@data) == 'coordForest$NOTATION'] <- 'geolNotation'
-
+#
 # convert slope degrees into percent
 sloExtDf$slope <- tan(sloExtDf$slope*pi/180)*100
 
@@ -750,6 +675,8 @@ forestStands@data <- cbind(forestStands@data, grecoExtDf, ownershipExtDf,
                       expoNSExtDf, expoEWExtDf,  dgPredExtDf, gPredExtDf,
                       phExtDf, rumExtDf, p100gfPredExtDf, geolExtDf, cadastreExtDf)#, 
                       # ,ggbPredExtDf, forProtecExtDf, kExtDf, lsExtDf, pExtDf, rExtDf)
+rm(list=ls(pattern="*Ext"))
+
 
 ###############################################################
 # load geol classification
@@ -765,12 +692,13 @@ classGeol$rocheCalc <- as.factor(classGeol$rocheCalc)
 
 # insert geol classification in forestStands
 forestStands <- merge(forestStands, classGeol, by.x = "geolNotation", by.y = 'NOTATION', all.x = TRUE)
+
+#########
+# COMPARAISON AVEC RESULTATS RAPHAEL A FAIRE ICI ????
+
+forestStandsBck <- forestStands
 #
 ##################################################################
-### VERIFIER ICI !!!
-##################################################################
-
-
 #
 if (!user$mihai)
 {
@@ -779,25 +707,42 @@ if (!user$mihai)
   ###############################################################
   
   # remove polygones with geol == 'hydro' (== lac, river)
-  forestStands <- forestStands[forestStands$gelNttn != 'hydro', ]
+  # 0 polygons
+  forestStands <- forestStands[forestStands$geolNotation != 'hydro', ]
   
   # remove forest plots where gPred == 0 & NA
+  sum(is.na(forestStands$gPred))
+  sum(forestStands$area[is.na(forestStands$gPred)])/100
   forestStands <- forestStands[!is.na(forestStands$gPred), ]
+
+  # sum(forestStands$area[forestStands$gPred == 0])
+  # polygons in a area not covered by lidar flight (13 polygons / 1800 ha)
+  sum(forestStands$gPred==0)
+  sum(forestStands$area[forestStands$gPred==0])/100
   forestStands <- forestStands[forestStands$gPred > 0, ]
   
   # remove forest plots where dgPred == 0
+  # a few polygons, mostly in lowlands
+  sum(is.na(forestStands$dgPred))
+  sum(forestStands$dgPred==0)
+  sum(forestStands$area[forestStands$dgPred==0])/100
   forestStands <- forestStands[!is.na(forestStands$dgPred), ]
   forestStands <- forestStands[forestStands$dgPred > 0, ]
   
   # convert mean BA/ha --> BA (real stock associated to each plot)
-  forestStands$area <- area(forestStands) / 10000
+  forestStands$area <- raster::area(forestStands) / 10000
   forestStands$gPred <- forestStands$gPred * forestStands$area
   forestStands$area <- NULL
   
+  save(list=ls(),file="temp.rda")
+  load(file="temp.rda")
+  
   # remove plot where p100gfP = NA
-  forestStands <- forestStands[!is.na(forestStands$p100gfP), ]
+  sum(is.na(forestStands$p100gfPred))
+  forestStands <- forestStands[!is.na(forestStands$p100gfPred), ]
   
   # remove forest plots where owner ==  NA
+  sum(is.na(forestStands$owner))
   forestStands <- forestStands[!is.na(forestStands$owner), ]
   
   # concatanate accessibility
@@ -808,18 +753,18 @@ if (!user$mihai)
   forestStands$id <- NULL
   
   # TODOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
-  # for 40 stands located inside or along the riverbed of Isere, there are no parcells
+  # for 17 stands located inside or along the riverbed of Isere, there are no parcells
   # area is set to zero
-  standMeanParcellAreaExt[is.na(standMeanParcellAreaExt)] <- 0
+  sum(is.na(forestStands$meanParcelleArea))
+  forestStands <- forestStands[!is.na(forestStands$meanParcelleArea), ]
   
   ###############################################################
   # save
   ###############################################################
   
-  # shapefile(forestStands, filename = './data/forestStands', overwrite = TRUE)
+  raster::shapefile(forestStands, filename = './data/forestStands', overwrite = TRUE)
   
-  
-  # verification (avec donnees extraites par raphael : auparavant : polymerge fait apres extract)
+  # verification A FAIRE AVANT SUPPRESSION DES POLYGONES (avec donnees extraites par raphael : auparavant : polymerge fait apres extract)
   forestStands1 <- rgdal::readOGR(dsn="./data/", layer="forestPlots3Ha")
   #
   sum(as.character(forestStands$geolNotation) == as.character(forestStands1$gelNttn))/nrow(forestStands) # mode plutôt que extraction au centroide
