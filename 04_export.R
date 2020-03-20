@@ -49,7 +49,7 @@ table(forestStandsCompogDgN$CODE_TF)
 forestStands <- merge(forestStandsSiteIndex[, c('WKTid', 'pot03', 'pot03Epsilon',
                                                                 'pot09', 'pot09Epsilon', 'pot61',
                                                                 'pot61Epsilon', 'pot62',
-                                                                'pot62Epsilon', 'INSEE_D', 'owner', 'access', 'nonHarv', 'dist')],
+                                                                'pot62Epsilon', 'INSEE_D', 'owner', 'access', 'nonHarv', 'dist', 'mnPrclA')],
                      forestStandsCompogDgN[, c('WKTid', 'compoSp', 'area', "gBeech", "gOak", "gFir", "gSpruce",
                                                                 "dgBeech", "dgOak", "dgFir", "dgSpruce", "nBeech",
                                                                 "nOak", "nFir", "nSpruce")],
@@ -70,6 +70,10 @@ wkt <- read.csv("./data/BDid_1.csv", header = TRUE, sep = "\t")
 wkt$WKTid <- c(1:nrow(wkt))
 # replace wkt in forestStands
 forestStands <- merge(forestStands, wkt[, c('WKTid', 'WKT')], by = 'WKTid')
+
+save(list=ls(), file="intermediaryExport0.rda")
+rm(list=ls())
+load(file="intermediaryExport0.rda")
 
 ###############################################################
 # define exploitability
@@ -192,11 +196,12 @@ forestStands[forestStands$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_f
 forestStands[forestStands$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "DG_2"] <-
                                                   forestStands[forestStands$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "dgSpruce"]
 
+############################################
 # final table
 forestStands <- forestStands[, c('STAND_ID',	'FOREST_TYPE_CODE',	'FOREST_TYPE_NAME',	'AREA',	'SITE_INDEX_1', 'NHA_1',
                               'AGE_1',	'HDOM_1',	'DDOM_1',	'HG_1',	'DG_1',	'SITE_INDEX_2', 'NHA_2',	'AGE_2',	'HDOM_2',
                               'DDOM_2',	'HG_2',	'DG_2',	'EXPLOITABILITY',	'DOMAINE_TYPE',	'FOREST',
-                              'INVENTORY_DATE',	'DEPARTMENT',	'CITY',	'COMMENT',	'WKT-GEOM', 'nonHarv', 'dist')]
+                              'INVENTORY_DATE',	'DEPARTMENT',	'CITY',	'COMMENT',	'WKT-GEOM', 'nonHarv', 'dist', 'mnPrclA')]
 
 ###############################################################
 # manage units
@@ -244,30 +249,90 @@ forestStands$Gsp2 <- 0
 forestStands[forestStands$NHA_2 > 0, "Gsp2"] <- (forestStands[forestStands$NHA_2 > 0, "NHA_2"] * pi * ((forestStands[forestStands$NHA_2 > 0, "DG_2"]/100)^2)) / 4
 forestStands$G <- forestStands$Gsp1 + forestStands$Gsp2
 
-# force plots nonHarv == 0 to be inaccessible
-forestStands[forestStands$nonHarv == 0 & !is.na(forestStands$dist), "dist"]<- NA
+# HERE STOP POINT
+save(list=ls(), file="intermediaryExport.rda")
+rm(list=ls())
+load(file="intermediaryExport.rda")
+summary(forestStands[,-26])
 
-
-# set exploitation probability of accessible plots
-forestStands$proba <- -1
-forestStands[!is.na(forestStands$dist), "proba"] <- 1 - (log(forestStands[!is.na(forestStands$dist), "dist"]) / log(max(forestStands[!is.na(forestStands$dist), "dist"])))
-plot(forestStands[!is.na(forestStands$dist), "proba"] ~ forestStands[!is.na(forestStands$dist), "dist"], ylim = c(0,1))
+#
+# probability of management: 1 by default
+forestStands$proba <- 1
+forestStands$surface <- forestStands$mnPrclA/10000
+# replace distances
+forestStands$dist[is.na(forestStands$dist)] <- 10000
+# for private forest
+# load glm binomial model calibrated on Mihai dataset
+# should the forest type (TFV) be added ?
+# the interaction with no harvest should be better modelled (add term I(nonharv * dist))
+# use log of surface ?
+load(file="./data/modelGestion.rda")
+model.glm
 # 
-forestStands$EXPLOITABILITY <- -99
-forestStands[is.na(forestStands$dist), 'EXPLOITABILITY'] <- 0
-subsetNonAcc <- forestStands[forestStands$EXPLOITABILITY == 0,]
-subsetAcc <- forestStands[forestStands$EXPLOITABILITY != 0,]
-for (i in 1:nrow(subsetAcc)){
-  subsetAcc[i, 'EXPLOITABILITY'] <- sample(x = c(1,0), prob = c(subsetAcc[i, "proba"], 1-subsetAcc[i, "proba"]), size = 1)
-}
-plot(subsetAcc$proba ~ subsetAcc$dist)
-plot(subsetAcc$EXPLOITABILITY ~ subsetAcc$dist)
+dummy <- which(forestStands$DOMAINE_TYPE=="Priv")
+# estimate probability of management in private forests
+forestStands$proba[dummy] <- predict.glm(model.glm, forestStands[dummy,], type="response")
+#
+# for all forests
+# nonHarv forest have a probability of 0
+forestStands$proba[forestStands$nonHarv==0] <- 0
+# forests with NA distance have a probability of 0
+# set back to NA values previously set to 10000
+forestStands$dist[forestStands$dist==10000] <- NA
+# set dist to NA of polygons not harvestable
+forestStands[forestStands$nonHarv == 0 & !is.na(forestStands$dist), "dist"]<- NA
+forestStands$proba[is.na(forestStands$dist)] <- 0
+#
+plot(forestStands$proba, forestStands$dist, col= forestStands$DOMAINE_TYPE)
+plot(forestStands$proba, forestStands$surface, col= forestStands$DOMAINE_TYPE)
+plot(forestStands$proba, forestStands$dist, col= forestStands$nonHarv+1)
+plot(forestStands$proba, forestStands$surface, col= forestStands$nonHarv+1)
+summary(forestStands$proba)
+# HERE -> DO SAMPLING THEN CHECK SURFACES
 
-# define accesible plots with EXPLOITABILITY = 0 as inaccessible
-subsetAcc[subsetAcc$EXPLOITABILITY == 0, 'dist'] <- NA
+forestStands$EXPLOITABILITY <- as.numeric(forestStands$proba > runif(nrow(forestStands)))
+boxplot(forestStands$proba, forestStands$EXPLOITABILITY)
+summary(forestStands$proba[forestStands$EXPLOITABILITY==0])
+summary(forestStands$proba[forestStands$EXPLOITABILITY==1])
 
-# merge Acc and nonAcc plots
-forestStands <- rbind(subsetNonAcc, subsetAcc)
+# faire recap
+# foret non bucheronnable
+# foret non accessible
+# foret accessible geree
+# foret accessible non geree
+# par type public ou prive
+names(forestStands)
+surfaces <- data.frame(
+  nonBuch=sum(forestStands$AREA[forestStands$nonHarv==0])/10000,
+  nonAccessible=sum(forestStands$AREA[is.na(forestStands$dist) & forestStands$nonHarv==1])/10000,
+  AccessibleGere=sum(forestStands$AREA[!is.na(forestStands$dist) & forestStands$nonHarv==1 & forestStands$EXPLOITABILITY==1])/10000,
+  AccessibleNonGere=sum(forestStands$AREA[!is.na(forestStands$dist) & forestStands$nonHarv==1 & forestStands$EXPLOITABILITY==0])/10000)
+sum(surfaces)
+sum(forestStands$AREA)/10000
+
+sum(forestStands$AREA[forestStands$EXPLOITABILITY==1])/10000
+# set exploitation probability of accessible plots
+#
+# as log of distance -> by raphael
+# forestStands$proba <- -1
+# forestStands[!is.na(forestStands$dist), "proba"] <- 1 - (log(forestStands[!is.na(forestStands$dist), "dist"]) / log(max(forestStands[!is.na(forestStands$dist), "dist"])))
+# plot(forestStands[!is.na(forestStands$dist), "proba"] ~ forestStands[!is.na(forestStands$dist), "dist"], ylim = c(0,1))
+# 
+# forestStands$EXPLOITABILITY <- -99
+# forestStands[is.na(forestStands$dist), 'EXPLOITABILITY'] <- 0
+# subsetNonAcc <- forestStands[forestStands$EXPLOITABILITY == 0,]
+# subsetAcc <- forestStands[forestStands$EXPLOITABILITY != 0,]
+# for (i in 1:nrow(subsetAcc)){
+#   subsetAcc[i, 'EXPLOITABILITY'] <- sample(x = c(1,0), prob = c(subsetAcc[i, "proba"], 1-subsetAcc[i, "proba"]), size = 1)
+# }
+# plot(subsetAcc$proba ~ subsetAcc$dist)
+# plot(subsetAcc$EXPLOITABILITY ~ subsetAcc$dist)
+# 
+# # define accesible plots with EXPLOITABILITY = 0 as inaccessible
+# subsetAcc[subsetAcc$EXPLOITABILITY == 0, 'dist'] <- NA
+# 
+# # merge Acc and nonAcc plots
+# forestStands <- rbind(subsetNonAcc, subsetAcc)
 
 # define extra plots as non accessible = non harvested
 # -- exemple 1 plot sur 2 en chêne privé ne sera pas géré/exploité
@@ -284,6 +349,8 @@ forestStands$Gsp1 <- NULL
 forestStands$Gsp2 <- NULL
 forestStands$G <- NULL
 forestStands$proba <- NULL
+forestStands$surface <- NULL
+forestStands$mnPrclA	<- NULL
 
 ###############################################################
 # create management scenario java file to run SIMMEM

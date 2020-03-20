@@ -18,7 +18,7 @@ source(paste0(user$WorkingDir, "/src/siteIndexModel.R"))
 ###############################################################
 
 # load forest plots
-forestStands <- readOGR(dsn = "./data", layer = "forestPlots", encoding = "UTF-8", use_iconv = TRUE)
+forestStands <- readOGR(dsn = "./data", layer = "forestStands", encoding = "UTF-8", use_iconv = TRUE)
 # plot(forestStands, col = forestStands$CODE_TFV, border = forestStands$CODE_TFV)
 plot(coordinates(forestStands), asp = 1)
 

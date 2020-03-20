@@ -4,7 +4,7 @@
 
 # clean up environment except user variable with path values
 rm(list = setdiff(ls(),"user"))
-user$checkSurfaces <- TRUE
+user$checkSurfaces <- FALSE
 
 # load packages
 library(rgdal)
@@ -253,12 +253,18 @@ if (!user$mihai)
   forestStands$WKT <- NULL
   forestStands$BDID <- NULL
   forestStands$id <- NULL
-  checkSurfaces <- TRUE
 } else {
   # parcelles enquetees
-  forestStands <-rgdal::readOGR("/media/data/travaux/projets/ouigef/Mihai/", layer="EnqOG_Bauges", encoding="latin1")
+  if (user$confinement)
+  {
+    forestStands <-rgdal::readOGR("/media/reseau/jmm/Private/datadisk/travaux/projets/ouigef/Mihai", layer="EnqOG_Bauges", encoding="latin1")
+  }
+  else
+  {
+    forestStands <-rgdal::readOGR("/media/data/travaux/projets/ouigef/Mihai/", layer="EnqOG_Bauges", encoding="latin1")
+  }
   forestStands@proj4string <- pnr@proj4string
-  checkSurfaces <- FALSE
+  user$checkSurfaces <- FALSE
 }
 
 # add unique id
@@ -277,24 +283,24 @@ plotGreco <- sf::st_intersects(baugesIfnPtsSf, greco)
 #
 # extract GRECO as mode of raster values inside forestStands
 # GRECO surfaces in raster
-if (checkSurfaces) {dummy <- as.data.frame(raster::freq(grecoRaster*(!is.na(ownership))));dummy$surface <- dummy$count * res(grecoRaster)[1]^2/10000;dummy}
+if (user$checkSurfaces) {dummy <- as.data.frame(raster::freq(grecoRaster*(!is.na(ownership))));dummy$surface <- dummy$count * res(grecoRaster)[1]^2/10000;dummy}
 grecoVr <- velox::velox(grecoRaster)
 rm(grecoRaster);gc()
 standGreco <- grecoVr$extract(sp = forestStands, fun = getmode, small = TRUE)
 # GRECO surfaces in polygons
-if (checkSurfaces) {aggregate(forestStands$area/10000, by=list(standGreco), FUN=sum)}
+if (user$checkSurfaces) {aggregate(forestStands$area/10000, by=list(standGreco), FUN=sum)}
 rm(grecoVr);gc()
 
 # extract geology at center of IFN plot location
 plotGeol <- sf::st_intersects(baugesIfnPtsSf, geol)
 #
 # extract GEOL as mode of raster values inside forestStands
-if (checkSurfaces) {dummy <- as.data.frame(raster::freq(geolRaster*(!is.na(ownership))));dummy$surface <- dummy$count * res(geolRaster)[1]^2/10000;dummy}
+if (user$checkSurfaces) {dummy <- as.data.frame(raster::freq(geolRaster*(!is.na(ownership))));dummy$surface <- dummy$count * res(geolRaster)[1]^2/10000;dummy}
 geolVr <- velox::velox(geolRaster)
 rm(geolRaster);gc()
 standGeol <- geolVr$extract(sp = forestStands, fun = getmode, small = TRUE)
 # Geology surfaces in polygons
-if (checkSurfaces)
+if (user$checkSurfaces)
 {
   dummy2 <-aggregate(forestStands$area/10000, by=list(standGeol), FUN=sum)
   dummy <-merge(dummy, dummy2, by.x="value", by.y="Group.1", all=TRUE)
@@ -310,7 +316,7 @@ orien <- raster::terrain(elev, opt = 'aspect', unit = 'degrees', neighbors = 8)
 expoNS <- cos(orien*pi/180)
 expoEW <- sin(orien*pi/180)
 rm(orien)
-if (checkSurfaces)
+if (user$checkSurfaces)
 {
   par(mfrow=c(2,2))
   hist(raster::values(expoNS)[!is.na(raster::values(ownership))], main="Raster, expoNS")
@@ -331,7 +337,7 @@ gc()
 standExpoEW <- expoEWVr$extract(sp = forestStands, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
 rm(expoEWVr)
 gc()
-if (checkSurfaces)
+if (user$checkSurfaces)
 {
   plotrix::weighted.hist(standExpoNS, forestStands$area, main="Polygons, expoNS")
   plotrix::weighted.hist(standExpoEW, forestStands$area, main="Polygons, expoEW")
@@ -343,7 +349,7 @@ plotElev <- elevVr$extract(sp = ifnCircular, fun = mean, small = TRUE)
 gc()
 standElev <- elevVr$extract(sp = forestStands, fun = mean, small = TRUE)
 rm(elevVr)
-if (checkSurfaces)
+if (user$checkSurfaces)
 {
   par(mfrow=c(1,2))
   hist(raster::values(elev)[which(!is.na(raster::values(ownership)))], main="Raster, altitude", freq=TRUE, breaks=seq(from=0, to =2500, by=100))
@@ -355,7 +361,7 @@ gc()
 # compute slope from elevation
 slo <- raster::terrain(elev, opt = 'slope', unit = 'degrees', neighbors = 8)
 sloVr <- velox::velox(slo)
-if (checkSurfaces)
+if (user$checkSurfaces)
 {
   par(mfrow=c(1,2))
   hist(raster::values(slo)[which(!is.na(raster::values(ownership)))], main="Raster, slope", freq=TRUE, breaks=seq(from=0,to=90,by=5))
@@ -365,7 +371,7 @@ rm(slo)
 plotSlo <- sloVr$extract(sp = ifnCircular, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
 # extract mean slope inside forest stand
 standSlo <- sloVr$extract(sp = forestStands, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
-if (checkSurfaces)
+if (user$checkSurfaces)
 {
   plotrix::weighted.hist(standSlo, forestStands$area/raster::res(elev)[1]^2, main="Polygons, slope", freq=TRUE, breaks=seq(from=0,to=90,by=5))
 }
@@ -436,7 +442,7 @@ rm(ifnCircular1)
 ##############################################################
 # extract mean parcelle area from rasterized area of parcells
 
-if (checkSurfaces)
+if (user$checkSurfaces)
 {
   par(mfrow=c(1,2))
   hist(raster::values(cadastreR)[which(!is.na(raster::values(ownership)))], main="Raster, mean surface of parcels", freq=TRUE)
@@ -447,7 +453,7 @@ standMeanParcellAreaExt <- cadastreRVr$extract(sp = forestStands, function(x) me
 #
 
 rm(cadastreRVr);gc()
-if (checkSurfaces)
+if (user$checkSurfaces)
 {
   dummy <- which(!is.na(standMeanParcellAreaExt))
   plotrix::weighted.hist(standMeanParcellAreaExt[dummy], forestStands$area[dummy]/raster::res(elev)[1]^2, main="Polygons, mean surface of parcels", freq=TRUE)
@@ -456,7 +462,7 @@ if (checkSurfaces)
 ###############################################################
 # extract values for ownership accessibility dendro (stands)
 
-if (checkSurfaces)
+if (user$checkSurfaces)
 {
   par(mfrow=c(1,2))
   dummy <- as.data.frame(freq(ownership))
@@ -465,7 +471,7 @@ if (checkSurfaces)
 ownershipVr <- velox::velox(ownership)
 ownershipExt <- ownershipVr$extract(sp = forestStands, fun = getmode, small = TRUE)
 rm(ownershipVr)
-if(checkSurfaces)
+if(user$checkSurfaces)
 {
   aggregate(forestStands$area/10000, by=list(ownershipExt), FUN=sum)
   dummy$surface
@@ -488,7 +494,7 @@ isBecomes <- cbind(c(0, 1, NA),
 # becomes 0 (forest not harvestable) 1 (other)
 nonHarv <- raster::reclassify(nonHarv, rcl = isBecomes)
 # non harvestable area from raster
-if (checkSurfaces) 
+if (user$checkSurfaces) 
 {
   dummy <- (length(nonHarv)-sum(raster::values(nonHarv)))*raster::res(nonHarv)[1]^2/10000
 }
@@ -511,7 +517,7 @@ rm(nonHarv)
 nonHarvExt <- nonHarvVr$extract(sp = forestStands, fun = getprop, small = TRUE)
 rm(nonHarvVr)
 gc()
-if (checkSurfaces) 
+if (user$checkSurfaces) 
 {
   print(paste0("Surface non bucheronnable - raster : ", round(dummy), " ; polygones : ", round(sum((nonHarvExt==0) * forestStands$area)/10000)))
 }
@@ -523,7 +529,7 @@ dist  <- raster::raster(paste0(user$NetworkProtestDir, "T1/Accessibilite/sylvacc
 dist@crs <- pnr@proj4string
 # remove extreme (error) value
 dist[dist > 100000] <- NA
-if (checkSurfaces)
+if (user$checkSurfaces)
 {
   dummy <- sum(raster::values(is.na(dist))*raster::values(!is.na(ownership))) * raster::res(dist)[1]^2/10000
   par(mfrow=c(1,2))
@@ -547,7 +553,7 @@ distVr <- velox::velox(dist)
 rm(dist)
 distExt <- distVr$extract(sp = forestStands, fun = getdist, small = TRUE)
 rm(distVr)
-if (checkSurfaces)
+if (user$checkSurfaces)
 {
   print(paste0("Surface inaccessible - raster : ", round(dummy), " ; polygones : ", round(sum(forestStands$area[is.na(distExt)])/10000)))
   dummy <- which(!is.na(distExt))
@@ -558,7 +564,7 @@ gc()
 # extract dendro
 gPredVr <- velox::velox(gPred)
 gPredExt <- gPredVr$extract(sp = forestStands, fun = function(x) mean(x, na.rm = TRUE), small = TRUE)
-if (checkSurfaces)
+if (user$checkSurfaces)
 {
   print(paste0("Surface terrière moyenne - raster : ", round(mean(raster::values(gPred), na.rm=TRUE),1), " ; polygones : ", round(sum(gPredExt*forestStands$area, na.rm=TRUE)/sum(forestStands$area),1)))
   print(paste0("Surface terrière totale - raster : ", round(sum(raster::values(gPred), na.rm=TRUE) * raster::res(gPred)[1]^2/10000), " ; polygones : ", round(sum(gPredExt*forestStands$area, na.rm=TRUE)/10000)))
@@ -577,7 +583,7 @@ gFtotVrExt <- gPredfVr$extract(sp = forestStands, fun = function(x) sum(x, na.rm
 gtotfVrExt <- gPredVr$extract(sp = forestStands, fun = function(x) sum(x, na.rm = TRUE), small = TRUE)
 # finaly compute deciduous percentage
 p100gfPredExt <- gFtotVrExt/gtotfVrExt*100
-if (checkSurfaces)
+if (user$checkSurfaces)
 {
   print(paste0("Surface terrière feuillue totale - raster : ", round(sum(raster::values(gPred*p100gfPred/100), na.rm=TRUE) * raster::res(gPred)[1]^2/10000), " ; polygones : ", round(sum(gPredExt*p100gfPredExt*forestStands$area/100, na.rm=TRUE)/10000)))
   par(mfrow=c(1,2))
@@ -593,7 +599,7 @@ niVr <- velox::velox(ni)
 niExt <- niVr$extract(sp = forestStands, fun = function(x) sum(x, na.rm = TRUE), small = TRUE)
 niDgi2Vr <- velox::velox(niDgi2)
 niDgi2Ext <- niDgi2Vr$extract(sp = forestStands, fun = function(x) sum(x, na.rm = TRUE), small = TRUE)
-if (checkSurfaces)
+if (user$checkSurfaces)
 {
   par(mfrow=c(1,2))
   hist(raster::values(niDgi2)/525, main="Raster, niDgi2")
@@ -694,7 +700,25 @@ classGeol$rocheCalc <- as.factor(classGeol$rocheCalc)
 forestStands <- merge(forestStands, classGeol, by.x = "geolNotation", by.y = 'NOTATION', all.x = TRUE)
 
 #########
-# COMPARAISON AVEC RESULTATS RAPHAEL A FAIRE ICI ????
+# # COMPARAISON AVEC RESULTATS RAPHAEL A FAIRE ICI ????
+# # AVANT SUPPRESSION DES POLYGONES
+# # (avec donnees extraites par raphael : auparavant : polymerge fait apres extract)
+# forestStands1 <- rgdal::readOGR(dsn="./data/", layer="forestPlots3HaPolyMergeOLD")
+# #
+# table(forestStands$geolNotation)
+# table(forestStands$)
+# sum(as.character(forestStands$geolNotation) == as.character(forestStands1$gelNttn))/nrow(forestStands) # mode plutôt que extraction au centroide
+# sum(as.character(forestStands$CODE_TFV)== as.character(forestStands1$CODE_TF))/nrow(forestStands)
+# table(forestStands$INSEE_DEP, forestStands1$INSEE_D)
+# table(forestStands$greco, forestStands1$greco)
+# table(forestStands$owner, forestStands1$owner)
+# table(forestStands$nonHarv, forestStands1$nonHarv)
+# #
+# par(mfrow=c(3,4))
+# for (i in c("dist", "alti", "slope", "expoNS", "expoEW", "gPred", "ph", "rum")) 
+# {plot(forestStands@data[,i], forestStands1@data[,i], main=i)}
+# plot(forestStands$p100gfPred, forestStands1$p100gfP, main="% feuillus")
+# plot(forestStands$sumNiDgi2, forestStands1$dgPred, main="Dg")
 
 forestStandsBck <- forestStands
 #
@@ -705,7 +729,7 @@ if (!user$mihai)
   ###############################################################
   # filters
   ###############################################################
-  
+  dim(forestStands)
   # remove polygones with geol == 'hydro' (== lac, river)
   # 0 polygons
   forestStands <- forestStands[forestStands$geolNotation != 'hydro', ]
@@ -729,13 +753,12 @@ if (!user$mihai)
   forestStands <- forestStands[!is.na(forestStands$dgPred), ]
   forestStands <- forestStands[forestStands$dgPred > 0, ]
   
+  dim(forestStands)
+  
   # convert mean BA/ha --> BA (real stock associated to each plot)
   forestStands$area <- raster::area(forestStands) / 10000
   forestStands$gPred <- forestStands$gPred * forestStands$area
-  forestStands$area <- NULL
-  
-  save(list=ls(),file="temp.rda")
-  load(file="temp.rda")
+  # forestStands$area <- NULL
   
   # remove plot where p100gfP = NA
   sum(is.na(forestStands$p100gfPred))
@@ -743,42 +766,24 @@ if (!user$mihai)
   
   # remove forest plots where owner ==  NA
   sum(is.na(forestStands$owner))
+  sum(forestStands$area[is.na(forestStands$owner)])/100
   forestStands <- forestStands[!is.na(forestStands$owner), ]
   
-  # concatanate accessibility
-  forestStands$access <- paste('dist', forestStands$dist,
-                               'harv', forestStands$nonHarv)
+  # concatenate accessibility
+  forestStands$access <- paste('dist', round(forestStands$dist), 'harv', forestStands$nonHarv)
+  
+  # for 17 stands located inside or along the riverbed of Isere, there are no parcells in the cadastre
+  # stand are removed
+  sum(is.na(forestStands$meanParcelleArea))
+  forestStands <- forestStands[!is.na(forestStands$meanParcelleArea), ]
   
   # remove useless columns
   forestStands$id <- NULL
   
-  # TODOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
-  # for 17 stands located inside or along the riverbed of Isere, there are no parcells
-  # area is set to zero
-  sum(is.na(forestStands$meanParcelleArea))
-  forestStands <- forestStands[!is.na(forestStands$meanParcelleArea), ]
-  
   ###############################################################
   # save
   ###############################################################
-  
   raster::shapefile(forestStands, filename = './data/forestStands', overwrite = TRUE)
-  
-  # verification A FAIRE AVANT SUPPRESSION DES POLYGONES (avec donnees extraites par raphael : auparavant : polymerge fait apres extract)
-  forestStands1 <- rgdal::readOGR(dsn="./data/", layer="forestPlots3Ha")
-  #
-  sum(as.character(forestStands$geolNotation) == as.character(forestStands1$gelNttn))/nrow(forestStands) # mode plutôt que extraction au centroide
-  sum(as.character(forestStands$CODE_TFV)== as.character(forestStands1$CODE_TF))/nrow(forestStands)
-  table(forestStands$INSEE_DEP, forestStands1$INSEE_D)
-  table(forestStands$greco, forestStands1$greco)
-  table(forestStands$owner, forestStands1$owner)
-  table(forestStands$nonHarv, forestStands1$nonHarv)
-  #
-  par(mfrow=c(3,4))
-  for (i in c("dist", "alti", "slope", "expoNS", "expoEW", "gPred", "ph", "rum")) 
-  {plot(forestStands@data[,i], forestStands1@data[,i], main=i)}
-  plot(forestStands$p100gfPred, forestStands1$p100gfP, main="% feuillus")
-  plot(forestStands$sumNiDgi2, forestStands1$dgPred, main="Dg")
 } else {
   mihaiStands <- forestStands[, c("geolNotation", "Q7", "greco", "nonHarv", "dist", "alti", "slope", "gPred", "sumNiDgi2", "p100gfPred", "surface", "alti_mn","alti_mx", "alti_my")]
   mihaiStands$Gestion <- mihaiStands$Q7!="(Vous n\u0092avez pas effectué de coupe sur cette parcelle)"

@@ -27,7 +27,7 @@ correspond <- read.csv("./data/croisementIfn.csv", header = TRUE, sep = ";")
 protestPt <- load(file = "./data/protestPt.rda")
 
 # load BDforet
-forestStands <- readOGR(dsn = "./data", layer = "forestPlots", encoding = "UTF-8", use_iconv = TRUE)
+forestStands <- readOGR(dsn = "./data", layer = "forestStands", encoding = "UTF-8", use_iconv = TRUE)
 
 ###############################################################
 # retrieve code TFV for all NFI points within the study area
