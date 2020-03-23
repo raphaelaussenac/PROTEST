@@ -13,7 +13,7 @@ library(plyr)
 setwd(user$WorkingDir)
 
 # load SIMMEM output file
-df <- read.csv(file="./simmem/simmemOutput/exportAutoBAU.txt", sep = "\t", skip = 3)
+df <- read.csv(file="./simmem/simmemOutput/exportAutoBAU_JMM.txt", sep = "\t", skip = 3)
 colnames(df)[1] <- "standId"
 
 # load SIMMEM input file to retrieve plot surface
@@ -109,7 +109,7 @@ df$annualVolumeRemoved_m3 <- df$volumeRemoved_m3 * (df$AREA / 10000) / timeStep
 
 # total volume removed each year
 voltot <- ddply(df[df$volumeRemoved_m3 > 0,], .(date), summarise, vol = sum(annualVolumeRemoved_m3))
-plot(voltot$vol ~ voltot$date, pch = 16, ylab = "volume exploitée - éclaircie", xlab = "")
+plot(voltot$vol ~ voltot$date, pch = 16, ylab = "volume exploité ou éclairci", xlab = "")
 lines(voltot$vol ~ voltot$date)
 
 # volume removed each year for each managtype
@@ -162,3 +162,4 @@ ggplot(data = area, aes(x = date, y = area, group = managType)) +
   geom_line() +
   geom_point() +
   facet_grid(compo ~ managType)
+

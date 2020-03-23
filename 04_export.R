@@ -47,12 +47,12 @@ table(forestStandsCompogDgN$CODE_TF)
 ###############################################################
 
 forestStands <- merge(forestStandsSiteIndex[, c('WKTid', 'pot03', 'pot03Epsilon',
-                                                                'pot09', 'pot09Epsilon', 'pot61',
-                                                                'pot61Epsilon', 'pot62',
-                                                                'pot62Epsilon', 'INSEE_D', 'owner', 'access', 'nonHarv', 'dist', 'mnPrclA')],
-                     forestStandsCompogDgN[, c('WKTid', 'compoSp', 'area', "gBeech", "gOak", "gFir", "gSpruce",
-                                                                "dgBeech", "dgOak", "dgFir", "dgSpruce", "nBeech",
-                                                                "nOak", "nFir", "nSpruce")],
+                                                'pot09', 'pot09Epsilon', 'pot61',
+                                                'pot61Epsilon', 'pot62',
+                                                'pot62Epsilon', 'INSEE_D', 'owner', 'access', 'nonHarv', 'dist', 'mnPrclA')],
+                      forestStandsCompogDgN[, c('WKTid', 'compoSp', 'area', "gBeech", "gOak", "gFir", "gSpruce",
+                                                "dgBeech", "dgOak", "dgFir", "dgSpruce", "nBeech",
+                                                "nOak", "nFir", "nSpruce")],
                       by = 'WKTid')
 
 # retrieve spatial extent
@@ -153,55 +153,55 @@ forestStands$DG_2 <- -1
 
 # sp1 = beech
 forestStands[forestStands$FOREST_TYPE_CODE %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "SITE_INDEX_1"] <-
-                                                  forestStands[forestStands$FOREST_TYPE_CODE  %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "pot09Epsilon"]
+  forestStands[forestStands$FOREST_TYPE_CODE  %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "pot09Epsilon"]
 forestStands[forestStands$FOREST_TYPE_CODE  %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "NHA_1"] <-
-                                                  forestStands[forestStands$FOREST_TYPE_CODE  %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "nBeech"] /
-                                                  (forestStands[forestStands$FOREST_TYPE_CODE  %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "AREA"] / 10000)
+  forestStands[forestStands$FOREST_TYPE_CODE  %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "nBeech"] /
+  (forestStands[forestStands$FOREST_TYPE_CODE  %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "AREA"] / 10000)
 forestStands[forestStands$FOREST_TYPE_CODE  %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "DG_1"] <-
-                                                  forestStands[forestStands$FOREST_TYPE_CODE  %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "dgBeech"]
+  forestStands[forestStands$FOREST_TYPE_CODE  %in% c("salem_beech", "salem_beech_fir", "salem_beech_spruce"), "dgBeech"]
 
 # sp1 = oak
 forestStands[forestStands$FOREST_TYPE_CODE == "salem_oak", "SITE_INDEX_1"] <- forestStands[forestStands$FOREST_TYPE_CODE == "salem_oak", "pot03Epsilon"]
 forestStands[forestStands$FOREST_TYPE_CODE == "salem_oak", "NHA_1"] <- forestStands[forestStands$FOREST_TYPE_CODE == "salem_oak", "nOak"] /
-                                                                     (forestStands[forestStands$FOREST_TYPE_CODE == "salem_oak", "AREA"] / 10000)
+  (forestStands[forestStands$FOREST_TYPE_CODE == "salem_oak", "AREA"] / 10000)
 forestStands[forestStands$FOREST_TYPE_CODE == "salem_oak", "DG_1"] <- forestStands[forestStands$FOREST_TYPE_CODE == "salem_oak", "dgOak"]
 
 # sp1 = fir
 forestStands[forestStands$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "SITE_INDEX_1"] <-
-                                                  forestStands[forestStands$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "pot61Epsilon"]
+  forestStands[forestStands$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "pot61Epsilon"]
 forestStands[forestStands$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "NHA_1"] <-
-                                                  forestStands[forestStands$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "nFir"] /
-                                                  (forestStands[forestStands$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "AREA"] / 10000)
+  forestStands[forestStands$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "nFir"] /
+  (forestStands[forestStands$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "AREA"] / 10000)
 forestStands[forestStands$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "DG_1"] <-
-                                                  forestStands[forestStands$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "dgFir"]
+  forestStands[forestStands$FOREST_TYPE_CODE %in% c("salem_fir", "salem_fir_spruce"), "dgFir"]
 
 # sp1 = spruce
 forestStands[forestStands$FOREST_TYPE_CODE == "salem_spruce", "SITE_INDEX_1"] <- forestStands[forestStands$FOREST_TYPE_CODE == "salem_spruce", "pot62Epsilon"]
 forestStands[forestStands$FOREST_TYPE_CODE == "salem_spruce", "NHA_1"] <- forestStands[forestStands$FOREST_TYPE_CODE == "salem_spruce", "nSpruce"] /
-                                                                        (forestStands[forestStands$FOREST_TYPE_CODE == "salem_spruce", "AREA"] / 10000)
+  (forestStands[forestStands$FOREST_TYPE_CODE == "salem_spruce", "AREA"] / 10000)
 forestStands[forestStands$FOREST_TYPE_CODE == "salem_spruce", "DG_1"] <- forestStands[forestStands$FOREST_TYPE_CODE == "salem_spruce", "dgSpruce"]
 
 # sp2 = fir
 forestStands[forestStands$FOREST_TYPE_CODE == 'salem_beech_fir', "SITE_INDEX_2"] <- forestStands[forestStands$FOREST_TYPE_CODE == 'salem_beech_fir', "pot61Epsilon"]
 forestStands[forestStands$FOREST_TYPE_CODE == 'salem_beech_fir', "NHA_2"] <- forestStands[forestStands$FOREST_TYPE_CODE == 'salem_beech_fir', "nFir"] /
-                                                                           (forestStands[forestStands$FOREST_TYPE_CODE == 'salem_beech_fir', "AREA"] / 10000)
+  (forestStands[forestStands$FOREST_TYPE_CODE == 'salem_beech_fir', "AREA"] / 10000)
 forestStands[forestStands$FOREST_TYPE_CODE == 'salem_beech_fir', "DG_2"] <- forestStands[forestStands$FOREST_TYPE_CODE == 'salem_beech_fir', "dgFir"]
 
 # sp2 = spruce
 forestStands[forestStands$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "SITE_INDEX_2"] <-
-                                                  forestStands[forestStands$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "pot62Epsilon"]
+  forestStands[forestStands$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "pot62Epsilon"]
 forestStands[forestStands$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "NHA_2"] <-
-                                                  forestStands[forestStands$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "nSpruce"] /
-                                                  (forestStands[forestStands$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "AREA"] / 10000)
+  forestStands[forestStands$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "nSpruce"] /
+  (forestStands[forestStands$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "AREA"] / 10000)
 forestStands[forestStands$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "DG_2"] <-
-                                                  forestStands[forestStands$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "dgSpruce"]
+  forestStands[forestStands$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), "dgSpruce"]
 
 ############################################
 # final table
 forestStands <- forestStands[, c('STAND_ID',	'FOREST_TYPE_CODE',	'FOREST_TYPE_NAME',	'AREA',	'SITE_INDEX_1', 'NHA_1',
-                              'AGE_1',	'HDOM_1',	'DDOM_1',	'HG_1',	'DG_1',	'SITE_INDEX_2', 'NHA_2',	'AGE_2',	'HDOM_2',
-                              'DDOM_2',	'HG_2',	'DG_2',	'EXPLOITABILITY',	'DOMAINE_TYPE',	'FOREST',
-                              'INVENTORY_DATE',	'DEPARTMENT',	'CITY',	'COMMENT',	'WKT-GEOM', 'nonHarv', 'dist', 'mnPrclA')]
+                                 'AGE_1',	'HDOM_1',	'DDOM_1',	'HG_1',	'DG_1',	'SITE_INDEX_2', 'NHA_2',	'AGE_2',	'HDOM_2',
+                                 'DDOM_2',	'HG_2',	'DG_2',	'EXPLOITABILITY',	'DOMAINE_TYPE',	'FOREST',
+                                 'INVENTORY_DATE',	'DEPARTMENT',	'CITY',	'COMMENT',	'WKT-GEOM', 'nonHarv', 'dist', 'mnPrclA')]
 
 ###############################################################
 # manage units
@@ -221,8 +221,8 @@ forestStands[forestStands$DG_2 != -1, 'DG_2'] <- forestStands[forestStands$DG_2 
 
 # fir + spruce + fir-spruce
 firSpruceList <- forestStands[forestStands$FOREST_TYPE_CODE == "salem_fir" |
-                             forestStands$FOREST_TYPE_CODE == "salem_spruce" |
-                             forestStands$FOREST_TYPE_CODE == "salem_fir_spruce", "STAND_ID"]
+                                forestStands$FOREST_TYPE_CODE == "salem_spruce" |
+                                forestStands$FOREST_TYPE_CODE == "salem_fir_spruce", "STAND_ID"]
 firSprucePubList <- forestStands[forestStands$STAND_ID %in% firSpruceList & forestStands$DOMAINE_TYPE == "Pub", "STAND_ID"]
 firSprucePrivList <- forestStands[forestStands$STAND_ID %in% firSpruceList & forestStands$DOMAINE_TYPE == "Priv", "STAND_ID"]
 
@@ -234,7 +234,7 @@ oakList <- forestStands[forestStands$FOREST_TYPE_CODE == "salem_oak", "STAND_ID"
 
 # beach-fir + beech-spruce Public
 beechFirSpruceList <- forestStands[forestStands$FOREST_TYPE_CODE == "salem_beech_fir" |
-                             forestStands$FOREST_TYPE_CODE == "salem_beech_spruce", "STAND_ID"]
+                                     forestStands$FOREST_TYPE_CODE == "salem_beech_spruce", "STAND_ID"]
 
 beechFirSprucePubList <- forestStands[forestStands$STAND_ID %in% beechFirSpruceList & forestStands$DOMAINE_TYPE == "Pub", "STAND_ID"]
 beechFirSprucePrivList <- forestStands[forestStands$STAND_ID %in% beechFirSpruceList & forestStands$DOMAINE_TYPE == "Priv", "STAND_ID"]
@@ -257,11 +257,17 @@ summary(forestStands[,-26])
 
 #
 # probability of management: 1 by default
+# reminder
+# nonHarv: 0-non bucheronnable / 1-bucheronnable
+# management proportions proposed by FCBA refer to the 1-bucheronnable part
 forestStands$proba <- 1
+#
+# convert mean parcel surface in hectares
 forestStands$surface <- forestStands$mnPrclA/10000
-# replace distances
-forestStands$dist[is.na(forestStands$dist)] <- 10000
-# for private forest
+# replace distances by before application of model (was calibrated with NA distances replaced by 2000)
+forestStands$dist[is.na(forestStands$dist)] <- 2000
+#
+# set management probability of private forest
 # load glm binomial model calibrated on Mihai dataset
 # should the forest type (TFV) be added ?
 # the interaction with no harvest should be better modelled (add term I(nonharv * dist))
@@ -273,27 +279,39 @@ dummy <- which(forestStands$DOMAINE_TYPE=="Priv")
 # estimate probability of management in private forests
 forestStands$proba[dummy] <- predict.glm(model.glm, forestStands[dummy,], type="response")
 #
+hist(forestStands$proba[dummy])
+#
+# too many managed stands : apply to private and public forest a multiplicative factor depending on log of distance (double effect on private stands ?)
+
+# dummy <- 1:nrow(forestStands)# which(forestStands$DOMAINE_TYPE=="Pub")
+
+# set management probability of public forests
+# as log of distance -> by raphael
+dummy <- which(forestStands$DOMAINE_TYPE=="Pub")
+# forestStands$proba[dummy] <- 1 - (log(forestStands$dist[dummy]) / log(max(forestStands$dist[dummy])))
+# forestStands$proba[dummy] <- forestStands$proba[dummy] * (1 - (log(forestStands$dist[dummy]) / log(10000)))
+# public stands : proba decreases linearly from 1 at 0m and 0.5 at 2000m
+forestStands$proba[dummy] <- 1 - 0.5/2000 * forestStands$dist[dummy]
+plot(forestStands$dist, forestStands$proba, col=forestStands$DOMAINE_TYPE)
+
 # for all forests
-# nonHarv forest have a probability of 0
+# nonHarv forest have a probability of 0 (although the model of private forests does not includes this variable)
 forestStands$proba[forestStands$nonHarv==0] <- 0
 # forests with NA distance have a probability of 0
-# set back to NA values previously set to 10000
-forestStands$dist[forestStands$dist==10000] <- NA
+# set back to NA values previously set to 2000
+forestStands$dist[forestStands$dist>=2000] <- NA
 # set dist to NA of polygons not harvestable
-forestStands[forestStands$nonHarv == 0 & !is.na(forestStands$dist), "dist"]<- NA
+forestStands$dist[forestStands$nonHarv == 0]<- NA
+# forest with a NA distance (not accessible) is set to zero
 forestStands$proba[is.na(forestStands$dist)] <- 0
 #
-plot(forestStands$proba, forestStands$dist, col= forestStands$DOMAINE_TYPE)
-plot(forestStands$proba, forestStands$surface, col= forestStands$DOMAINE_TYPE)
-plot(forestStands$proba, forestStands$dist, col= forestStands$nonHarv+1)
-plot(forestStands$proba, forestStands$surface, col= forestStands$nonHarv+1)
+plot(forestStands$dist, forestStands$proba, col=forestStands$DOMAINE_TYPE)
+#
+plot(log(forestStands$surface), forestStands$proba, col= forestStands$DOMAINE_TYPE)
 summary(forestStands$proba)
-# HERE -> DO SAMPLING THEN CHECK SURFACES
-
+#
 forestStands$EXPLOITABILITY <- as.numeric(forestStands$proba > runif(nrow(forestStands)))
-boxplot(forestStands$proba, forestStands$EXPLOITABILITY)
-summary(forestStands$proba[forestStands$EXPLOITABILITY==0])
-summary(forestStands$proba[forestStands$EXPLOITABILITY==1])
+hist(forestStands$EXPLOITABILITY)
 
 # faire recap
 # foret non bucheronnable
@@ -309,34 +327,20 @@ surfaces <- data.frame(
   AccessibleNonGere=sum(forestStands$AREA[!is.na(forestStands$dist) & forestStands$nonHarv==1 & forestStands$EXPLOITABILITY==0])/10000)
 sum(surfaces)
 sum(forestStands$AREA)/10000
-
-sum(forestStands$AREA[forestStands$EXPLOITABILITY==1])/10000
-# set exploitation probability of accessible plots
 #
-# as log of distance -> by raphael
-# forestStands$proba <- -1
-# forestStands[!is.na(forestStands$dist), "proba"] <- 1 - (log(forestStands[!is.na(forestStands$dist), "dist"]) / log(max(forestStands[!is.na(forestStands$dist), "dist"])))
-# plot(forestStands[!is.na(forestStands$dist), "proba"] ~ forestStands[!is.na(forestStands$dist), "dist"], ylim = c(0,1))
+sum(forestStands$AREA[forestStands$EXPLOITABILITY==1])/10000
 # 
-# forestStands$EXPLOITABILITY <- -99
-# forestStands[is.na(forestStands$dist), 'EXPLOITABILITY'] <- 0
-# subsetNonAcc <- forestStands[forestStands$EXPLOITABILITY == 0,]
-# subsetAcc <- forestStands[forestStands$EXPLOITABILITY != 0,]
-# for (i in 1:nrow(subsetAcc)){
-#   subsetAcc[i, 'EXPLOITABILITY'] <- sample(x = c(1,0), prob = c(subsetAcc[i, "proba"], 1-subsetAcc[i, "proba"]), size = 1)
-# }
-# plot(subsetAcc$proba ~ subsetAcc$dist)
-# plot(subsetAcc$EXPLOITABILITY ~ subsetAcc$dist)
-# 
-# # define accesible plots with EXPLOITABILITY = 0 as inaccessible
-# subsetAcc[subsetAcc$EXPLOITABILITY == 0, 'dist'] <- NA
-# 
-# # merge Acc and nonAcc plots
-# forestStands <- rbind(subsetNonAcc, subsetAcc)
+# recap global des surfaces
+# table ponderee
 
 # define extra plots as non accessible = non harvested
 # -- exemple 1 plot sur 2 en chêne privé ne sera pas géré/exploité
 # modfier exploitability et dist
+
+# reduire la taille
+facteur <- 4
+forestStands <- forestStands[sample(1:nrow(forestStands), floor(nrow(forestStands)/facteur), replace=FALSE),]
+
 
 source('./src/sc1_BAU.R')
 
@@ -394,3 +398,4 @@ cat('\nYMAX=', ymax, sep = '', file="./output/forestStands.txt", append=TRUE)
 cat('\n# 2. Forest Unit Level', file="./output/forestStands.txt", append=TRUE)
 cat('\n#', file="./output/forestStands.txt", append=TRUE)
 write.table(forestStands, file="./output/forestStands.txt", row.names = FALSE, append=TRUE, quote = FALSE, sep = '\t')
+  
