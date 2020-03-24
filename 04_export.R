@@ -254,7 +254,6 @@ save(list=ls(), file="intermediaryExport.rda")
 rm(list=ls())
 load(file="intermediaryExport.rda")
 summary(forestStands[,-26])
-
 #
 # probability of management: 1 by default
 # reminder
@@ -262,42 +261,40 @@ summary(forestStands[,-26])
 # management proportions proposed by FCBA refer to the 1-bucheronnable part
 forestStands$proba <- 1
 #
+# set management probability of private forest
+#
+# load glm binomial model calibrated on Mihai dataset
+# should the forest type (TFV) be added ?
+load(file="./data/modelGestion.rda")
+model.glm
 # convert mean parcel surface in hectares
 forestStands$surface <- forestStands$mnPrclA/10000
 # replace distances by before application of model (was calibrated with NA distances replaced by 2000)
 forestStands$dist[is.na(forestStands$dist)] <- 2000
-#
-# set management probability of private forest
-# load glm binomial model calibrated on Mihai dataset
-# should the forest type (TFV) be added ?
-# the interaction with no harvest should be better modelled (add term I(nonharv * dist))
-# use log of surface ?
-load(file="./data/modelGestion.rda")
-model.glm
-# 
+# apply model only to private forests
 dummy <- which(forestStands$DOMAINE_TYPE=="Priv")
 # estimate probability of management in private forests
 forestStands$proba[dummy] <- predict.glm(model.glm, forestStands[dummy,], type="response")
-#
+# histogram of probability
 hist(forestStands$proba[dummy])
 #
 # too many managed stands : apply to private and public forest a multiplicative factor depending on log of distance (double effect on private stands ?)
 
-# dummy <- 1:nrow(forestStands)# which(forestStands$DOMAINE_TYPE=="Pub")
-
 # set management probability of public forests
-# as log of distance -> by raphael
+
 dummy <- which(forestStands$DOMAINE_TYPE=="Pub")
+# as log of distance -> by raphael
 # forestStands$proba[dummy] <- 1 - (log(forestStands$dist[dummy]) / log(max(forestStands$dist[dummy])))
 # forestStands$proba[dummy] <- forestStands$proba[dummy] * (1 - (log(forestStands$dist[dummy]) / log(10000)))
-# public stands : proba decreases linearly from 1 at 0m and 0.5 at 2000m
-forestStands$proba[dummy] <- 1 - 0.5/2000 * forestStands$dist[dummy]
+#
+# public stands : proba decreases linearly from 1 at 0m and 0.75 at 2000m
+forestStands$proba[dummy] <- 1 - 0.25/2000 * forestStands$dist[dummy]
 plot(forestStands$dist, forestStands$proba, col=forestStands$DOMAINE_TYPE)
 
 # for all forests
 # nonHarv forest have a probability of 0 (although the model of private forests does not includes this variable)
 forestStands$proba[forestStands$nonHarv==0] <- 0
-# forests with NA distance have a probability of 0
+# forests with NA distance have a probability of 0 (although the model of private forests considers them as tough their distance was 2000)
 # set back to NA values previously set to 2000
 forestStands$dist[forestStands$dist>=2000] <- NA
 # set dist to NA of polygons not harvestable
@@ -309,29 +306,55 @@ plot(forestStands$dist, forestStands$proba, col=forestStands$DOMAINE_TYPE)
 #
 plot(log(forestStands$surface), forestStands$proba, col= forestStands$DOMAINE_TYPE)
 summary(forestStands$proba)
-#
-forestStands$EXPLOITABILITY <- as.numeric(forestStands$proba > runif(nrow(forestStands)))
-hist(forestStands$EXPLOITABILITY)
-
-# faire recap
-# foret non bucheronnable
-# foret non accessible
-# foret accessible geree
-# foret accessible non geree
-# par type public ou prive
-names(forestStands)
-surfaces <- data.frame(
-  nonBuch=sum(forestStands$AREA[forestStands$nonHarv==0])/10000,
-  nonAccessible=sum(forestStands$AREA[is.na(forestStands$dist) & forestStands$nonHarv==1])/10000,
-  AccessibleGere=sum(forestStands$AREA[!is.na(forestStands$dist) & forestStands$nonHarv==1 & forestStands$EXPLOITABILITY==1])/10000,
-  AccessibleNonGere=sum(forestStands$AREA[!is.na(forestStands$dist) & forestStands$nonHarv==1 & forestStands$EXPLOITABILITY==0])/10000)
-sum(surfaces)
-sum(forestStands$AREA)/10000
-#
-sum(forestStands$AREA[forestStands$EXPLOITABILITY==1])/10000
 # 
+# sample managed and unmanaged forests
+forestStands$EXPLOITABILITY <- as.numeric(forestStands$proba > runif(nrow(forestStands)))
+round(table(forestStands$EXPLOITABILITY)/nrow(forestStands)*100)
+
 # recap global des surfaces
 # table ponderee
+names(forestStands)
+summary(forestStands[,-26])
+#
+# exploitabilite par type de peuplement salem
+round(questionr::wtd.table(forestStands$FOREST_TYPE_CODE, forestStands$EXPLOITABILITY, weights = forestStands$AREA, digits=-4)/10000)
+
+# stats surface totale - proportion gérée / non gérée
+# par type de peuplement simulé
+#
+# ajout d'un variable avec la gestion / non gestion
+forestStands$gestion <- ifelse(forestStands$nonHarv==0, "NonBuch", ifelse(is.na(forestStands$dist), "NonAcc", ifelse(forestStands$EXPLOITABILITY==0, "AccNonGere", "AccGere")))
+
+# ajout d'un variable avec la classe de peuplement géré
+# initialiser la variable
+forestStands$typologie <- "test"
+forestStands$typologie[forestStands$FOREST_TYPE_CODE=="salem_beech"] <- "Hêtre"
+forestStands$typologie[forestStands$FOREST_TYPE_CODE=="salem_oak"] <- "Autres feuillus"
+# pour les peuplements dépendant de public / privé
+dummy <- which(forestStands$typologie=="test")
+forestStands$typologie[dummy] <- forestStands$DOMAINE_TYPE[dummy]
+# ajout du type forestier
+dummy <- which(is.element(forestStands$FOREST_TYPE_CODE, c("salem_beech_spruce", "salem_beech_fir")))
+forestStands$typologie[dummy] <- paste0(forestStands$DOMAINE_TYPE[dummy], "_Mixte")
+dummy <- which(is.element(forestStands$FOREST_TYPE_CODE, c("salem_spruce", "salem_fir", "salem_fir_spruce")))
+forestStands$typologie[dummy] <- paste0(forestStands$DOMAINE_TYPE[dummy], "_Sapin-épicéa")
+#
+# Type de peuplement en pourcentage
+test <- questionr::wtd.table(forestStands$typologie, weights = forestStands$AREA/10000, digits=0)
+round(test/sum(test)*100,1)
+# Gestion ou non en pourcentage
+test <- questionr::wtd.table(forestStands$gestion, weights = forestStands$AREA/10000, digits=0)
+round(test/sum(test)*100,1)
+# Tableau croise gestion / peuplement
+test <- as.data.frame.matrix(questionr::wtd.table(forestStands$gestion, forestStands$typologie, weights = forestStands$AREA/10000, digits=0))
+# En pourcentage des surfaces
+apply(test, 2, function(x){round(x/sum(x)*100,1)})
+# Tableau croise gestion / peuplement en surface 
+test$Total <- as.numeric(apply(test, 1, sum))
+test["Total",] <- apply(test, 2, sum)
+round(test)
+# tableau des pourcentage en excluant les surfaces non bucheronnables
+apply(test, 2, function(x){round(x[1:3]/sum(x[1:3])*100,1)})
 
 # define extra plots as non accessible = non harvested
 # -- exemple 1 plot sur 2 en chêne privé ne sera pas géré/exploité
@@ -341,8 +364,15 @@ sum(forestStands$AREA[forestStands$EXPLOITABILITY==1])/10000
 facteur <- 4
 forestStands <- forestStands[sample(1:nrow(forestStands), floor(nrow(forestStands)/facteur), replace=FALSE),]
 
-
 source('./src/sc1_BAU.R')
+test <- as.data.frame.matrix(questionr::wtd.table(forestStands$COMMENT, forestStands$EXPLOITABILITY, weights = forestStands$AREA/10000, digits=0))
+round(test,0)
+test <- as.data.frame.matrix(questionr::wtd.table(forestStands$gestion, forestStands$COMMENT, weights = forestStands$AREA/10000, digits=0))
+round(test,0)
+test <- as.data.frame.matrix(questionr::wtd.table(forestStands$typologie, forestStands$COMMENT, weights = forestStands$AREA/10000, digits=0))
+round(test,0)
+test <- as.data.frame.matrix(questionr::wtd.table(forestStands$DOMAINE_TYPE, forestStands$COMMENT, weights = forestStands$AREA/10000, digits=0))
+round(test,0)
 
 # TODO: arriver a ce stade -> executer tous les scenarios de gestion avec le même forestPLot
 # (car attention -> processus rdm en amont)
@@ -355,6 +385,8 @@ forestStands$G <- NULL
 forestStands$proba <- NULL
 forestStands$surface <- NULL
 forestStands$mnPrclA	<- NULL
+forestStands$gestion	<- NULL
+forestStands$typologie <- NULL
 
 ###############################################################
 # create management scenario java file to run SIMMEM
@@ -398,4 +430,3 @@ cat('\nYMAX=', ymax, sep = '', file="./output/forestStands.txt", append=TRUE)
 cat('\n# 2. Forest Unit Level', file="./output/forestStands.txt", append=TRUE)
 cat('\n#', file="./output/forestStands.txt", append=TRUE)
 write.table(forestStands, file="./output/forestStands.txt", row.names = FALSE, append=TRUE, quote = FALSE, sep = '\t')
-  
