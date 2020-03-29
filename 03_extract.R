@@ -4,7 +4,7 @@
 
 # clean up environment except user variable with path values
 rm(list = setdiff(ls(),"user"))
-user$checkSurfaces <- FALSE
+user$checkSurfaces <- TRUE
 
 # load packages
 library(rgdal)
@@ -18,7 +18,7 @@ setwd(user$WorkingDir)
 
 # process stands of Mihai (modelling)
 # or extract whole Bauges stands
-user$mihai <- TRUE
+user$mihai <- FALSE
 
 ###############################################################
 # LOAD GEOGRAPHICAL DATA
@@ -806,9 +806,4 @@ if (!user$mihai)
   save(model.glm, file=paste0(user$WorkingDir, "/data/modelGestion.rda"))
 }
 
-###############################################################
-# save
-###############################################################
-
-# shapefile(forestStands, filename = './data/forestStands3Ha', overwrite = TRUE)
 

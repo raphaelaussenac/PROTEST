@@ -4,7 +4,7 @@
 
 rdmSelect <- function(plotSubset, threshold, switch, plotCons){
 
-  # if propInaccess > conservationThresh
+  # if propHarvNonmanaged > conservationThresh
   if(switch == 0){
     plots <- plotCons
     remaining <- plotSubset[!(plotSubset %in% plots)]
@@ -105,7 +105,7 @@ management <- function(type, plotList, conservationThresh, HarvThresh,
   # conservation ---------------------------------------------------------------
   plotCons <- c()
 
-  # all non-harvestable plots are necessarily in conservation
+  # all non-harvestable plots are necessarily in conservation and out of proportions
   plotCons <- forestStands[forestStands$STAND_ID %in% plotList & forestStands$nonHarv == 0, 'STAND_ID']
 
   # the proportion are only applied to the remaining plots
@@ -118,13 +118,17 @@ management <- function(type, plotList, conservationThresh, HarvThresh,
   irrThresh <- propRemaining * irrThresh
 
   # inaccessible plots are also classified in conservation
-  plotCons <- c(plotCons, forestStands[forestStands$STAND_ID %in% plotList & forestStands$nonHarv == 1 & is.na(forestStands$dist), 'STAND_ID'])
-  propInaccess <- sum(forestStands[forestStands$STAND_ID %in% plotList & forestStands$nonHarv == 1 & is.na(forestStands$dist), 'AREA']) / area
+  # plotCons <- c(plotCons, forestStands[forestStands$STAND_ID %in% plotList & forestStands$nonHarv == 1 & is.na(forestStands$dist), 'STAND_ID'])
+  # propHarvNonmanaged <- sum(forestStands[forestStands$STAND_ID %in% plotList & forestStands$nonHarv == 1 & is.na(forestStands$dist), 'AREA']) / area
+  
+  # non managed plots are also classified in conservation
+  plotCons <- c(plotCons, forestStands[forestStands$STAND_ID %in% plotList & forestStands$nonHarv == 1 & forestStands$EXPLOITABILITY==0, 'STAND_ID'])
+  propHarvNonmanaged <- sum(forestStands[forestStands$STAND_ID %in% plotList & forestStands$nonHarv == 1 & forestStands$EXPLOITABILITY==0, 'AREA']) / area
 
   # 2 possible cases:
-  # propInaccess < conservationThresh
+  # propHarvNonmanaged < conservationThresh
   switch <- 1
-  if(propInaccess < conservationThresh){
+  if(propHarvNonmanaged < conservationThresh){
     switch <- 0
     conservationThresh <- area * (conservationThresh + (1- propRemaining))
     plotCons <- rdmSelect(plotSubset = plotList, threshold = conservationThresh, switch = switch, plotCons = plotCons)
@@ -132,8 +136,8 @@ management <- function(type, plotList, conservationThresh, HarvThresh,
     switch <- 1
   }
 
-  # propInaccess > conservationThresh
-  if(propInaccess > conservationThresh){
+  # propHarvNonmanaged > conservationThresh
+  if(propHarvNonmanaged > conservationThresh){
     propRemaining2 <- (area - sum(forestStands[forestStands$STAND_ID %in% plotCons, 'AREA'])) / area
     # convert prortion of other types of management to "relative" proportion
     totalPropRemainingType <- HarvThresh + thinHarvThresh + irrThresh

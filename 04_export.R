@@ -71,10 +71,6 @@ wkt$WKTid <- c(1:nrow(wkt))
 # replace wkt in forestStands
 forestStands <- merge(forestStands, wkt[, c('WKTid', 'WKT')], by = 'WKTid')
 
-save(list=ls(), file="intermediaryExport0.rda")
-rm(list=ls())
-load(file="intermediaryExport0.rda")
-
 ###############################################################
 # define exploitability
 ###############################################################
@@ -297,12 +293,12 @@ forestStands$proba[forestStands$nonHarv==0] <- 0
 # forests with NA distance have a probability of 0 (although the model of private forests considers them as tough their distance was 2000)
 # set back to NA values previously set to 2000
 forestStands$dist[forestStands$dist>=2000] <- NA
-# set dist to NA of polygons not harvestable
+# set dist to NA of polygons not harvestable for coherence
 forestStands$dist[forestStands$nonHarv == 0]<- NA
 # forest with a NA distance (not accessible) is set to zero
 forestStands$proba[is.na(forestStands$dist)] <- 0
 #
-plot(forestStands$dist, forestStands$proba, col=forestStands$DOMAINE_TYPE)
+plot(forestStands$dist, forestStands$proba, col=forestStands$DOMAINE_TYPE, xlab="Distance moyenne de débardage (m)", ylab="Probabilité de gestion", cex=0.1)
 #
 plot(log(forestStands$surface), forestStands$proba, col= forestStands$DOMAINE_TYPE)
 summary(forestStands$proba)
@@ -316,7 +312,7 @@ round(table(forestStands$EXPLOITABILITY)/nrow(forestStands)*100)
 names(forestStands)
 summary(forestStands[,-26])
 #
-# exploitabilite par type de peuplement salem
+# gestion par type de peuplement salem
 round(questionr::wtd.table(forestStands$FOREST_TYPE_CODE, forestStands$EXPLOITABILITY, weights = forestStands$AREA, digits=-4)/10000)
 
 # stats surface totale - proportion gérée / non gérée
@@ -325,7 +321,7 @@ round(questionr::wtd.table(forestStands$FOREST_TYPE_CODE, forestStands$EXPLOITAB
 # ajout d'un variable avec la gestion / non gestion
 forestStands$gestion <- ifelse(forestStands$nonHarv==0, "NonBuch", ifelse(is.na(forestStands$dist), "NonAcc", ifelse(forestStands$EXPLOITABILITY==0, "AccNonGere", "AccGere")))
 
-# ajout d'un variable avec la classe de peuplement géré
+# ajout d'une variable avec la classe de peuplement géré
 # initialiser la variable
 forestStands$typologie <- "test"
 forestStands$typologie[forestStands$FOREST_TYPE_CODE=="salem_beech"] <- "Hêtre"
@@ -354,16 +350,23 @@ test$Total <- as.numeric(apply(test, 1, sum))
 test["Total",] <- apply(test, 2, sum)
 round(test)
 # tableau des pourcentage en excluant les surfaces non bucheronnables
-apply(test, 2, function(x){round(x[1:3]/sum(x[1:3])*100,1)})
+t(apply(test, 2, function(x){round(x[1:3]/sum(x[1:3])*100,1)}))
 
 # define extra plots as non accessible = non harvested
 # -- exemple 1 plot sur 2 en chêne privé ne sera pas géré/exploité
 # modfier exploitability et dist
 
 # reduire la taille
-facteur <- 4
-forestStands <- forestStands[sample(1:nrow(forestStands), floor(nrow(forestStands)/facteur), replace=FALSE),]
+# facteur <- 2
+# forestStands <- forestStands[sample(1:nrow(forestStands), floor(nrow(forestStands)/facteur), replace=FALSE),]
+# forestStands <- forestStands[1:2,]
 
+test <- as.data.frame.matrix(questionr::wtd.table(forestStands$typologie, forestStands$gestion, weights = forestStands$AREA/10000, digits=0))
+round(test,0)
+test <- as.data.frame.matrix(questionr::wtd.table(forestStands$nonHarv, forestStands$gestion, weights = forestStands$AREA/10000, digits=0))
+round(test,0)
+
+#
 source('./src/sc1_BAU.R')
 test <- as.data.frame.matrix(questionr::wtd.table(forestStands$COMMENT, forestStands$EXPLOITABILITY, weights = forestStands$AREA/10000, digits=0))
 round(test,0)
@@ -371,11 +374,20 @@ test <- as.data.frame.matrix(questionr::wtd.table(forestStands$gestion, forestSt
 round(test,0)
 test <- as.data.frame.matrix(questionr::wtd.table(forestStands$typologie, forestStands$COMMENT, weights = forestStands$AREA/10000, digits=0))
 round(test,0)
+test <- as.data.frame.matrix(questionr::wtd.table(forestStands$typologie, substr(forestStands$COMMENT,1,3), weights = forestStands$AREA/10000, digits=0))
+round(test,0)
+test <- as.data.frame.matrix(questionr::wtd.table(forestStands$gestion, substr(forestStands$COMMENT,1,3), weights = forestStands$AREA/10000, digits=0))
+round(test,0)
 test <- as.data.frame.matrix(questionr::wtd.table(forestStands$DOMAINE_TYPE, forestStands$COMMENT, weights = forestStands$AREA/10000, digits=0))
+round(test,0)
+test <- as.data.frame.matrix(questionr::wtd.table(forestStands$gestion, forestStands$COMMENT, weights = forestStands$AREA/10000, digits=0))
 round(test,0)
 
 # TODO: arriver a ce stade -> executer tous les scenarios de gestion avec le même forestPLot
 # (car attention -> processus rdm en amont)
+
+# write full table
+write.table(forestStands, file="./output/forestStandsFULL.txt", row.names = FALSE, quote = FALSE, sep = '\t')
 
 forestStands$nonHarv <- NULL
 forestStands$dist <- NULL
@@ -430,3 +442,4 @@ cat('\nYMAX=', ymax, sep = '', file="./output/forestStands.txt", append=TRUE)
 cat('\n# 2. Forest Unit Level', file="./output/forestStands.txt", append=TRUE)
 cat('\n#', file="./output/forestStands.txt", append=TRUE)
 write.table(forestStands, file="./output/forestStands.txt", row.names = FALSE, append=TRUE, quote = FALSE, sep = '\t')
+

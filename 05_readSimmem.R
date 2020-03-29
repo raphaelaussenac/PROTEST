@@ -20,6 +20,10 @@ colnames(df)[1] <- "standId"
 forestStands <- read.csv(file="./output/forestStands.txt", sep = "\t", skip = 8)
 colnames(forestStands)[1] <- "STAND_ID"
 
+# load SIMMEM input file to retrieve plot surface
+# forestStands <- read.csv(file="./output/forestStands.txt", sep = "\t", skip = 8)
+# colnames(forestStands)[1] <- "STAND_ID"
+
 ###############################################################
 # manage format
 ###############################################################
@@ -59,24 +63,53 @@ df <- df[order(df$standId, df$date), ]
 ###############################################################
 # remove repeated clearcut
 ###############################################################
+if(1)
+{
+  # order df by standid then date
+  df <- df[order(df$standId, df$date),]
+  testStand <- df$standId[1:(nrow(df)-1)]==df$standId[2:nrow(df)]
+  testYear <- df$date[1:(nrow(df)-1)]==df$date[2:nrow(df)]-3
+  testVolume <- df$volumeRemoved_m3[1:(nrow(df)-1)]==df$volumeRemoved_m3[2:nrow(df)]
+  testVolumeZero <- df$volumeRemoved_m3[-nrow(df)]!=0
+  testManagTyp <- df$managType[-nrow(df)]=="Har"
+  # testBasalArea <- df$basalArea_m2[1:(nrow(df)-1)]>=df$basalArea_m2[2:nrow(df)]
+  falseVolume <- which(testStand & testVolume & testVolumeZero & testYear)
+  df$volumeRemoved_m3[falseVolume+1] <- 0
+  #
+  # test volume removed while ba increases
+  which(df$basalArea_m2[1:(nrow(df)-1)]<=df$basalArea_m2[2:nrow(df)] & df$volumeRemoved_m3[-nrow(df)] >0)
+  # 
+  # write.table(df[,c("standId","volumeRemoved_m3", "basalArea_m2", "date", "managType")],file="~/test.tsv", sep="\t")
+  sum(df$volumeRemoved_m3[df$managType=="Har"])
+}
 
-df$nextYear <- df$date + 3
-df$standId_year <- paste(df$standId, df$date, sep = "_")
-df$standId_nextYear <- paste(df$standId, df$nextYear, sep = "_")
-test <- merge(df, df[, c("volumeRemoved_m3", "standId_nextYear")], by.x = "standId_year", by.y = "standId_nextYear", all = TRUE)
-test <- test[!is.na(test$standId),]
-test$diff <- test$volumeRemoved_m3.y - test$volumeRemoved_m3.x
-test[is.na(test$diff), 'diff'] <- 0
-test[test$diff < 0, 'diff'] <- test[test$diff < 0, 'diff'] * -1
-test$volumeRemoved_m3.x <- test$diff
-test$diff <- NULL
-test$volumeRemoved_m3.y <- NULL
-test$standId_nextYear <- NULL
-test$nextYear <- NULL
-test$standId_year <- NULL
-df <- test
-colnames(df)[colnames(df) == "volumeRemoved_m3.x"] <- 'volumeRemoved_m3'
+if (0)
+{
+  # le script de Raph enleve toutes les coupes initiales (2016)
+  df$nextYear <- df$date + 3
+  df$standId_year <- paste(df$standId, df$date, sep = "_")
+  df$standId_nextYear <- paste(df$standId, df$nextYear, sep = "_")
+  test <- merge(df, df[, c("volumeRemoved_m3", "standId_nextYear")], by.x = "standId_year", by.y = "standId_nextYear", all = TRUE)
+  test <- test[!is.na(test$standId),]
+  test$diff <- test$volumeRemoved_m3.y - test$volumeRemoved_m3.x
+  test[is.na(test$diff), 'diff'] <- 0
+  test[test$diff < 0, 'diff'] <- test[test$diff < 0, 'diff'] * -1
+  test$volumeRemoved_m3.x <- test$diff
+  test$diff <- NULL
+  test$volumeRemoved_m3.y <- NULL
+  test$standId_nextYear <- NULL
+  test$nextYear <- NULL
+  test$standId_year <- NULL
+  df <- test
+  colnames(df)[colnames(df) == "volumeRemoved_m3.x"] <- 'volumeRemoved_m3'
+  # test no volume removed while ba decreases
+  which(df$basalArea_m2[1:(nrow(df)-1)]>df$basalArea_m2[2:nrow(df)] & df$volumeRemoved_m3[-nrow(df)] ==0)
+}
 
+
+# remove last year
+
+df <- df[df$date!=max(df$date),]
 ###############################################################
 # basal area and density (rdi)
 ###############################################################
@@ -118,6 +151,12 @@ ggplot(data = voltot, aes(x = date, y = vol, group = managType, col = managType)
   geom_line() +
   geom_point()
 
+# volume removed each year for each compo type
+voltot <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, compo), summarise, vol = sum(annualVolumeRemoved_m3))
+ggplot(data = voltot, aes(x = date, y = vol, group = compo, col = compo)) +
+  geom_line() +
+  geom_point()
+
 # volume removed each year for each ownership type
 voltot <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, domainType), summarise, vol = sum(annualVolumeRemoved_m3))
 ggplot(data = voltot, aes(x = date, y = vol, group = domainType, col = domainType)) +
@@ -156,6 +195,12 @@ ggplot(data = areaPP, aes(x = date, y = area, group = domainType, col = domainTy
   geom_line() +
   geom_point()
 
+# surface harvested each year for each compo type
+areaPP <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, compo), summarise, area = sum(annualAREA))
+ggplot(data = areaPP, aes(x = date, y = area, group = compo, col = compo)) +
+  geom_line() +
+  geom_point()
+
 # total area harvested/thinned each year for each managType and compo
 area <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, managType, compo), summarise, area = sum(annualAREA))
 ggplot(data = area, aes(x = date, y = area, group = managType)) +
@@ -163,3 +208,7 @@ ggplot(data = area, aes(x = date, y = area, group = managType)) +
   geom_point() +
   facet_grid(compo ~ managType)
 
+#
+# mean annual area 
+mean(aggregate(df$annualAREA, list(df$date), FUN=sum)$x)
+mean(aggregate(df$annualVolumeRemoved_m3, list(df$date), FUN=sum)$x)
