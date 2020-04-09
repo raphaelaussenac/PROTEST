@@ -35,6 +35,7 @@ rm(list=setdiff(ls(), c('forestStandsCompogDgN', 'forestStandsSiteIndex', 'mod03
 
 # missing stands? ###############################################################
 # check this --> might be those plots belonging to "unwanted" TFV types (FO0, FF0)
+# five polygons less than ??
 
 disapearedPlots <- forestStandsSiteIndex$WKTid[!forestStandsSiteIndex$WKTid %in% forestStandsCompogDgN$WKTid]
 forestStandsSiteIndex@data[forestStandsSiteIndex@data$WKTid %in% disapearedPlots,]
@@ -63,13 +64,18 @@ ymax <- extent(forestStands)@ymax
 
 # remove 'disapearedPlots'
 forestStands <- forestStands[!forestStands$WKTid %in% disapearedPlots, ]
+
+# add geometry attribute and keep only data.frame
+sf.forestStands <- sf::st_as_sf(forestStands)
+forestStands$WKT <- sf::st_as_text(sf.forestStands$geometry)
 forestStands <- forestStands@data
 
+
 # import non-truncated WKT
-wkt <- read.csv("./data/BDid_1.csv", header = TRUE, sep = "\t")
-wkt$WKTid <- c(1:nrow(wkt))
+# wkt <- read.csv("./data/BDid_1.csv", header = TRUE, sep = "\t")
+# wkt$WKTid <- c(1:nrow(wkt))
 # replace wkt in forestStands
-forestStands <- merge(forestStands, wkt[, c('WKTid', 'WKT')], by = 'WKTid')
+# forestStands <- merge(forestStands, wkt[, c('WKTid', 'WKT')], by = 'WKTid')
 
 ###############################################################
 # define exploitability
@@ -207,10 +213,6 @@ forestStands <- forestStands[, c('STAND_ID',	'FOREST_TYPE_CODE',	'FOREST_TYPE_NA
 forestStands$DG_1 <- forestStands$DG_1 * 100
 forestStands[forestStands$DG_2 != -1, 'DG_2'] <- forestStands[forestStands$DG_2 != -1, 'DG_2']  * 100
 
-# reduce file size
-# forestStands <- forestStands[forestStands$EXPLOITABILITY == 1,]
-# forestStands <- forestStands[1:1000,]
-
 ###############################################################
 # list of stands and total area of each forest type
 ###############################################################
@@ -249,7 +251,7 @@ forestStands$G <- forestStands$Gsp1 + forestStands$Gsp2
 save(list=ls(), file="intermediaryExport.rda")
 rm(list=ls())
 load(file="intermediaryExport.rda")
-summary(forestStands[,-26])
+summary(forestStands[,-which(names(forestStands)=="WKT-GEOM")])
 #
 # probability of management: 1 by default
 # reminder
@@ -310,7 +312,7 @@ round(table(forestStands$EXPLOITABILITY)/nrow(forestStands)*100)
 # recap global des surfaces
 # table ponderee
 names(forestStands)
-summary(forestStands[,-26])
+summary(forestStands[,-which(names(forestStands)=="WKT-GEOM")])
 #
 # gestion par type de peuplement salem
 round(questionr::wtd.table(forestStands$FOREST_TYPE_CODE, forestStands$EXPLOITABILITY, weights = forestStands$AREA, digits=-4)/10000)
@@ -357,7 +359,7 @@ t(apply(test, 2, function(x){round(x[1:3]/sum(x[1:3])*100,1)}))
 # modfier exploitability et dist
 
 # reduire la taille
-# facteur <- 2
+# facteur <- 4
 # forestStands <- forestStands[sample(1:nrow(forestStands), floor(nrow(forestStands)/facteur), replace=FALSE),]
 # forestStands <- forestStands[1:2,]
 
@@ -386,8 +388,49 @@ round(test,0)
 # TODO: arriver a ce stade -> executer tous les scenarios de gestion avec le même forestPLot
 # (car attention -> processus rdm en amont)
 
+###############################################################
+# calculate RDI to create multiple classes for Irr stands
+# based on stand density
+###############################################################
+irr <- forestStands[substr(forestStands$COMMENT, 1, 3) == 'Irr',]
+irr$RDI1 <- NA
+irr$RDI2 <- NA
+irr$RDI <- NA
+# 1st sp  == beech
+irr[irr$FOREST_TYPE_CODE %in% c('salem_beech', 'salem_beech_fir', 'salem_beech_spruce'), 'RDI1'] <- irr[irr$FOREST_TYPE_CODE %in% c('salem_beech', 'salem_beech_fir', 'salem_beech_spruce'), 'NHA_1'] / exp(13.99 - 2.181 * log(irr[irr$FOREST_TYPE_CODE %in% c('salem_beech', 'salem_beech_fir', 'salem_beech_spruce'), 'DG_1']))
+# 1st sp  == fir
+irr[irr$FOREST_TYPE_CODE %in% c('salem_fir', 'salem_fir_spruce'), 'RDI1'] <- irr[irr$FOREST_TYPE_CODE %in% c('salem_fir', 'salem_fir_spruce'), 'NHA_1'] / exp(13.076 - 1.862 * log(irr[irr$FOREST_TYPE_CODE %in% c('salem_fir', 'salem_fir_spruce'), 'DG_1']))
+# 1st sp  == spruce
+irr[irr$FOREST_TYPE_CODE == 'salem_spruce', 'RDI1'] <- irr[irr$FOREST_TYPE_CODE == 'salem_spruce', 'NHA_1'] / exp(12.876 - 1.762 * log(irr[irr$FOREST_TYPE_CODE == 'salem_spruce', 'DG_1']))
+# 2nd sp  == spruce
+irr[irr$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), 'RDI2'] <- irr[irr$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), 'NHA_2'] / exp(12.876 - 1.762 * log(irr[irr$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), 'DG_2']))
+# 2nd sp  == fir
+irr[irr$FOREST_TYPE_CODE == 'salem_beech_fir', 'RDI2'] <- irr[irr$FOREST_TYPE_CODE == 'salem_beech_fir', 'NHA_2'] / exp(13.076 - 1.862 * log(irr[irr$FOREST_TYPE_CODE == 'salem_beech_fir', 'DG_2']))
+
+# RDI total
+irr$RDI <- irr$RDI1 + irr$RDI2
+irr[is.na(irr$RDI), 'RDI'] <- irr[is.na(irr$RDI), 'RDI1']
+# modify stand label
+irr1 <- irr[irr$RDI < 0.6, ]
+substr(irr1$COMMENT, 1, 3) <- 'Ir1'
+irr2 <- irr[irr$RDI >= 0.6 & irr$RDI < 0.8, ]
+substr(irr2$COMMENT, 1, 3) <- 'Ir2'
+irr3 <- irr[irr$RDI >= 0.8, ]
+substr(irr3$COMMENT, 1, 3) <- 'Ir3'
+irr <- rbind(irr1, irr2, irr3)
+
+# remove RDI measures
+irr[, c('RDI1', 'RDI2', 'RDI')] <- NULL
+forestStands <- forestStands[substr(forestStands$COMMENT,1,3) != 'Irr',]
+forestStands <- rbind(forestStands, irr)
+forestStands <- forestStands[order(forestStands$STAND_ID), ]
+
 # write full table
 write.table(forestStands, file="./output/forestStandsFULL.txt", row.names = FALSE, quote = FALSE, sep = '\t')
+# fs <- read.table(file="./output/forestStandsOLD.txt", sep = '\t', header=T)
+# fs.spatial <- sf::st_sf(fs[,"STAND_ID"], geometry = sf::st_as_sfc(fs$WKT.GEOM))
+# sf::st_write(fs.spatial, dsn="./", layer="forestStands.shp", driver="ESRI Shapefile")
+# plot(sf::st_geometry(fs.spatial))
 
 forestStands$nonHarv <- NULL
 forestStands$dist <- NULL

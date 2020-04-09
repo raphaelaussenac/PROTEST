@@ -13,16 +13,12 @@ library(plyr)
 setwd(user$WorkingDir)
 
 # load SIMMEM output file
-df <- read.csv(file="./simmem/simmemOutput/exportAutoBAU_JMM.txt", sep = "\t", skip = 3)
+df <- read.csv(file="./simmem/simmemOutput/exportAutoBAU_JMM_Irr.txt", sep = "\t", skip = 3)
 colnames(df)[1] <- "standId"
 
 # load SIMMEM input file to retrieve plot surface
 forestStands <- read.csv(file="./output/forestStands.txt", sep = "\t", skip = 8)
 colnames(forestStands)[1] <- "STAND_ID"
-
-# load SIMMEM input file to retrieve plot surface
-# forestStands <- read.csv(file="./output/forestStands.txt", sep = "\t", skip = 8)
-# colnames(forestStands)[1] <- "STAND_ID"
 
 ###############################################################
 # manage format
@@ -212,3 +208,4 @@ ggplot(data = area, aes(x = date, y = area, group = managType)) +
 # mean annual area 
 mean(aggregate(df$annualAREA, list(df$date), FUN=sum)$x)
 mean(aggregate(df$annualVolumeRemoved_m3, list(df$date), FUN=sum)$x)
+

@@ -18,9 +18,15 @@ thiPu <- paste('        <int>', thiPu, '</int>', sep = '')
 thiPrPP <- forestStands[substr(forestStands$COMMENT, 1, 3) == "Thi" & substr(forestStands$COMMENT, 7, 8) != "Pu", "STAND_ID"]
 thiPrPP <- paste('        <int>', thiPrPP, '</int>', sep = '')
 
-# create list of CON plots
-irr <- forestStands[substr(forestStands$COMMENT, 1, 3) == "Irr", "STAND_ID"]
-irr <- paste('        <int>', irr, '</int>', sep = '')
+# create list of Irr plots
+ir1 <- forestStands[substr(forestStands$COMMENT, 1, 3) == "Ir1", "STAND_ID"]
+ir1 <- paste('        <int>', ir1, '</int>', sep = '')
+
+ir2 <- forestStands[substr(forestStands$COMMENT, 1, 3) == "Ir2", "STAND_ID"]
+ir2 <- paste('        <int>', ir2, '</int>', sep = '')
+
+ir3 <- forestStands[substr(forestStands$COMMENT, 1, 3) == "Ir3", "STAND_ID"]
+ir3 <- paste('        <int>', ir3, '</int>', sep = '')
 
 ###############################################################
 # assemble java commande lines and plot lists
@@ -33,10 +39,11 @@ sc3 <- readLines("./simmem/simmemRules/3scBAU")
 sc4 <- readLines("./simmem/simmemRules/4scBAU")
 sc5 <- readLines("./simmem/simmemRules/5scBAU")
 sc6 <- readLines("./simmem/simmemRules/6scBAU")
-
+sc7 <- readLines("./simmem/simmemRules/7scBAU")
+sc8 <- readLines("./simmem/simmemRules/8scBAU")
 
 ###############################################################
 # save scenario
 ###############################################################
 
-writeLines(c(sc1, con, sc2, har, sc3, thiPu, sc4, thiPrPP, sc5, irr, sc6), con = "./output/BAU")
+writeLines(c(sc1, con, sc2, har, sc3, thiPu, sc4, thiPrPP, sc5, ir1, sc6, ir2, sc7, ir3, sc8), con = "./output/BAU")

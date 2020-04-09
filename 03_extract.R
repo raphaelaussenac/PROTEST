@@ -23,90 +23,99 @@ user$mihai <- FALSE
 ###############################################################
 # LOAD GEOGRAPHICAL DATA
 ###############################################################
-
+#
 ###############################################################
 # study area extent
-
+#
 pnr <- rgdal::readOGR(dsn = paste0(user$NetworkProtestDir, "T1/Donnees_SIG/PNR"), layer = "parc_filled", encoding = "UTF-8", use_iconv = TRUE)
 # make sure projection info is Lambert93
 pnr@proj4string <- sp::CRS("+init=epsg:2154")
 
 ###############################################################
 # elevation
-
+#
 if (user$confinement) {elev <- raster("./data/MNT_all_5m.tif")} else {elev <- raster(paste0(user$NetworkProtestDir, "T1/Donnees_SIG/MNT/MNT_all_5m.tif"))}
-
+#
 # set projection
 elev@crs <- pnr@proj4string
 # plot(elev, col=colorRampPalette(c("black", "white"))(255))
-
+#
 ###############################################################
 # cadastre
-
-# load cadastre in 73 and 74
-# cadastreRaster <- list()
-# for (i in c(73,74))
-# {
-#   # load vector layer of cadastre
-#   cadastre <- sf::st_read(paste0("/media/reseau/infogeo/ign/BD_PARCELLAIRE/V1.2/BDPV_1-2_SHP_LAMB93_D0",i,"_2014/PARCELLE.SHP"), quiet=TRUE)
-#   # add area field
-#   cadastre$AREA <- sf::st_area(cadastre)
-#   # rasterize area
-#   cadastreRaster[[i]] <- fasterize::fasterize(cadastre, elev, field="AREA")
-# }
-# cadastreR <- raster::merge(cadastreRaster[[73]], cadastreRaster[[74]])
-# cadastreR@crs <- pnr@proj4string
-# raster::plot(cadastreR)
-# raster::writeRaster(cadastreR, file=paste0(user$NetworkProtestDir, "T1/Donnees_SIG/Cadastre/cadastreAREA.tif"))
-# 
+#
+# prepare raster file of cadastre (done once)
+if (0)
+{
+  cadastreRaster <- list()
+  # load cadastre in 73 and 74
+  for (i in c(73,74))
+  {
+    # load vector layer of cadastre
+    cadastre <- sf::st_read(paste0("/media/reseau/infogeo/ign/BD_PARCELLAIRE/V1.2/BDPV_1-2_SHP_LAMB93_D0",i,"_2014/PARCELLE.SHP"), quiet=TRUE)
+    # add area field
+    cadastre$AREA <- sf::st_area(cadastre)
+    # rasterize area
+    cadastreRaster[[i]] <- fasterize::fasterize(cadastre, elev, field="AREA")
+  }
+  cadastreR <- raster::merge(cadastreRaster[[73]], cadastreRaster[[74]])
+  cadastreR@crs <- pnr@proj4string
+  raster::plot(cadastreR)
+  # export rasterized cadastre
+  raster::writeRaster(cadastreR, file=paste0(user$NetworkProtestDir, "T1/Donnees_SIG/Cadastre/cadastreAREA.tif"))
+}
+#
+# load rasterized cadastre
 if (user$confinement) {cadastreR <- raster("./data/cadastreAREA.tif")} else {cadastreR <- raster(paste0(user$NetworkProtestDir, "T1/Donnees_SIG/Cadastre/cadastreAREA.tif"))}
 cadastreR <- raster(paste0(user$NetworkProtestDir, "T1/Donnees_SIG/Cadastre/cadastreAREA.tif"))
 
 ###############################################################
 # greco
-
+#
+# load shapefile
 greco <- sf::st_read(paste0(user$NetworkProtestDir,"T3/scriptIFNPatrick/DonneesIFN/Shapes_SER_GRECO/greco_l93.shp"), quiet=TRUE)
 sf::st_crs(greco) = 2154
 # plot(greco)
+# convert to raster
 grecoRaster <- fasterize::fasterize(greco, elev, field="CODEGRECO")
 grecoRaster@crs <- pnr@proj4string
 # plot(grecoRaster)
-
+# 
 ###############################################################
 # geological data
-
-# geol <- rgdal::readOGR(dsn = "./data", layer = "geol", encoding = "UTF-8", use_iconv = TRUE)
+#
+# load shapefile
 geol <- sf::st_read("./data/geol.shp", quiet=TRUE, options = "ENCODING=latin1")
 sf::st_crs(geol) <- pnr@proj4string
 sf::st_crs(geol) <- 2154
-# 
 # plot(geolsf)
+# convert to raster
 geolRaster <- fasterize::fasterize(geol, elev, field="NOTATION")
 geolRaster@crs <- pnr@proj4string
 # plot(geolRaster)
-
+#
 ###############################################################
 # dendro
-
+#
 # Dg_pred
 dgPred <- raster::raster(paste0(user$NetworkProtestDir, "T1/Observatoire/Analyse/rastDg75error.clean.tif"))
 dgPred@crs <- pnr@proj4string
 dgPred <- dgPred / 100 # cm to m
-
+#
 # G_pred
 gPred <- raster::raster(paste0(user$NetworkProtestDir, "T1/Observatoire/Analyse/rastG75error.clean.tif"))
 gPred@crs <- pnr@proj4string
-
+#
 # GGB_pred
 # ggbPred <- raster::raster(paste0(user$NetworkProtestDir, "T5/Livrables/T1/model_pnr_bauges_73_74/raster/GGB_pred.tif"))
 # ggbPred@crs <- pnr@proj4string
-
+#
 # N_pred
 # nPred <- raster::raster(paste0(user$NetworkProtestDir, "T5/Livrables/T1/model_pnr_bauges_73_74/raster/N_pred.tif"))
 # nPred@crs <- pnr@proj4string
-
-# p100GF_pred --> deciduous proportion
+#
+# p100GF_pred --> deciduous percentage
 p100gfPred <- raster::raster(paste0(user$NetworkProtestDir, "T1/Observatoire/Analyse/propGR_ONF_25filled.tif"))
+# convert to coniferous percentage
 p100gfPred <- 100 - p100gfPred
 p100gfPred@crs <- pnr@proj4string
 
@@ -117,28 +126,18 @@ niDgi2 <- ni * dgPred^2
 
 ###############################################################
 # SILVAE data
-
+#
 # pH
-# gdalwarp('Z:/Private/donneesSilvae/ph_2008.tif',
-#           dstfile="Z:/Private/donneesSilvae/ph.tif", t_srs = crs(elev),
-#           output_Raster = FALSE, overwrite = TRUE, verbose = TRUE,
-#           te = c(925930, 6489455, 968160, 6538375), te_srs = crs(elev)) # change projection
 ph <- raster::raster(paste0(user$NetworkProtestDir, "T3/donneesSilvae/ph_2008.tif"))
 ph@crs <- pnr@proj4string
-# ph <- raster::raster(paste0(user$NetworkProtestDir, "T3/donneesSilvae/ph.tif"))
-
+#
 # rum
-# gdalwarp('Z:/Private/donneesSilvae/rum_500_v2009.tif',
-#           dstfile="Z:/Private/donneesSilvae/rum.tif", t_srs = crs(elev),
-#           output_Raster = FALSE, overwrite = TRUE, verbose = TRUE,
-#           te = c(925930, 6489455, 968160, 6538375), te_srs = crs(elev)) # change projection
 rum <- raster::raster(paste0(user$NetworkProtestDir, "T3/donneesSilvae/rum_500_v2009.tif"))
 rum@crs <- pnr@proj4string
-# rum <- raster('Z:/Private/donneesSilvae/rum.tif')
-
+#
 ###############################################################
 # Universal Soil Loss Equation (USLE) parameters
-
+#
 if (0)
 {
   # K
@@ -171,7 +170,7 @@ if (0)
   
   ###############################################################
   # Protection forest
-
+  
   # forest length
   # gdalwarp('X:/ProjetsCommuns/PROTEST/T1/Donnees_SIG/Foret_protection.tif',
   # dstfile="Z:/Private/rasterVanneck/forProtec.tif", t_srs = crs(elev),
@@ -191,7 +190,7 @@ if (0)
 
 ###############################################################
 # land ownership
-
+# 
 # load ownership raster
 ownership <- raster::raster(paste0(user$NetworkProtestDir, "T1/Donnees_SIG/BDForetv2_foret_PNRfilled_propriete_5m.tif"))
 # plot(ownership, col=colorRampPalette(c("green", "blue"))(255))
@@ -217,7 +216,7 @@ rm(list=setdiff(ls(), c(listVariables, "bd")))
 setwd(user$WorkingDir)
 
 # 1 - create circular plots around NFI points
-  # 1a - select points in the study area
+# 1a - select points in the study area
 ptIfn <- SpatialPointsDataFrame(bd[,c("xl93", "yl93")], data = data.frame(bd), proj4string = CRS(proj4string(pnr)))
 # intersect pnr polygon with points location
 baugesIfn <- sp::over(ptIfn, pnr)
@@ -225,14 +224,14 @@ baugesIfn <- sp::over(ptIfn, pnr)
 bdBauges <- droplevels(bd[!is.na(baugesIfn$ID),])
 # keep only relevant fields
 bdBauges <- bdBauges[, c("idp", "xl93", "yl93", "potentiel_03", "potentiel_09",
-                        "potentiel_61", "potentiel_62", 'unknownPart03',
-                        'unknownPart09', 'unknownPart61', 'unknownPart62')]
-  # 1b - convert into spatial points
+                         "potentiel_61", "potentiel_62", 'unknownPart03',
+                         'unknownPart09', 'unknownPart61', 'unknownPart62')]
+# 1b - convert into spatial points
 baugesIfnPts <- sp::SpatialPointsDataFrame(bdBauges[,c("xl93", "yl93")], data = data.frame(bdBauges), proj4string = CRS(proj4string(pnr)))
-  # 1c - convert into sf object
+# 1c - convert into sf object
 baugesIfnPtsSf <- sf::st_as_sf(baugesIfnPts)
 sf::st_crs(baugesIfnPtsSf) = 2154
-  # 1c - create circular plots around points and set the radius
+# 1c - create circular plots around points and set the radius
 ifnCircular <- sf::st_buffer(baugesIfnPtsSf, dist = 15)
 
 # plot(elev, col=colorRampPalette(c("black", "white"))(255))
@@ -246,7 +245,6 @@ ifnCircular <- sf::st_buffer(baugesIfnPtsSf, dist = 15)
 # load forest stands
 if (!user$mihai)
 {
-  # forestStands <- rgdal::readOGR(dsn = "./data", layer = "BDid_1", encoding = "UTF-8", use_iconv = TRUE)
   forestStands <- rgdal::readOGR(dsn = "./data", layer = "forestStands3HaPolyMerge", encoding = "UTF-8", use_iconv = TRUE)
   forestStands@proj4string <- pnr@proj4string
   # remove useless columns
@@ -273,12 +271,12 @@ forestStands$WKTid <- c(1:nrow(forestStands@data))
 # Create a function to calculate the mode # could use "names(sort(table(variable),decreasing=TRUE))[1])" but numeric values are converted to text
 # Each plot is assigned the most represented value
 getmode <- function(x) {
-   uniqv <- unique(x)
-   uniqv <- uniqv[!is.na(uniqv)]
-   uniqv[which.max(tabulate(match(x, uniqv)))]
+  uniqv <- unique(x)
+  uniqv <- uniqv[!is.na(uniqv)]
+  uniqv[which.max(tabulate(match(x, uniqv)))]
 }
 
-# extract id of greco region at center of IFN plot location
+# extract GRECO id at center of IFN plot location
 plotGreco <- sf::st_intersects(baugesIfnPtsSf, greco)
 #
 # extract GRECO as mode of raster values inside forestStands
@@ -307,7 +305,7 @@ if (user$checkSurfaces)
   plot(dummy$surface, dummy$x, xlab="Raster geologie", ylab="Polygones", log="xy", main="Comparaison des surfaces par géologie (log)");abline(c(0,1))
   sum(dummy$surface)
   sum(dummy$x, na.rm=TRUE)
-  }
+}
 rm(geolVr);gc()
 
 # extract mean NS and EW orientation as mean inside IFN plots and forest stands
@@ -417,11 +415,11 @@ ifnCircular <- sf::as_Spatial(ifnCircular)
 
 # create shp file
 colnames(ifnCircular@data) <- c(c("idp", "X", "Y", "potentiel_03", "potentiel_09",
-                                "potentiel_61", "potentiel_62", 'unknownPart03',
-                                'unknownPart09', 'unknownPart61', 'unknownPart62'))
+                                  "potentiel_61", "potentiel_62", 'unknownPart03',
+                                  'unknownPart09', 'unknownPart61', 'unknownPart62'))
 ifnCircular@data <- cbind(ifnCircular@data, geolExtDf, grecoExtDf, elevExtDf, sloExtDf,
-#                       orienExtDf, phExtDf, rumExtDf)
-expoNSExtDf, expoEWExtDf, phExtDf, rumExtDf)
+                          #                       orienExtDf, phExtDf, rumExtDf)
+                          expoNSExtDf, expoEWExtDf, phExtDf, rumExtDf)
 # remove temporary variables
 rm(list=ls(pattern="*ExtDf"))
 rm(list=ls(pattern="plot*"))
@@ -574,7 +572,6 @@ if (user$checkSurfaces)
   plotrix::weighted.hist(gPredExt[dummy], forestStands$area[dummy]/raster::res(elev)[1]^2, main="Polygons, Basal area", freq=TRUE, breaks=seq(from=0, to=120, by=5))
 }
 gPredfVr <- velox::velox(p100gfPred * gPred/100)
-
 #
 # compute deciduous percentage by stand: use weighted mean
 # first compute total deciduous basal area
@@ -677,10 +674,10 @@ sloExtDf$slope <- tan(sloExtDf$slope*pi/180)*100
 
 # integrate into the shp file
 forestStands@data <- cbind(forestStands@data, grecoExtDf, ownershipExtDf,
-                      nonHarvExtDf, distExtDf, elevExtDf, sloExtDf,
-                      expoNSExtDf, expoEWExtDf,  dgPredExtDf, gPredExtDf,
-                      phExtDf, rumExtDf, p100gfPredExtDf, geolExtDf, cadastreExtDf)#, 
-                      # ,ggbPredExtDf, forProtecExtDf, kExtDf, lsExtDf, pExtDf, rExtDf)
+                           nonHarvExtDf, distExtDf, elevExtDf, sloExtDf,
+                           expoNSExtDf, expoEWExtDf,  dgPredExtDf, gPredExtDf,
+                           phExtDf, rumExtDf, p100gfPredExtDf, geolExtDf, cadastreExtDf)#, 
+# ,ggbPredExtDf, forProtecExtDf, kExtDf, lsExtDf, pExtDf, rExtDf)
 rm(list=ls(pattern="*Ext"))
 
 
@@ -735,12 +732,11 @@ if (!user$mihai)
   forestStands <- forestStands[forestStands$geolNotation != 'hydro', ]
   
   # remove forest plots where gPred == 0 & NA
+  # mostly polygons in a area not covered by lidar flight (13 polygons / 1800 ha)
   sum(is.na(forestStands$gPred))
   sum(forestStands$area[is.na(forestStands$gPred)])/100
   forestStands <- forestStands[!is.na(forestStands$gPred), ]
-
-  # sum(forestStands$area[forestStands$gPred == 0])
-  # polygons in a area not covered by lidar flight (13 polygons / 1800 ha)
+  #
   sum(forestStands$gPred==0)
   sum(forestStands$area[forestStands$gPred==0])/100
   forestStands <- forestStands[forestStands$gPred > 0, ]
@@ -753,12 +749,12 @@ if (!user$mihai)
   forestStands <- forestStands[!is.na(forestStands$dgPred), ]
   forestStands <- forestStands[forestStands$dgPred > 0, ]
   
+  #
   dim(forestStands)
   
   # convert mean BA/ha --> BA (real stock associated to each plot)
   forestStands$area <- raster::area(forestStands) / 10000
   forestStands$gPred <- forestStands$gPred * forestStands$area
-  # forestStands$area <- NULL
   
   # remove plot where p100gfP = NA
   sum(is.na(forestStands$p100gfPred))
