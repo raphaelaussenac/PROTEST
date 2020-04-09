@@ -369,61 +369,36 @@ test <- as.data.frame.matrix(questionr::wtd.table(forestStands$nonHarv, forestSt
 round(test,0)
 
 #
+
+source("./code1.R")
 source('./src/sc1_BAU.R')
+source("./code2.R")
+
+#
+# table EXPLOITABILITY / silviculture
 test <- as.data.frame.matrix(questionr::wtd.table(forestStands$COMMENT, forestStands$EXPLOITABILITY, weights = forestStands$AREA/10000, digits=0))
 round(test,0)
+# table Gestion / silviculture
 test <- as.data.frame.matrix(questionr::wtd.table(forestStands$gestion, forestStands$COMMENT, weights = forestStands$AREA/10000, digits=0))
 round(test,0)
+# table stand type / silviculture
 test <- as.data.frame.matrix(questionr::wtd.table(forestStands$typologie, forestStands$COMMENT, weights = forestStands$AREA/10000, digits=0))
 round(test,0)
+# table stand type / silviculture type
 test <- as.data.frame.matrix(questionr::wtd.table(forestStands$typologie, substr(forestStands$COMMENT,1,3), weights = forestStands$AREA/10000, digits=0))
 round(test,0)
+# table gestion / silviculture type
 test <- as.data.frame.matrix(questionr::wtd.table(forestStands$gestion, substr(forestStands$COMMENT,1,3), weights = forestStands$AREA/10000, digits=0))
 round(test,0)
+# table owner / silviculture
 test <- as.data.frame.matrix(questionr::wtd.table(forestStands$DOMAINE_TYPE, forestStands$COMMENT, weights = forestStands$AREA/10000, digits=0))
 round(test,0)
+# table gestion / silviculture
 test <- as.data.frame.matrix(questionr::wtd.table(forestStands$gestion, forestStands$COMMENT, weights = forestStands$AREA/10000, digits=0))
 round(test,0)
 
 # TODO: arriver a ce stade -> executer tous les scenarios de gestion avec le même forestPLot
 # (car attention -> processus rdm en amont)
-
-###############################################################
-# calculate RDI to create multiple classes for Irr stands
-# based on stand density
-###############################################################
-irr <- forestStands[substr(forestStands$COMMENT, 1, 3) == 'Irr',]
-irr$RDI1 <- NA
-irr$RDI2 <- NA
-irr$RDI <- NA
-# 1st sp  == beech
-irr[irr$FOREST_TYPE_CODE %in% c('salem_beech', 'salem_beech_fir', 'salem_beech_spruce'), 'RDI1'] <- irr[irr$FOREST_TYPE_CODE %in% c('salem_beech', 'salem_beech_fir', 'salem_beech_spruce'), 'NHA_1'] / exp(13.99 - 2.181 * log(irr[irr$FOREST_TYPE_CODE %in% c('salem_beech', 'salem_beech_fir', 'salem_beech_spruce'), 'DG_1']))
-# 1st sp  == fir
-irr[irr$FOREST_TYPE_CODE %in% c('salem_fir', 'salem_fir_spruce'), 'RDI1'] <- irr[irr$FOREST_TYPE_CODE %in% c('salem_fir', 'salem_fir_spruce'), 'NHA_1'] / exp(13.076 - 1.862 * log(irr[irr$FOREST_TYPE_CODE %in% c('salem_fir', 'salem_fir_spruce'), 'DG_1']))
-# 1st sp  == spruce
-irr[irr$FOREST_TYPE_CODE == 'salem_spruce', 'RDI1'] <- irr[irr$FOREST_TYPE_CODE == 'salem_spruce', 'NHA_1'] / exp(12.876 - 1.762 * log(irr[irr$FOREST_TYPE_CODE == 'salem_spruce', 'DG_1']))
-# 2nd sp  == spruce
-irr[irr$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), 'RDI2'] <- irr[irr$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), 'NHA_2'] / exp(12.876 - 1.762 * log(irr[irr$FOREST_TYPE_CODE %in% c('salem_beech_spruce', 'salem_fir_spruce'), 'DG_2']))
-# 2nd sp  == fir
-irr[irr$FOREST_TYPE_CODE == 'salem_beech_fir', 'RDI2'] <- irr[irr$FOREST_TYPE_CODE == 'salem_beech_fir', 'NHA_2'] / exp(13.076 - 1.862 * log(irr[irr$FOREST_TYPE_CODE == 'salem_beech_fir', 'DG_2']))
-
-# RDI total
-irr$RDI <- irr$RDI1 + irr$RDI2
-irr[is.na(irr$RDI), 'RDI'] <- irr[is.na(irr$RDI), 'RDI1']
-# modify stand label
-irr1 <- irr[irr$RDI < 0.6, ]
-substr(irr1$COMMENT, 1, 3) <- 'Ir1'
-irr2 <- irr[irr$RDI >= 0.6 & irr$RDI < 0.8, ]
-substr(irr2$COMMENT, 1, 3) <- 'Ir2'
-irr3 <- irr[irr$RDI >= 0.8, ]
-substr(irr3$COMMENT, 1, 3) <- 'Ir3'
-irr <- rbind(irr1, irr2, irr3)
-
-# remove RDI measures
-irr[, c('RDI1', 'RDI2', 'RDI')] <- NULL
-forestStands <- forestStands[substr(forestStands$COMMENT,1,3) != 'Irr',]
-forestStands <- rbind(forestStands, irr)
-forestStands <- forestStands[order(forestStands$STAND_ID), ]
 
 # write full table
 write.table(forestStands, file="./output/forestStandsFULL.txt", row.names = FALSE, quote = FALSE, sep = '\t')

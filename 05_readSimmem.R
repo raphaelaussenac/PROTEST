@@ -13,7 +13,7 @@ library(plyr)
 setwd(user$WorkingDir)
 
 # load SIMMEM output file
-df <- read.csv(file="./simmem/simmemOutput/exportAutoBAU_JMM_Irr.txt", sep = "\t", skip = 3)
+df <- read.csv(file="./simmem/simmemOutput/exportAutoBAU_JMM_Irr2.txt", sep = "\t", skip = 3)
 colnames(df)[1] <- "standId"
 
 # load SIMMEM input file to retrieve plot surface
