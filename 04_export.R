@@ -70,13 +70,6 @@ sf.forestStands <- sf::st_as_sf(forestStands)
 forestStands$WKT <- sf::st_as_text(sf.forestStands$geometry)
 forestStands <- forestStands@data
 
-
-# import non-truncated WKT
-# wkt <- read.csv("./data/BDid_1.csv", header = TRUE, sep = "\t")
-# wkt$WKTid <- c(1:nrow(wkt))
-# replace wkt in forestStands
-# forestStands <- merge(forestStands, wkt[, c('WKTid', 'WKT')], by = 'WKTid')
-
 ###############################################################
 # define exploitability
 ###############################################################
@@ -247,7 +240,9 @@ forestStands$Gsp2 <- 0
 forestStands[forestStands$NHA_2 > 0, "Gsp2"] <- (forestStands[forestStands$NHA_2 > 0, "NHA_2"] * pi * ((forestStands[forestStands$NHA_2 > 0, "DG_2"]/100)^2)) / 4
 forestStands$G <- forestStands$Gsp1 + forestStands$Gsp2
 
-# HERE STOP POINT
+############################################
+# COMPOSITION DONE - NOW MANAGEMENT
+# 
 save(list=ls(), file="intermediaryExport.rda")
 rm(list=ls())
 load(file="intermediaryExport.rda")
@@ -267,7 +262,9 @@ load(file="./data/modelGestion.rda")
 model.glm
 # convert mean parcel surface in hectares
 forestStands$surface <- forestStands$mnPrclA/10000
-# replace distances by before application of model (was calibrated with NA distances replaced by 2000)
+# replace distances by before application of model
+# (was calibrated with NA distances replaced by 2000)
+# 
 forestStands$dist[is.na(forestStands$dist)] <- 2000
 # apply model only to private forests
 dummy <- which(forestStands$DOMAINE_TYPE=="Priv")
@@ -279,12 +276,7 @@ hist(forestStands$proba[dummy])
 # too many managed stands : apply to private and public forest a multiplicative factor depending on log of distance (double effect on private stands ?)
 
 # set management probability of public forests
-
 dummy <- which(forestStands$DOMAINE_TYPE=="Pub")
-# as log of distance -> by raphael
-# forestStands$proba[dummy] <- 1 - (log(forestStands$dist[dummy]) / log(max(forestStands$dist[dummy])))
-# forestStands$proba[dummy] <- forestStands$proba[dummy] * (1 - (log(forestStands$dist[dummy]) / log(10000)))
-#
 # public stands : proba decreases linearly from 1 at 0m and 0.75 at 2000m
 forestStands$proba[dummy] <- 1 - 0.25/2000 * forestStands$dist[dummy]
 plot(forestStands$dist, forestStands$proba, col=forestStands$DOMAINE_TYPE)
@@ -368,8 +360,6 @@ round(test,0)
 test <- as.data.frame.matrix(questionr::wtd.table(forestStands$nonHarv, forestStands$gestion, weights = forestStands$AREA/10000, digits=0))
 round(test,0)
 
-#
-
 source("./code1.R")
 source('./src/sc1_BAU.R')
 source("./code2.R")
@@ -407,16 +397,7 @@ write.table(forestStands, file="./output/forestStandsFULL.txt", row.names = FALS
 # sf::st_write(fs.spatial, dsn="./", layer="forestStands.shp", driver="ESRI Shapefile")
 # plot(sf::st_geometry(fs.spatial))
 
-forestStands$nonHarv <- NULL
-forestStands$dist <- NULL
-forestStands$Gsp1 <- NULL
-forestStands$Gsp2 <- NULL
-forestStands$G <- NULL
-forestStands$proba <- NULL
-forestStands$surface <- NULL
-forestStands$mnPrclA	<- NULL
-forestStands$gestion	<- NULL
-forestStands$typologie <- NULL
+forestStands[, c('nonHarv', 'dist', 'Gsp1', 'Gsp2', 'G', 'proba', 'surface', 'mnPrclA', 'gestion', 'typologie', 'RDI1', 'RDI2', 'RDI', 'Ntot', 'Dgtot', 'probaDg', 'probaRDI', 'jointProba')] <- NULL
 
 ###############################################################
 # create management scenario java file to run SIMMEM

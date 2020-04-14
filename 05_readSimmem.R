@@ -205,7 +205,64 @@ ggplot(data = area, aes(x = date, y = area, group = managType)) +
   facet_grid(compo ~ managType)
 
 #
-# mean annual area 
+# mean annual area
+period <- 30
+periodsubset <- which(df$date<min(df$date+period))
 mean(aggregate(df$annualAREA, list(df$date), FUN=sum)$x)
 mean(aggregate(df$annualVolumeRemoved_m3, list(df$date), FUN=sum)$x)
 
+#
+# load full file
+dummy <- read.table("./output/forestStandsFULL.txt", header=TRUE, sep = '\t')
+dummy$WKT.GEOM <- as.character(dummy$WKT.GEOM)
+fsfull <- sf::st_sf(dummy[,-which(names(dummy)=="WKT.GEOM")], geom=sf::st_as_sfc(dummy$WKT.GEOM))
+sf::st_crs(fsfull) <- 2154
+#
+# recap 
+summary(fsfull)
+hist(fsfull$RDI)
+boxplot(RDI~gestion, data=fsfull)
+boxplot(RDI~COMMENT, data=fsfull)
+test <- aggregate(AREA~COMMENT, data)
+par(las=2)
+for (i in unique(substr(fsfull$COMMENT, 1, 2)))
+{
+  dummy <- fsfull[substr(fsfull$COMMENT, 1, 2)==i,]
+  dummy$COMMENT <- factor(dummy$COMMENT)
+  test <- aggregate(AREA~COMMENT, data=dummy, FUN=sum)
+  boxplot(RDI~COMMENT, data=dummy, xlab="", width=test$AREA)#, xaxt="n")
+  if (i=="Ha") {abline(h=1.5, col="red");abline(h=c(1.5-0.05, 1.5+0.05), col="red", lty=2)}
+  if (i=="Th") {abline(h=c(0.6, 0.7), col="red");abline(h=c(0.55, 0.65, 0.75), col="red", lty=2)}
+  if (i=="Ir") {abline(h=c(0.5, 0.7, 0.9), col="red");abline(h=c(0.4, 0.6, 0.8), col="red", lty=2)}
+  #
+  boxplot(DG_1~COMMENT, data=dummy, xlab="", width=test$AREA)#, xaxt="n")
+  if (i=="Ha") {points(c(1,2,3), c(20, 40, 20),col="red", pch=3)}
+  if (i=="Th") {points(c(1,2,3,4, 6, 7,8,9, 3,5,8,10), c(rep(40,8), rep(50, 4)),col="red", pch=3)}
+}
+# mean annual harvest
+
+dummy <- df[df$date<min(df$date+period),]
+#
+dummy <- lapply(split(dummy$volumeRemoved_m3, dummy$standId),
+                 FUN=function(x)
+                 {
+                   mean.operation.per.year <- sum(x>0)/period
+                   mean.volume.per.operation <- mean(x[x>0])
+                   mean.volume.per.year <- sum(x)/period
+                   data.frame(mean.operation.per.year, mean.volume.per.operation, mean.volume.per.year)
+                 }
+)
+dummy.names <- names(dummy)
+dummy <- do.call(rbind, dummy)
+dummy$STAND_ID <- dummy.names
+#
+fsfull <- merge(fsfull, dummy)
+#
+# only managed plots
+fsfull$mean.volume.per.operation[is.na(fsfull$mean.volume.per.operation)] <- 0
+managed.plots <- which(substr(fsfull$COMMENT, 1, 3)!="Con")
+# récolte moyenne annuelle
+plotrix::weighted.hist(fsfull$mean.volume.per.year[managed.plots], fsfull$AREA[managed.plots]/10000, xlab="Volume (m3/ha/an)", ylab="Surface (ha)", main="Récolte moyenne pour les parcelles gérées")
+# récolte moyenne par parcelle (pondérée par surface et nombre d'opération)
+plotrix::weighted.hist(fsfull$mean.volume.per.operation[managed.plots], fsfull$AREA[managed.plots]*fsfull$mean.operation.per.year[managed.plots]/10000, xlab="Volume (m3/ha)", ylab="Surface (ha)", main="Récolte moyenne par parcelle")
+#

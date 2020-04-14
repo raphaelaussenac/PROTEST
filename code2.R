@@ -27,5 +27,3 @@ substr(forestStands[substr(forestStands$COMMENT, 1, 3) == 'Irr' & forestStands$R
 hist(forestStands[substr(forestStands$COMMENT, 1, 3) == 'Thi', 'RDI'])
 substr(forestStands[substr(forestStands$COMMENT, 1, 3) == 'Thi' & forestStands$RDI < 0.70, 'COMMENT'], 1, 3) <- 'Th1'
 substr(forestStands[substr(forestStands$COMMENT, 1, 3) == 'Thi' & forestStands$RDI >= 0.70, 'COMMENT'], 1, 3) <- 'Th2'
-
-forestStands[, c('nonHarv', 'dist', 'Gsp1', 'Gsp2', 'G', 'proba', 'RDI1', 'RDI2', 'RDI', 'Ntot', 'Dgtot', 'probaDg', 'probaRDI', 'jointProba')] <- NULL
