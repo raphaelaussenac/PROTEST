@@ -350,10 +350,7 @@ t(apply(test, 2, function(x){round(x[1:3]/sum(x[1:3])*100,1)}))
 # -- exemple 1 plot sur 2 en chêne privé ne sera pas géré/exploité
 # modfier exploitability et dist
 
-# reduire la taille
-# facteur <- 4
-# forestStands <- forestStands[sample(1:nrow(forestStands), floor(nrow(forestStands)/facteur), replace=FALSE),]
-# forestStands <- forestStands[1:2,]
+
 
 test <- as.data.frame.matrix(questionr::wtd.table(forestStands$typologie, forestStands$gestion, weights = forestStands$AREA/10000, digits=0))
 round(test,0)
@@ -363,6 +360,17 @@ round(test,0)
 source("./code1.R")
 source('./src/sc1_BAU.R')
 source("./code2.R")
+
+save(list=ls(), file="intermediaryExport2.rda")
+rm(list=ls())
+load(file="intermediaryExport2.rda")
+
+# reduire la taille
+# facteur <- 4
+# forestStands <- forestStands[sample(1:nrow(forestStands), floor(nrow(forestStands)/facteur), replace=FALSE),]
+# forestStands <- forestStands[1:2,]
+
+# forestStands <- forestStands[is.element(substr(forestStands$COMMENT,1,3), c("Har", "Th2")),]
 
 #
 # table EXPLOITABILITY / silviculture
@@ -392,10 +400,6 @@ round(test,0)
 
 # write full table
 write.table(forestStands, file="./output/forestStandsFULL.txt", row.names = FALSE, quote = FALSE, sep = '\t')
-# fs <- read.table(file="./output/forestStandsOLD.txt", sep = '\t', header=T)
-# fs.spatial <- sf::st_sf(fs[,"STAND_ID"], geometry = sf::st_as_sfc(fs$WKT.GEOM))
-# sf::st_write(fs.spatial, dsn="./", layer="forestStands.shp", driver="ESRI Shapefile")
-# plot(sf::st_geometry(fs.spatial))
 
 forestStands[, c('nonHarv', 'dist', 'Gsp1', 'Gsp2', 'G', 'proba', 'surface', 'mnPrclA', 'gestion', 'typologie', 'RDI1', 'RDI2', 'RDI', 'Ntot', 'Dgtot', 'probaDg', 'probaRDI', 'jointProba')] <- NULL
 

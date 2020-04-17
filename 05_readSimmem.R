@@ -13,7 +13,7 @@ library(plyr)
 setwd(user$WorkingDir)
 
 # load SIMMEM output file
-df <- read.csv(file="./simmem/simmemOutput/exportAutoBAU_JMM_Irr2.txt", sep = "\t", skip = 3)
+df <- read.csv(file="./simmem/simmemOutput/exportAutoBAU_JMM_Irr2_modifDiam.txt", sep = "\t", skip = 3)
 colnames(df)[1] <- "standId"
 
 # load SIMMEM input file to retrieve plot surface
@@ -191,6 +191,12 @@ ggplot(data = areaPP, aes(x = date, y = area, group = domainType, col = domainTy
   geom_line() +
   geom_point()
 
+# surface harvested each year for each ownership type for Har scenario
+areaPP <- ddply(df[df$volumeRemoved_m3 > 0 & df$managType=="Th2" & df$compo=="bfs",], .(date, domainType), summarise, area = sum(annualAREA))
+ggplot(data = areaPP, aes(x = date, y = area, group = domainType, col = domainType)) +
+  geom_line() +
+  geom_point()
+
 # surface harvested each year for each compo type
 areaPP <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, compo), summarise, area = sum(annualAREA))
 ggplot(data = areaPP, aes(x = date, y = area, group = compo, col = compo)) +
@@ -223,7 +229,7 @@ summary(fsfull)
 hist(fsfull$RDI)
 boxplot(RDI~gestion, data=fsfull)
 boxplot(RDI~COMMENT, data=fsfull)
-test <- aggregate(AREA~COMMENT, data)
+# test <- aggregate(AREA~COMMENT, data)
 par(las=2)
 for (i in unique(substr(fsfull$COMMENT, 1, 2)))
 {
@@ -264,5 +270,9 @@ managed.plots <- which(substr(fsfull$COMMENT, 1, 3)!="Con")
 # récolte moyenne annuelle
 plotrix::weighted.hist(fsfull$mean.volume.per.year[managed.plots], fsfull$AREA[managed.plots]/10000, xlab="Volume (m3/ha/an)", ylab="Surface (ha)", main="Récolte moyenne pour les parcelles gérées")
 # récolte moyenne par parcelle (pondérée par surface et nombre d'opération)
-plotrix::weighted.hist(fsfull$mean.volume.per.operation[managed.plots], fsfull$AREA[managed.plots]*fsfull$mean.operation.per.year[managed.plots]/10000, xlab="Volume (m3/ha)", ylab="Surface (ha)", main="Récolte moyenne par parcelle")
+plotrix::weighted.hist(fsfull$mean.volume.per.operation[managed.plots], fsfull$AREA[managed.plots]*fsfull$mean.operation.per.year[managed.plots]/10000, xlab="Volume (m3/ha)", ylab="Surface (ha)", main="Récolte moyenne par opération, par parcelle")
 #
+fsfull2 <- fsfull
+names(fsfull2) <- c(paste("n", 1:(length(names(fsfull2))-1)), "geometry")
+sf::st_write(fsfull2, "forestStandsSimulated.shp", delete_layer=TRUE)
+
