@@ -71,6 +71,7 @@ forestStands$probaDg <- (1/(sigmaDg*sqrt(2*pi))) * exp( (-(forestStands$Dgtot-mu
 forestStands$probaRDI <- (1/(sigmaRDI*sqrt(2*pi))) * exp( (-(forestStands$RDI-muRDI)^2 / (2*sigmaRDI^2)) )
 forestStands$jointProba <- forestStands$probaDg * forestStands$probaRDI
 
+library(ggplot2)
 ggplot() +
 geom_point(data = forestStands, aes(Dgtot, RDI), alpha = 1) +
 geom_tile(data = proba, aes(Dg, RDI, fill = jointProba), alpha = 0.8) +
