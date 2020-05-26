@@ -248,6 +248,10 @@ test <- apply(dummy, 1, sum)
 round(test/sum(test)*100, 1)
 pie(test, col=c("darkgrey", "red", "orange", "yellow"), labels=paste(c("Inaction", "Coupe rase", "Irrégulier", "Amélioration"), round(test/sum(test)*100, 1)))
 
+test <- apply(dummy, 2, sum)
+round(test/sum(test)*100, 1)
+pie(test, col=c("red", "orange", "green", "cyan", "darkgreen", "blue"), labels=paste(c("Autres feuillus", "Hêtre", "Priv_Mixte", "Priv_Sapin-épicéa", "Pub_Mixte", "Pub_Sapin-épicéa"), round(test/sum(test)*100, 1)))
+
 # gestion et type de peuplements
 dummy <- as.data.frame.matrix(questionr::wtd.table(forestStands$typologie, forestStands$gestion, weights = forestStands$AREA/10000, digits=0))
 dummy <- as.matrix(t(dummy))
@@ -296,9 +300,15 @@ ggplot(data = vol, aes(x = date, y = vol, group = domainType, col=domainType)) +
 
 managed.plots <- which(substr(forestStands$COMMENT, 1, 3)!="Con")
 # récolte moyenne annuelle
-plotrix::weighted.hist(forestStands$mean.volume.per.year[managed.plots], forestStands$AREA[managed.plots]/10000, xlab="Volume (m3/ha/an)", ylab="Surface (ha)", main="Récolte moyenne pour les parcelles gérées")
+plotrix::weighted.hist(forestStands$mean.volume.per.year[managed.plots], forestStands$AREA[managed.plots]/10000, xlab="Volume (m3/ha/an)", ylab="Surface (ha)", main="Récolte moyenne pour les parcelles gérées", breaks=seq(from=0, to=37.5, by=2.5))
 # récolte moyenne par parcelle (pondérée par surface et nombre d'opération)
 plotrix::weighted.hist(forestStands$mean.volume.per.operation[managed.plots], forestStands$AREA[managed.plots]*forestStands$mean.operation.per.year[managed.plots]/10000, xlab="Volume (m3/ha)", ylab="Surface (ha)", main="Récolte moyenne par opération, par parcelle")
+
+# récolte par type d'itinéraire
+for (i in c("Ha", "Ir", "Th"))
+{
+  hist(df$volumeRemoved_m3[df$iti==i & df$volumeRemoved_m3>0], main=i, xlab="Prélèvement (m3/ha)", ylab="Nb de coupes")
+}
 
 if (0)
 {
