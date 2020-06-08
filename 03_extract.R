@@ -648,7 +648,7 @@ dgPredExtDf <- data.frame(dgPred=sqrt(niDgi2ExtDf / niExtDf))
 names(dgPredExtDf) <- "dgPred"
 gPredExtDf <- data.frame(gPred=gPredExt)
 # ggbPredExtDf <- data.frame(ggbPredExt)
-# colnames(ggbPredExtDf) <- "ggbPred"
+# colnames(ggbPredExtDf) <- "ggbPred" 
 # nPredExtDf <- data.frame(nPredExt)
 # colnames(nPredExtDf) <- "nPred"
 p100gfPredExtDf <- data.frame(p100gfPred=p100gfPredExt)
@@ -695,28 +695,8 @@ classGeol$rocheCalc <- as.factor(classGeol$rocheCalc)
 
 # insert geol classification in forestStands
 forestStands <- merge(forestStands, classGeol, by.x = "geolNotation", by.y = 'NOTATION', all.x = TRUE)
-
-#########
-# # COMPARAISON AVEC RESULTATS RAPHAEL A FAIRE ICI ????
-# # AVANT SUPPRESSION DES POLYGONES
-# # (avec donnees extraites par raphael : auparavant : polymerge fait apres extract)
-# forestStands1 <- rgdal::readOGR(dsn="./data/", layer="forestPlots3HaPolyMergeOLD")
-# #
-# table(forestStands$geolNotation)
-# table(forestStands$)
-# sum(as.character(forestStands$geolNotation) == as.character(forestStands1$gelNttn))/nrow(forestStands) # mode plutôt que extraction au centroide
-# sum(as.character(forestStands$CODE_TFV)== as.character(forestStands1$CODE_TF))/nrow(forestStands)
-# table(forestStands$INSEE_DEP, forestStands1$INSEE_D)
-# table(forestStands$greco, forestStands1$greco)
-# table(forestStands$owner, forestStands1$owner)
-# table(forestStands$nonHarv, forestStands1$nonHarv)
-# #
-# par(mfrow=c(3,4))
-# for (i in c("dist", "alti", "slope", "expoNS", "expoEW", "gPred", "ph", "rum")) 
-# {plot(forestStands@data[,i], forestStands1@data[,i], main=i)}
-# plot(forestStands$p100gfPred, forestStands1$p100gfP, main="% feuillus")
-# plot(forestStands$sumNiDgi2, forestStands1$dgPred, main="Dg")
-
+#
+# sauvegarde des peuplements
 forestStandsBck <- forestStands
 #
 ##################################################################
