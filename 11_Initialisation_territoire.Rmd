@@ -38,7 +38,7 @@ L'objectif de ce document est de présenter les procédures permettant d'initial
 - la surface terrière par essence
 - le nombre de tiges par essence (ou le diamètre quadratique pour chaque essence)
 
-Afin de tenir compte des essences présentes sur la zone et de celles qui peuvent être modélisées par le simulateur, il a été décidé de simuler les peuplements suivants :
+Afin de tenir compte des essences présentes sur la zone et de celles qui peuvent être modélisées par le simulateur, il a été décidé de simuler les essences pures et mélanges suivants :
 
  * hêtre
  - épicéa
@@ -49,6 +49,8 @@ Afin de tenir compte des essences présentes sur la zone et de celles qui peuven
  - mélange sapin-épicéa.
 
 L'emprise géographique résulte d'un découpage du territoire. Les autres variables sont obtenues par calibration d'un modèle d'estimation de la variable objectif à partir de variables intermédiaires qui doivent être disponibles pour chaque peuplement (sur l'ensemble du territoire d'étude), ainsi qu'aux localisations des placettes IFN ou PROTEST qui servent pour la calibration.
+
+Dans la suite du document, on utilisera le mot "polygones", qui se réfère aux entités spatiales résultant du découpage du territoire, pour désigner les peuplements simulés. Le mot "placettes" désignent les surfaces circulaires inventoriées soit dans le cadre de l'observatoire du projet PROTEST, soit par l'IFN. Les variables intermédiaire sont extraites à la fois sur les placettes, pour la calibration des modèles, et sur les polygones, pour estimer les variables d'intérêt.
 
 # Découpage du territoire
 
@@ -77,6 +79,8 @@ hist(forestStands$AREA/10000, main="Histogramme de la surface des polygones", xl
 Les cartes des polygones présentées ensuite sont basées sur les polygones subsistant à la fin de l'ensemble du processus d'initialisation. Une minorité d'entre eux est enlevée en cours de traitement car il n'est pas possible de leur affecter les valeurs nécessaires aux simulations.
 
 # Extraction des variables
+
+L'extraction est réalisée par le script "03.extract.R"
 
 ## Forêt
 
@@ -116,21 +120,21 @@ Les catégories TFV auraient pu être fusionnées selon ces nouvelles classes, a
 
 Les couches dendrométriques (résolution : 25 m) sont issues d'un modélisation réalisée à partir de placettes relevés sur le terrain et de données LiDAR (cf document "modélisation des paramètres forestiers") :
 
-* diamètre quadratique moyen ($D_g$, cm) des arbres plus de 7,5 cm de diamètre ;
+* diamètre quadratique moyen ($Dg$, cm) des arbres de plus de 7,5 cm de diamètre ;
 - surface terrière ($G$, m2/ha) des arbres de plus de 7,5 cm de diamètre ;
 - pourcentage en surface terrière des arbres feuillus dans le peuplement ($P_{Gf}$) ;
 
-La densité de tiges est calculées comme : $N = {{4 G} \over {\pi {D_G}^2}}$
+La densité de tiges est calculée comme suit : $N = {{4 G} \over {\pi {Dg}^2}}$
 
 La surface terrière totale est calculée pour chaque polygone, ainsi que la surface terrière totale feuillue (somme des pixels du raster obtenu en faisant le produit de la surface terrière et du pourcentage de feuillus, divisé par 100). On en déduit ensuite le pourcentage de feuillus pour l'ensemble du polygone.
 
 La surface terrière moyenne est calculée en faisant la moyenne des surface terrières des pixels.
 
-Le diamètre quadratique moyen pour chaque polygone est obtenu par la formule suivante : $D_G = \sqrt{\sum{N_i \times {D_{Gi}}^2} \over \sum{N_i}}$ avec ${i}$ les pixels contenus dans le polygone.
+Le diamètre quadratique moyen pour chaque polygone est obtenu par la formule suivante : $Dg = \sqrt{\sum{N_i \times {Dg_{i}}^2} \over \sum{N_i}}$ avec ${i}$ les pixels contenus dans le polygone.
 
 Les polygones dont la surface terrière est 0 ou NA sont enlevés. Il s'agit majoritairement de polygones situés dans une zone non couverte par les données LiDAR (13 polygones, 1800 ha).
 
-Les polygones dont le $D_G$ est nul sont également enlevés. Il s'agit de quelques polygones principalement situés dans les vallées périphériques du PNR.
+Les polygones dont le $Dg$ est nul sont également enlevés. Il s'agit de quelques polygones principalement situés dans les vallées périphériques du PNR.
 
 Les polygones dont la variables pourcentage de feuillus est manquante sont également enlevés.
 
@@ -144,7 +148,7 @@ plot(forestStands["G"], border=NA, main="Surface terrière (m2/ha)", breaks="qua
 
 À chaque placette IFN est affecté le CODEGRECO se trouvant à la localisation du centre de la placette sur la couche vecteur des Grandes Régions Écologiques (GRECO : https://inventaire-forestier.ign.fr/spip.php?article773).
 
-Le champ CODEGRECO de cette couche vecteur est rasterisé au pas de 5 m. La valeur CODEGRECO affectée à chaque polygone correspond au mode des pixels qui sont contenus par le polygone.
+Le champ CODEGRECO de cette couche vecteur est rasterisé au pas de 5 m. À chaque polygone est affecté la valeur CODEGRECO correspondant au mode des pixels qui sont contenus par le polygone.
 
 Source de la couche ?
 
@@ -249,11 +253,13 @@ plot(forestStands["dist"], border=NA, main="Distance forêt-route (m), polygones
 
 # Données modélisées
 
+Cette étape est réalisée par le script "04_export.R", qui s'occuper également de la mise au format SIMMEM.
+
 ## Site index
 
 Un site index $si$ pour chaque espèce est affecté à chaque polygone suivant une procédure en deux étapes.
 
-Les variables nécessaires au calcul de $si$ n'étant pas disponibles sur l'ensemble de la zone d'étude, $si$ est tout d'abord modélisé sur les placettes IFN en fonction des variables environnementales et géographiques, en utilisant des modèles linéaires généralisés (GLM) avec une probabilité de distribution Gamma ($\Gamma$). Les variables ne sont pas extraites à la position exacte de la placette IFN, mais au centre du carré de 900 m qui la contient.
+Les variables nécessaires au calcul de $si$ n'étant pas disponibles sur l'ensemble de la zone d'étude, $si$ est tout d'abord modélisé sur les placettes IFN en fonction des variables environnementales et géographiques, en utilisant des modèles linéaires généralisés (GLM) avec une probabilité de distribution Gamma ($\Gamma$). Les variables ne sont pas extraites à la position exacte de la placette IFN, mais au centre du carré de 900 m de côté qui la contient.
 $si$ étant dépendant de l'espèce, des modèles de la forme suivante sont calibrés séparément pour les quatre espèces : $\widehat{si} = a + b_1 alti + b_2 slope + b_3 rum + b_4 pH + b_5 expoNS + b_6 expoEW + b_7 greco + b_8 hydro + b_9 carbo$ avec 
 $si \sim \Gamma(\alpha, \frac{\alpha}{\widehat{si}})$ et où $a$, $(b_i)_{i \in \{1,...,9\}}$ et $\alpha$ sont des paramètres à estimer. 
 
@@ -269,11 +275,12 @@ Une valeur de $si$ est ensuite attribuée à chaque polygone de la zone d'étude
 
 La composition en essence est affectée aux polygones en suivant une procédure en quatre étapes. 
 
-Les placettes PROTEST sont classées en sept compositions correspondant aux compositions qui seront simulées : quatre compositions pures (hêtre, chêne, sapin, épicéa), quand la proportion de ces espèces (EN SURFACE TERRIERE ??) représente plus de 75\% du peuplement, et trois compositions de mélange (hêtre-sapin, hêtre-épicéa, sapin-épicéa) quand ces deux espèces sont les plus abondantes et représentent ensemble plus de 75\% du peuplement. Cependant, comme d'autres espèces sont présentes sur la zone d'étude, les espèces ont été regroupées auparavant de la manière suivante :
+Les placettes PROTEST sont classées en sept compositions correspondant aux compositions qui seront simulées : quatre compositions pures (hêtre, chêne, sapin, épicéa), quand la proportion de ces espèces en surface terrière représente plus de 75\% du peuplement, et trois compositions de mélange (hêtre-sapin, hêtre-épicéa, sapin-épicéa) quand ces deux espèces sont les plus abondantes et représentent ensemble plus de 75\% du peuplement. Cependant, comme d'autres espèces sont présentes sur la zone d'étude, les espèces ont été regroupées auparavant de la manière suivante :
 
 * quand une espèce résineuse autre que sapin ou épicéa est présente, sa surface terrière est reportée au sapin et à l'épicéa selon les proportions relatives de ces deux espèces dans la placette.
-- de même, quand une espèce feuillue autre que chêne et hêtre est présente, sa surface terrière est reporté au chêne et au hêtre selon les proportions relatives de ces deux espèces dans la placette. Ceci à l'exception des espèces de chêne qui sont toujours reportées sur  \textit{Quercus petraea}.
-Les perches ont été prises en compte dans ce calcul. Les perches viables de feuillus et les brins de taillis ont été considérés comme des feuillus indeterminés. Les perches résineuses viables ont été considérées comme des conifères indeterminés. Les perches non viables, sans information d'espèce, ont été reportées sur les perches feuillues et résineuses selon les proportions relatives de ces dernières. Les polygones dont la composition n'entre pas dans les sept compositions proposées ont été enlevés.
+- de même, quand une espèce feuillue autre que chêne et hêtre est présente, sa surface terrière est reporté au chêne et au hêtre selon les proportions relatives de ces deux espèces dans la placette. Ceci à l'exception des espèces de chêne qui sont toujours reportées sur le chêne \textit{Quercus petraea}.  
+
+Les perches ont été prises en compte dans ce calcul. Les perches viables de feuillus et les brins de taillis ont été considérés comme des feuillus indeterminés. Les perches résineuses viables ont été considérées comme des conifères indeterminés. Les perches non viables, sans information d'espèce, ont été reportées sur les perches feuillues et résineuses selon les proportions relatives de ces dernières. Les placettes PROTEST dont la composition n'entre pas dans les sept compositions proposées ont été enlevés.
 
 Tous les polygones ont été classés selon trois compositions: feuillus, résineux, mélange, en utilisant la proportion de surface terrière feuillus ($P{Gf}$) extraite des données LiDAR selon la clé suivante : feuillus si $P_{Gf}>75$, résineux si $P_{Gf}<25$, mélange sinon.
 
@@ -296,7 +303,7 @@ plot(forestStands["FOREST_TYPE_CODE"], border=NA, main="Composition", key.pos=1,
 
 ### Surface terrière
 
-La surface terrière par essence est attribuée ($G_{sp}$) à chaque polygone à partir de la surface terrière totale ($G_t$) et de la proportion de feuillus dans la surface terrière ($P_{Gd}$) extraite des estimations LiDAR. $G_{sp}$ est directement calculé dans le cas de peuplements purs ou de mélanges feuillus-conifères (i.e. hêtre-sapin ou hêtre-épicéa). Une procédure en deux étapes est appliquée pour les mélanges de conifères (i.e. sapin-épicéa).
+La surface terrière par essence est attribuée ($G_{sp}$) à chaque polygone à partir de la surface terrière totale ($G_t$) et de la proportion de feuillus dans la surface terrière ($P_{Gf}$) extraite des estimations LiDAR. $G_{sp}$ est directement calculé dans le cas de peuplements purs ou de mélanges feuillus-conifères (i.e. hêtre-sapin ou hêtre-épicéa). Une procédure en deux étapes est appliquée pour les mélanges de conifères (i.e. sapin-épicéa).
 
 Tout d'abord la proportion de sapin ($P_{Gsap} = \frac{G_{sap}}{G_{sap} + G_{ép}}$) est modélisée à partir des placettes PROTEST $i$ en fonction des variables environnementales et LiDAR, selon une régression beta ($Be$) avec lien logit :
 \begin{align}
@@ -312,17 +319,17 @@ Ensuite les valeurs $P_{Gsap}$ sont affectées à chaque polygone $p$ de mélang
 Le diamètre quadratique par espèce ($Dg_{sp}$) est affecté à chaque polygone d'une manière différente selon la composition. Pour les peuplements purs, la valeur ($Dg_t$) estimée à partir des données LiDAR est utilisée. Pour les peuplements mélangés, une procédure en trois étapes est appliquée.
 
 Le ratio $R_{Dg} = \frac{Dg_{sp1}}{Dg_{sp2}}$ des $Dg_{sp}$ des espèces en mélange ($sp1$ et $sp2$) est modélisé sur les placettes PROTEST $i$, séparémment pour chaque mélange (hêtre-sapin, hêtre-épicéa and sapin-épicéa), en fonction des variables environnementales et LiDAR, selon un modèle linéaire généralisé avec une distribution Gamma ($\Gamma$). Les trois modèles sont de la forme :
-$\widehat{R_{Dg, i}} = a + b_1 alti_i + b_2 slope_i + b_3 rum_i + b_4 pH_i + b_5 expoNS_i +\\ b_6 expoEW_i + b_7 dg_i + b_8 g_i + b_9 greco_i + b_{10} hydro_i + b_{11} carbo_i$  
+$\widehat{R_{Dg, i}} = a + b_1 alti_i + b_2 slope_i + b_3 rum_i + b_4 pH_i + b_5 expoNS_i +\\ b_6 expoEW_i + b_7 Dg_i + b_8 g_i + b_9 greco_i + b_{10} hydro_i + b_{11} carbo_i$  
 $R_{Dg, i} \sim \Gamma(\alpha, \frac{\alpha}{\widehat{R_{Dg, i}}})$  
 avec $a$, $b_{1-11}$ et $\alpha$ des paramètres à estimer. Dans ce cas, les placettes PROTEST dans lesquelles $sp1$ et $sp2$ représentent plus de 75\% de la surface terrière des arbres de plus de 17,5 cm.
   
 $R_{Dg}$ est ensuite affecté à chaque polygone $p$ de peuplement mélangé en tirant au sort dans une distribtion Gamma $\Gamma(\alpha, \frac{\alpha}{\widehat{R_{Dg, p}}})$, avec $\widehat{R_{Dg, p}}$ le $R_{Dg}$ estimé par le modèle pour le polygone $p$.
 
-Le diamètre quadratique par espèce est ensuite calculé à partir des deux équations reliant les surfaces terrières et diamètres quadratiques par espèce. $G_{sp} = \frac{n_{sp}\pi Dg_{sp}^2}{4}$  
-avec $G_{sp}$, $D_{sp}$ et $n_{sp}$ la surface terrière, le diamètre quadratique et le nombre de tige par espèce, et  
-$Dg_t^2 = \frac{n_{sp1}Dg_{sp1}^2 + n_{sp2}Dg_{sp2}^2}{n_{sp1} + n_{sp2}}$  
-avec $Dg_t$ diamètre quadratique total; $Dg_{sp1}$ et $Dg_{sp2}$, les diamètres quadratiques des espèces $sp1$ et $sp2$; et $n_{sp1}$ et $n_{sp2}$, le nombre de tiges des espèces $sp1$ et $sp2$. $Dg_{sp1}$ et $Dg_{sp1}$ sont donc exprimés comme :
-$Dg_{sp1} = Dg_t\sqrt{\frac{G_{sp1} + R_{Dg}^2G_{sp2}}{G_{sp1} + G_{sp2}}}$
+Le diamètre quadratique par espèce est ensuite calculé à partir des deux équations reliant les surfaces terrières et diamètres quadratiques par espèce. $G_{sp} = \frac{n_{sp}\pi {Dg_{sp}}^2}{4}$  
+avec $G_{sp}$, $Dg_{sp}$ et $n_{sp}$ la surface terrière, le diamètre quadratique et le nombre de tige par espèce, et  
+$Dg_t^2 = \frac{n_{sp1}{Dg_{sp1}}^2 + n_{sp2}{Dg_{sp2}}^2}{n_{sp1} + n_{sp2}}$  
+avec $Dg_t$ le diamètre quadratique total; $Dg_{sp1}$ et $Dg_{sp2}$, les diamètres quadratiques des espèces $sp1$ et $sp2$; et $n_{sp1}$ et $n_{sp2}$, le nombre de tiges des espèces $sp1$ et $sp2$. $Dg_{sp1}$ et $Dg_{sp2}$ sont donc exprimés comme suit :
+$Dg_{sp1} = Dg_t\sqrt{\frac{G_{sp1} + {R_{Dg}}^2G_{sp2}}{G_{sp1} + G_{sp2}}}$
 $Dg_{sp2} = \frac{Dg_{sp1}}{R_{Dg}}$
 
 ### Nombre d'arbres par espèce
