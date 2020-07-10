@@ -10,6 +10,7 @@ library(reshape2)
 ###############################################################
 
 # Site index
+# requires access to rastDg file
 source(paste0(user$WorkingDir, "/src/siteIndex.R"))
 
 forestStands
@@ -33,13 +34,9 @@ length(unique(forestStands$WKTid))
 forestStandsCompogDgN <- forestStands
 rm(list=setdiff(ls(), c('forestStandsCompogDgN', 'forestStandsSiteIndex', 'mod03', 'mod09', 'mod61', 'mod62', 'predFert')))
 
-# missing stands? ###############################################################
-# check this --> might be those plots belonging to "unwanted" TFV types (FO0, FF0)
-# five polygons less than ??
-
+# check if polygons were removed during previous step -> no
 disapearedPlots <- forestStandsSiteIndex$WKTid[!forestStandsSiteIndex$WKTid %in% forestStandsCompogDgN$WKTid]
 forestStandsSiteIndex@data[forestStandsSiteIndex@data$WKTid %in% disapearedPlots,]
-
 table(forestStandsSiteIndex$CODE_TF)
 table(forestStandsCompogDgN$CODE_TF)
 
@@ -69,17 +66,6 @@ forestStands <- forestStands[!forestStands$WKTid %in% disapearedPlots, ]
 sf.forestStands <- sf::st_as_sf(forestStands)
 forestStands$WKT <- sf::st_as_text(sf.forestStands$geometry)
 forestStands <- forestStands@data
-
-###############################################################
-# define exploitability
-###############################################################
-
-# forestStands$access <- as.character(forestStands$access)
-# # non-expoitable sites
-# forestStands[!(forestStands$access %in% c("dist 1 harv 1")), "access"] <- 0 # , "dist 2 harv 1"
-# # exploitable sites
-# forestStands[forestStands$access %in% c("dist 1 harv 1"), "access"] <- 1
-# forestStands$access <- as.factor(forestStands$access)
 
 ###############################################################
 # format
@@ -264,8 +250,10 @@ model.glm
 forestStands$surface <- forestStands$mnPrclA/10000
 # replace distances by before application of model
 # (was calibrated with NA distances replaced by 2000)
-# 
-forestStands$dist[is.na(forestStands$dist)] <- 2000
+# first save data
+#forestStands$dist <- forestStands$distWithNA
+forestStands$distWithNA <- forestStands$dist
+# forestStands$dist[is.na(forestStands$dist)] <- 2000
 # apply model only to private forests
 dummy <- which(forestStands$DOMAINE_TYPE=="Priv")
 # estimate probability of management in private forests
@@ -282,15 +270,15 @@ forestStands$proba[dummy] <- 1 - 0.25/2000 * forestStands$dist[dummy]
 plot(forestStands$dist, forestStands$proba, col=forestStands$DOMAINE_TYPE)
 
 # for all forests
+# forests with NA distance have a probability of 0 (although the model of private forests considers them as tough their distance was 2000)
+forestStands$proba[is.na(forestStands$dist)] <- 0
+# set proba to zero for forest further than 2000
+forestStands$proba[forestStands$dist>2000] <- 0
+#
 # nonHarv forest have a probability of 0 (although the model of private forests does not includes this variable)
 forestStands$proba[forestStands$nonHarv==0] <- 0
-# forests with NA distance have a probability of 0 (although the model of private forests considers them as tough their distance was 2000)
-# set back to NA values previously set to 2000
-forestStands$dist[forestStands$dist>=2000] <- NA
 # set dist to NA of polygons not harvestable for coherence
 forestStands$dist[forestStands$nonHarv == 0]<- NA
-# forest with a NA distance (not accessible) is set to zero
-forestStands$proba[is.na(forestStands$dist)] <- 0
 #
 plot(forestStands$dist, forestStands$proba, col=forestStands$DOMAINE_TYPE, xlab="Distance moyenne de débardage (m)", ylab="Probabilité de gestion", cex=0.1)
 #
@@ -346,11 +334,6 @@ round(test)
 # tableau des pourcentage en excluant les surfaces non bucheronnables
 t(apply(test, 2, function(x){round(x[1:3]/sum(x[1:3])*100,1)}))
 
-# define extra plots as non accessible = non harvested
-# -- exemple 1 plot sur 2 en chêne privé ne sera pas géré/exploité
-# modfier exploitability et dist
-
-
 
 test <- as.data.frame.matrix(questionr::wtd.table(forestStands$typologie, forestStands$gestion, weights = forestStands$AREA/10000, digits=0))
 round(test,0)
@@ -401,7 +384,7 @@ round(test,0)
 # write full table
 write.table(forestStands, file="./output/forestStandsFULL.txt", row.names = FALSE, quote = FALSE, sep = '\t')
 
-forestStands[, c('nonHarv', 'dist', 'Gsp1', 'Gsp2', 'G', 'proba', 'surface', 'mnPrclA', 'gestion', 'typologie', 'RDI1', 'RDI2', 'RDI', 'Ntot', 'Dgtot', 'probaDg', 'probaRDI', 'jointProba')] <- NULL
+forestStands[, c('nonHarv', 'dist', 'distWithNA', 'Gsp1', 'Gsp2', 'G', 'proba', 'surface', 'mnPrclA', 'gestion', 'typologie', 'RDI1', 'RDI2', 'RDI', 'Ntot', 'Dgtot', 'probaDg', 'probaRDI', 'jointProba')] <- NULL
 
 ###############################################################
 # create management scenario java file to run SIMMEM

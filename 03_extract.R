@@ -4,7 +4,7 @@
 
 # clean up environment except user variable with path values
 rm(list = setdiff(ls(),"user"))
-user$checkSurfaces <- TRUE
+user$checkSurfaces <- FALSE
 
 # load packages
 library(rgdal)
@@ -698,6 +698,7 @@ forestStands <- merge(forestStands, classGeol, by.x = "geolNotation", by.y = 'NO
 #
 # sauvegarde des peuplements
 forestStandsBck <- forestStands
+save(forestStandsBck, file="forestStandsNotCleaned.rda")
 #
 ##################################################################
 #
@@ -709,49 +710,51 @@ if (!user$mihai)
   dim(forestStands)
   # remove polygones with geol == 'hydro' (== lac, river)
   # 0 polygons
+  sum(forestStands$geolNotation == 'hydro')
   forestStands <- forestStands[forestStands$geolNotation != 'hydro', ]
-  
+  #
   # remove forest plots where gPred == 0 & NA
-  # mostly polygons in a area not covered by lidar flight (13 polygons / 1800 ha)
+  # mostly polygons in a area not covered by lidar flight (13 polygons / 18 ha)
   sum(is.na(forestStands$gPred))
-  sum(forestStands$area[is.na(forestStands$gPred)])/100
+  sum(forestStands$area[is.na(forestStands$gPred)])/10000
   forestStands <- forestStands[!is.na(forestStands$gPred), ]
   #
   sum(forestStands$gPred==0)
-  sum(forestStands$area[forestStands$gPred==0])/100
+  sum(forestStands$area[forestStands$gPred==0])/10000
   forestStands <- forestStands[forestStands$gPred > 0, ]
   
   # remove forest plots where dgPred == 0
   # a few polygons, mostly in lowlands
   sum(is.na(forestStands$dgPred))
   sum(forestStands$dgPred==0)
-  sum(forestStands$area[forestStands$dgPred==0])/100
+  sum(forestStands$area[forestStands$dgPred==0])/10000
   forestStands <- forestStands[!is.na(forestStands$dgPred), ]
   forestStands <- forestStands[forestStands$dgPred > 0, ]
+
+  # remove plot where p100gfP = NA (none)
+  sum(is.na(forestStands$p100gfPred))
+  forestStands <- forestStands[!is.na(forestStands$p100gfPred), ]
   
-  #
-  dim(forestStands)
+  # remove forest plots where owner ==  NA (3)
+  sum(is.na(forestStands$owner))
+  sum(forestStands$area[is.na(forestStands$owner)])
+  forestStands <- forestStands[!is.na(forestStands$owner), ]
+  
+  # for 17 stands located inside or along the riverbed of Isere, there are no parcells in the cadastre
+  # stand are removed
+  sum(is.na(forestStands$meanParcelleArea))
+  sum(forestStands$area[is.na(forestStands$meanParcelleArea)])/10000
+  forestStands <- forestStands[!is.na(forestStands$meanParcelleArea), ]
+  
+  # concatenate accessibility
+  forestStands$access <- paste('dist', round(forestStands$dist), 'harv', forestStands$nonHarv)
   
   # convert mean BA/ha --> BA (real stock associated to each plot)
   forestStands$area <- raster::area(forestStands) / 10000
   forestStands$gPred <- forestStands$gPred * forestStands$area
   
-  # remove plot where p100gfP = NA
-  sum(is.na(forestStands$p100gfPred))
-  forestStands <- forestStands[!is.na(forestStands$p100gfPred), ]
-  
-  # remove forest plots where owner ==  NA
-  sum(is.na(forestStands$owner))
-  sum(forestStands$area[is.na(forestStands$owner)])/100
-  forestStands <- forestStands[!is.na(forestStands$owner), ]
-  
-  # concatenate accessibility
-  forestStands$access <- paste('dist', round(forestStands$dist), 'harv', forestStands$nonHarv)
-  
-  # for 17 stands located inside or along the riverbed of Isere, there are no parcells in the cadastre
-  # stand are removed
-  sum(is.na(forestStands$meanParcelleArea))
-  forestStands <- forestStands[!is.na(forestStands$meanParcelleArea), ]
+  #
+  dim(forestStands)
   
   # remove useless columns
   forestStands$id <- NULL

@@ -1,8 +1,8 @@
 ---
 title: Analyse des simulations
 subtitle: Parc naturel régional du Massif des Bauges
-author: "Raphaël Aussenac, Jean-Matthieu MONNET"
-date: "8 juin 2020"
+author: "Raphaël Aussenac, Jean-Matthieu MONNET, Patrick Vallet"
+date: "29 juin 2020"
 output:
   html_document:
     self_contained: TRUE
@@ -36,10 +36,9 @@ setwd("/home/jean-matthieu/R/PROTEST")
 ---
 # Introduction {-}
 
-L'objectif de ce document est de présenter les résultats de simulation réalisées par le logiciel SIMMEM sur le territoire du PNR du Massif des Bauges. 
+L'objectif de ce document est de présenter les simulations d'évolution forestière réalisées par le logiciel SIMMEM sur le territoire du PNR du Massif des Bauges. 
 
-La première partie décrit les conditions initiales du territoire simulé.
-Le deuxième partie décrit les itinéraires simulés
+La première partie décrit les conditions initiales du territoire simulé. La deuxième partie décrit les résultats de simulation.
 
 ```{r charge.donnees.initiales, echo=FALSE, warning=FALSE, message=FALSE}
 # load full file
@@ -63,15 +62,15 @@ forestStands$itineraire <- factor(ifelse(substr(forestStands$COMMENT,1,2)=="Co",
                                          ifelse(substr(forestStands$COMMENT,1,2)=="Th", "Amélioration","Coupe rase"))))
 ```
 
-Le nombre de polygones simulés est de `r nrow(forestStands)`, pour une surface totale de `r round(sum(forestStands$AREA)/10000,-1)` ha. Leurs caractéristiques sont présentées dans les paragraphes suivants.
+Le nombre de polygones simulés est de `r nrow(forestStands)`, pour une surface totale de `r round(sum(forestStands$AREA)/10000,-1)` ha. Leurs caractéristiques sont présentées dans le paragraphe suivant.
 
 # Description générale du territoire
 
 ## Typologie des polygones
 
-La typologie des peuplements résulte d'un croisement entre la propriété (qui oriente partiellement la sylviculture) et la composition en essence (qui détermine le paramétrage de la croissance et oriente partiellement la sylviculture).
+La typologie des polygones résulte d'un croisement entre la propriété (qui oriente partiellement la sylviculture) et la composition en essence (qui détermine le paramétrage de la croissance et oriente partiellement la sylviculture).
 
-Les types de polygones sont présentés sur les graphiques suivants.
+La répartition en pourcentage de la surface des types de polygones est présentée sur le graphique suivant. La carte montre leur répartition sur le territoire.
 
 ```{r typologie, echo=FALSE, warning=FALSE, message=FALSE}
 # gestion et type de peuplements
@@ -80,19 +79,19 @@ tab.typo.gestion <- as.matrix(t(tab.typo.gestion))
 #
 tab.typo <- apply(tab.typo.gestion, 2, sum)
 pie(tab.typo, col=c("red", "orange", "green", "cyan", "darkgreen", "blue"), labels=paste(names(tab.typo), round(tab.typo/sum(tab.typo)*100, 1)))
-plot(forestStands["typologie"], border=NA, key.pos=NULL, pal=c("red", "orange", "green", "cyan", "darkgreen", "blue"), main="Typologie des peuplements")
+plot(forestStands["typologie"], border=NA, key.pos=NULL, pal=c("red", "orange", "green", "cyan", "darkgreen", "blue"), main="Typologie des polygones")
 ```
 
 ## Accessibilité et gestion
 
-Selon les conditions d'accessibilité du polygone, la propriété et la surface moyenne des parcelles cadastrales qu'il contient (pour la propriété privée), il peut être géré ou non.
+Selon les conditions d'accessibilité du polygone, la propriété et la surface moyenne des parcelles cadastrales qu'il contient (pour la propriété privée), il peut être géré ou non. La répartition des surfaces selon l'accessibilité et la gestion est présentée sur le graphique suivante.
 
 ```{r accessibilite, echo=FALSE, warning=FALSE, message=FALSE}
 tab.gestion <- apply(tab.typo.gestion, 1, sum)
 pie(tab.gestion, col=c("green", "blue", "pink", "purple"), labels=paste(c("Accessible géré", "Accessible non géré", "Non débardable", "Non bûcheronnable"), round(tab.gestion/sum(tab.gestion)*100, 1)))
 ```
 
-La répartition des catégories de peuplements selon la gestion (ou non) est présentée dans les figures ci-dessous.
+La répartition des types de polygones selon la gestion (ou non) est présentée dans les figures ci-dessous.
 
 ```{r gestion.typo, echo=FALSE, warning=FALSE, message=FALSE}
 par(mar=c(7,4,2,2))
@@ -104,7 +103,7 @@ barplot(apply(tab.typo.gestion, 2, function(x){x/sum(x)*100}), width=apply(tab.t
 
 ## Itinéraires sylvicoles
 
-Selon la catégorie du polygone, il lui est appliqué un itinéraire sylvicole. Ceux-ci sont présentés ensuite. 
+Différent itinéraires sylicoles sont possibles (cf document sur la typologie / les itinéaires, à rédiger avec FCBA). À chaque polygone est affecté un itinéraire sylvicole, en respectant une certaine répartition des polygones dans les itinéraires selon leur type. Le paramétrage des itinéraires, notamment le diamètre objectif, dépend de la typologie des polygones et de leur composition en essence.
 
 ```{r itineraire, echo=FALSE, warning=FALSE, message=FALSE}
 # gestion et type de peuplements
@@ -117,7 +116,7 @@ pie(tab.itineraire, col=c("red", "orange", "yellow", "darkgrey"), labels=paste(n
 plot(forestStands["itineraire"], pal=c("orange", "red", "darkgrey", "yellow"), border=NA, key.pos=1)
 ```
 
-La répartition des itinéraires par catégorie de polygone figure ci-dessous.
+La répartition des itinéraires par type de polygone figure ci-dessous. Cette répartition pour le scénario de référence est basée sur une analyse réalisée par FCBA sur les placettes PROTEST et IFN.
 
 ```{r itineraire.typo, echo=FALSE, warning=FALSE, message=FALSE}
 par(mar=c(7,4,2,2))
@@ -127,9 +126,18 @@ barplot(tab.typo.itineraire, col=c("red", "orange", "yellow", "darkgrey"), las=2
 barplot(apply(tab.typo.itineraire, 2, function(x){x/sum(x)*100}), width=apply(tab.typo.itineraire, 2, sum), col=c("red", "orange", "yellow", "darkgrey"), las=2, cex.names = 0.8, main="Pourcentage")
 ```
 
-## Dendrométrie des polygones par itinéraire et catégorie de peuplement 
+## Dendrométrie par itinéraire et type de polygone
 
-Les graphiques suivants montrent les valeurs initiales de RDI et Dg pour les itinéraires et sous-itinéraires appliqués aux différentes catégories de peuplement.
+Les graphiques suivants montrent sous forme de boîtes à moustaches les valeurs initiales de RDI (indice de densité relatif correspondant à la densité du peuplement divisée par la densité maximale permise par la loi d’auto-éclaircie) et de Dg (diamètre quadratique moyen d’un peuplement) pour les itinéraires et sous-itinéraires appliqués aux différents types de polygones. La largeur des boîtes est proportionnelle à la surface totale des polygones de chaque type.  
+
+La ligne rouge pointillée sur le graphique de RDI correspond au maximum possible (1). Au dessus de cette valeur, la densité est réduite par mortalité. Les lignes bleues en pointillés sur les graphiques de RDI correspondent à la plage de densité objectif. Lorsque que la valeur supérieure de RDI autorisée est atteinte, une éclaircie est déclenchée afin de ramener le RDI à la valeur inférieure. Plusieurs lignes peuvent figurer dans les cas où des sous-itinéraires (définis par des plages de densités différentes) existent.
+
+* Amélioration puis coupe rase : les sous-itinéraires sont caractérisés par des plages de RDI autorisées de 0,6 $\pm$ 0,05 et 0,7 $\pm$ 0,05. L'éclaircie se fait plutôt parmi les arbres les plus petits.
+- Coupe rase : la coupe est déclenchée uniquement quand le diamètre objectif est atteint. Le RDI est maintenu au-dessous de 1 par mortalité.
+- Irrégulier : les trois sous-itinéraires sont caractérisés par des plages de RDI autorisées de 0,5 $\pm$ 0,1 (clair), 0,7 $\pm$ 0,1 (moyen) et 0,9 $\pm$ 0,1 (dense). L'éclaircie se fait plutôt parmi les arbres les plus gros.
+- Inaction : la mortalité s'applique pour maintenir le RDI au-dessous de 1.
+
+Les croix bleues sur les graphiques de Dg correspondent à la valeur de diamètre dominant (moyenne des 100 plus gros diamètres par hectare) qui va déclencher la coupe finale. Le scénario irrégulier est simulé comme un système permanent d'éclaircie, en fixant un diamètre objectif impossible à atteindre quand les éclaircies sont réalisées en prélevant préférentiellement les arbres les plus gros du peuplement.
 
 ```{r rdi, echo=FALSE, warning=FALSE, message=FALSE}
 # État initial des peuplements
@@ -168,6 +176,8 @@ for (i in levels(forestStands$itineraire))
 ```
 
 # Simulations
+
+## Introduction
 
 ```{r charger.simus, echo=FALSE, warning=FALSE, message=FALSE}
 #
@@ -218,9 +228,9 @@ df <- df[order(df$standId, df$date), ]
 ```
 On s'intéresse à une durée simulée de `r duration` années. 
 
-Dans le cas de la coupe rase, SIMMEM répète à chaque intervalle les valeurs du dernier volume exploité dans le fichier de sortie. Les valeurs en doublon sont enlevées du tableau de résultats. La dernière année simulée, aucune exploitation n'est réalisée, les valeurs de cette année sont enlevées.
+Dans le cas de la coupe rase, SIMMEM répète à chaque intervalle les valeurs du dernier volume exploité dans le fichier de sortie. Les valeurs en doublon sont enlevées du tableau de résultats. Aucune exploitation n'est réalisée lors de la dernière année de simulation, une année supplémentaire est donc simulée puis enlevée avant les analyses.
 
-Dans le fichier de sortie de SIMEMM, une ligne par année est indiquée. La première année reprend les valeurs initiales. Une intervention est éventuellement déclenchée dès la première année. Ce sont donc les caractéristiques du peuplement avant intervention qui sont indiquées. Les caractéristiques du peuplement après intervention ne sont pas disponibles, la ligne suivante présentant les caractéristiques du peuplement après intervention éventuelle et croissance du peuplement pendant la période de simulation suivante.
+Dans le fichier de sortie de SIMEMM, une ligne par année est indiquée. La première année reprend les valeurs initiales. Une intervention est éventuellement déclenchée dès la première année. Ce sont donc les caractéristiques du peuplement avant intervention qui sont indiquées. Les caractéristiques du peuplement juste après intervention ne sont pas disponibles, la ligne suivante présentant les caractéristiques du peuplement après intervention éventuelle et croissance du peuplement pendant la période de simulation suivante.
 
 ```{r enlever.doublons.exploitation, echo=FALSE, warning=FALSE, message=FALSE}
 ###############################################################
@@ -246,15 +256,31 @@ if(1)
 }
 
 # remove last year
-df <- df[df$date!=max(df$date),]
+# df <- df[df$date!=max(df$date),]
 
 # keep only 30 years
 df <- df[df$date<min(df$date)+duration,]
+#
 ```
 
-Les graphiques suivantes montrent l'évolution du RDI et du Dg pour chaque polygone, pour les différentes catégories et itinéraires.
+## Dendrométrie des polygones
 
-```{r evolution.G, echo=FALSE, warning=FALSE, message=FALSE}
+Les graphiques suivantes montrent l'évolution du RDI et de la surface terrière pour chaque polygone, pour les différents itinéraires (en colonne) :
+
+* Con : inaction
+- Har : coupe rase
+- Ir1, Ir2 et Ir3 : irrégulier clair, moyen et dense,
+- Th1 et Thé : amélioration clair et dense.
+
+et différentes compositions (en ligne) :
+
+* bee : hêtre
+- bfs : mixte
+- fsp : sapin et/ou épicéa
+- oak : autres feuillus
+
+
+```{r evolution.RDI, echo=FALSE, warning=FALSE, message=FALSE}
 ###############################################################
 # density (rdi)
 ###############################################################
@@ -278,177 +304,264 @@ ggplot(data = df, aes(x = date, y = basalArea_m2, group = standId, col = standId
   facet_grid(compo ~ managType)
 ```
 
-```{r evolution.final, echo=FALSE, warning=FALSE, message=FALSE}
-# ###############################################################
-# # Annual volume removed
-# ###############################################################
-# 
-# 
-# 
-# # multiply volume * area / 3 yrs
-# df$annualVolumeRemoved_m3 <- df$volumeRemoved_m3 * (df$AREA / 10000) / timeStep
-# 
-# # total volume removed each year
-# voltot <- ddply(df[df$volumeRemoved_m3 > 0,], .(date), summarise, vol = sum(annualVolumeRemoved_m3))
-# plot(voltot$vol ~ voltot$date, pch = 16, ylab = "volume exploité ou éclairci", xlab = "")
-# lines(voltot$vol ~ voltot$date)
-# 
-# # volume removed each year for each managtype
-# voltot <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, managType), summarise, vol = sum(annualVolumeRemoved_m3))
-# ggplot(data = voltot, aes(x = date, y = vol, group = managType, col = managType)) +
-#   geom_line() +
-#   geom_point()
-# 
-# # volume removed each year for each compo type
-# voltot <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, compo), summarise, vol = sum(annualVolumeRemoved_m3))
-# ggplot(data = voltot, aes(x = date, y = vol, group = compo, col = compo)) +
-#   geom_line() +
-#   geom_point()
-# 
-# # volume removed each year for each ownership type
-# voltot <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, domainType), summarise, vol = sum(annualVolumeRemoved_m3))
-# ggplot(data = voltot, aes(x = date, y = vol, group = domainType, col = domainType)) +
-#   geom_line() +
-#   geom_point()
-# 
+## Exploitation
+
+### Évolution des volumes exploités et surfaces traitées
+
+Les graphique suivants montrent l'évolution des volumes exploités et des surfaces traitées (une éclaircie ou coupe réalisée) pendant la période simulée. La forte valeur de la première année correspond aux coupes de rattrapage liées au fait que des polygones aux caractéristiques très diverses sont engagés dans des itinéraires sylvicoles n'autorisant pas de variabilité hors des plages autorisées. Cette forte valeur initiale est logiquement suivie par une valeur plus faible lors du cycle simulé suivant.
+
+```{r evolution.total, echo=FALSE, warning=FALSE, message=FALSE}
+par(mfrow=c(1,2))
+# récolte annuelle
+# multiply volume * area / 3 yrs
+df$annualVolumeRemoved_m3 <- df$volumeRemoved_m3 * (df$AREA / 10000) / timeStep
+
+# surface traitée annuellement
+df$annualAREA <- (df$AREA / 10000) / timeStep
+df[df$annualVolumeRemoved_m3 == 0, "annualAREA"] <- 0
+
+# total volume removed each year
+voltot <- ddply(df[df$volumeRemoved_m3 > 0,], .(date), summarise, vol = sum(annualVolumeRemoved_m3))
+plot(voltot$vol ~ voltot$date, pch = 16, ylab = "volume exploité ou éclairci", xlab = "")
+lines(voltot$vol ~ voltot$date)
+
+# total area harvested/thinned each year
+areatot <- ddply(df[df$volumeRemoved_m3 > 0,], .(date), summarise, area = sum(annualAREA))
+plot(areatot$area ~ areatot$date, pch = 16, ylab = "surface exploitée - éclaircie", xlab = "")
+lines(areatot$area ~ areatot$date)
+```
+La récolte annuelle moyenne sur l'ensemble de la période simulée est de `r round(mean(aggregate(df$annualVolumeRemoved_m3, list(df$date), FUN=sum)$x),-3)` m^3^/an pour une surface traitée de `r round(mean(aggregate(df$annualAREA, list(df$date), FUN=sum)$x), -2)` ha/an.
+
+#### Par itinéraire sylvicole
+
+```{r evolution.managType, echo=FALSE, warning=FALSE, message=FALSE}
+# volume removed each year for each managtype
+voltot <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, managType), summarise, vol = sum(annualVolumeRemoved_m3))
+g1 <- ggplot(data = voltot, aes(x = date, y = vol, group = managType, col = managType)) +
+  geom_line() +
+  geom_point()
+
+# total area harvested/thinned each year for each managType
+area <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, managType), summarise, area = sum(annualAREA))
+g2 <- ggplot(data = area, aes(x = date, y = area, group = managType, col = managType)) +
+  geom_line() +
+  geom_point()
+
+cowplot::plot_grid(g1, g2, labels="AUTO")
+```
+
+#### Par composition en essence
+
+```{r evolution.Composition, echo=FALSE, warning=FALSE, message=FALSE}
+# volume removed each year for each compo type
+voltot <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, compo), summarise, vol = sum(annualVolumeRemoved_m3))
+g1 <- ggplot(data = voltot, aes(x = date, y = vol, group = compo, col = compo)) +
+  geom_line() +
+  geom_point()
+
+# surface harvested each year for each compo type
+areaPP <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, compo), summarise, area = sum(annualAREA))
+g2 <- ggplot(data = areaPP, aes(x = date, y = area, group = compo, col = compo)) +
+  geom_line() +
+  geom_point()
+
+cowplot::plot_grid(g1, g2, labels="AUTO")
+```
+
+#### Par propriété
+
+```{r evolution.ownership, echo=FALSE, warning=FALSE, message=FALSE}
+
+# volume removed each year for each ownership type
+voltot <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, domainType), summarise, vol = sum(annualVolumeRemoved_m3))
+g1 <- ggplot(data = voltot, aes(x = date, y = vol, group = domainType, col = domainType)) +
+  geom_line() +
+  geom_point()
+
+
+# surface harvested each year for each ownership type
+areaPP <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, domainType), summarise, area = sum(annualAREA))
+g2 <- ggplot(data = areaPP, aes(x = date, y = area, group = domainType, col = domainType)) +
+  geom_line() +
+  geom_point()
+
+cowplot::plot_grid(g1, g2, labels="AUTO")
+```
+
+#### Par itinéraire, composition et propriété
+
+```{r evolution.manag_compo, echo=FALSE, warning=FALSE, message=FALSE}
+
+# volumes et surface traités
+# total area harvested/thinned each year for each managType and compo
+df$iti <- substr(df$managType, 1, 2)
+area <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, iti, compo, domainType), summarise, area = sum(annualAREA))
+g1 <- ggplot(data = area, aes(x = date, y = area, group = domainType, col=domainType)) +
+  geom_line() +
+  #geom_point() +
+  facet_grid(compo ~ iti)
+
+# total vol harvested/thinned each year for each managType and compo
+vol <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, iti, compo, domainType), summarise, vol = sum(annualVolumeRemoved_m3))
+g2 <- ggplot(data = vol, aes(x = date, y = vol, group = domainType, col=domainType)) +
+  geom_line() +
+  #geom_point() +
+  facet_grid(compo ~ iti)
+
+cowplot::plot_grid(g1, g2, labels="AUTO")
 # # volume removed each year for each managtype and compo
 # vol <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, managType, compo), summarise, vol = sum(annualVolumeRemoved_m3))
 # ggplot(data = vol, aes(x = date, y = vol, group = compo)) +
 #   geom_line() +
 #   geom_point() +
 #   facet_grid(compo ~ managType)
-# 
-# ###############################################################
-# # Annual surface harvested/thinned
-# ###############################################################
-# 
-# # time step = 3 yrs
-# df$annualAREA <- (df$AREA / 10000) / timeStep
-# df[df$annualVolumeRemoved_m3 == 0, "annualAREA"] <- 0
-# 
-# # total area harvested/thinned each year
-# areatot <- ddply(df[df$volumeRemoved_m3 > 0,], .(date), summarise, area = sum(annualAREA))
-# plot(areatot$area ~ areatot$date, pch = 16, ylab = "surface exploitée - éclaircie", xlab = "")
-# lines(areatot$area ~ areatot$date)
-# 
-# # total area harvested/thinned each year for each managType
-# area <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, managType), summarise, area = sum(annualAREA))
-# ggplot(data = area, aes(x = date, y = area, group = managType, col = managType)) +
-#   geom_line() +
-#   geom_point()
-# 
-# # surface harvested each year for each ownership type
-# areaPP <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, domainType), summarise, area = sum(annualAREA))
-# ggplot(data = areaPP, aes(x = date, y = area, group = domainType, col = domainType)) +
-#   geom_line() +
-#   geom_point()
-# 
-# # surface harvested each year for each ownership type for Har scenario
-# areaPP <- ddply(df[df$volumeRemoved_m3 > 0 & df$managType=="Th2" & df$compo=="bfs",], .(date, domainType), summarise, area = sum(annualAREA))
-# ggplot(data = areaPP, aes(x = date, y = area, group = domainType, col = domainType)) +
-#   geom_line() +
-#   geom_point()
-# 
-# # surface harvested each year for each compo type
-# areaPP <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, compo), summarise, area = sum(annualAREA))
-# ggplot(data = areaPP, aes(x = date, y = area, group = compo, col = compo)) +
-#   geom_line() +
-#   geom_point()
-# 
 # # total area harvested/thinned each year for each managType and compo
 # area <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, managType, compo), summarise, area = sum(annualAREA))
 # ggplot(data = area, aes(x = date, y = area, group = managType)) +
 #   geom_line() +
 #   geom_point() +
 #   facet_grid(compo ~ managType)
-# 
-# #
-# ##############################################
-# 
-# #
-# # mean annual harvest over interest duration
-# dummy <- df[df$date<min(df$date+duration),]
-# dummy <- lapply(split(dummy$volumeRemoved_m3, dummy$standId),
-#                  FUN=function(x)
-#                  {
-#                    mean.operation.per.year <- sum(x>0)/duration
-#                    mean.volume.per.operation <- mean(x[x>0])
-#                    mean.volume.per.year <- sum(x)/duration
-#                    data.frame(mean.operation.per.year, mean.volume.per.operation, mean.volume.per.year)
-#                  }
-# )
-# dummy.names <- names(dummy)
-# dummy <- do.call(rbind, dummy)
-# dummy$STAND_ID <- dummy.names
-# #
-# forestStands <- merge(forestStands, dummy)
-# # put 0 to plots without operations
-# forestStands$mean.volume.per.operation[is.na(forestStands$mean.volume.per.operation)] <- 0
-# 
-# sf::st_write(forestStands["STAND_ID"], "./output/forestStandsSimulatedPolygons.shp", delete_layer=TRUE)
-# setwd("./output")
-# write.table(sf::st_drop_geometry(forestStands), sep=";", row.names=FALSE, file="forestStandsSimulatedData.csv")
-# #
-# ###########################################
-# #
-# # recap varies et interessants
-# #
-# durationsubset <- which(df$date<min(df$date+duration))
-# mean(aggregate(df$annualAREA, list(df$date), FUN=sum)$x)
-# mean(aggregate(df$annualVolumeRemoved_m3, list(df$date), FUN=sum)$x)
-# #
-# 
-# 
-# # volumes et surface traités
-# # total area harvested/thinned each year for each managType and compo
-# df$iti <- substr(df$managType, 1, 2)
-# area <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, iti, compo, domainType), summarise, area = sum(annualAREA))
-# ggplot(data = area, aes(x = date, y = area, group = domainType, col=domainType)) +
+```
+
+<!-- ### Itinéraire "coupe rase", par propriété -->
+
+```{r evolution.harv, echo=FALSE, warning=FALSE, message=FALSE}
+# # surface harvested each year for each ownership type for Har scenario
+# areaPP <- ddply(df[df$volumeRemoved_m3 > 0 & df$managType=="Th2" & df$compo=="bfs",], .(date, domainType), summarise, area = sum(annualAREA))
+# ggplot(data = areaPP, aes(x = date, y = area, group = domainType, col = domainType)) +
 #   geom_line() +
-#   #geom_point() +
-#   facet_grid(compo ~ iti)
-# 
-# # total vol harvested/thinned each year for each managType and compo
-# vol <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, iti, compo, domainType), summarise, vol = sum(annualVolumeRemoved_m3))
-# ggplot(data = vol, aes(x = date, y = vol, group = domainType, col=domainType)) +
-#   geom_line() +
-#   #geom_point() +
-#   facet_grid(compo ~ iti)
-# 
+#   geom_point()
+```
+
+### Interventions
+
+#### Cartographie des interventions
+
+```{r evolution.compute.operations, echo=FALSE, warning=FALSE, message=FALSE}
+#
+# mean annual harvest over interest duration
+dummy <- df
+dummy <- lapply(split(dummy$volumeRemoved_m3, dummy$standId),
+                 FUN=function(x)
+                 {
+                   nb.operation.per.period <- sum(x>0)
+                   mean.volume.per.operation <- mean(x[x>0])
+                   mean.volume.per.year <- sum(x)/duration
+                   data.frame(nb.operation.per.period, mean.volume.per.operation, mean.volume.per.year)
+                 }
+)
+dummy.names <- names(dummy)
+dummy <- do.call(rbind, dummy)
+dummy$STAND_ID <- dummy.names
+#
+forestStands <- merge(forestStands, dummy)
+#
+# save data
+#
+sf::st_write(forestStands["STAND_ID"], "./output/forestStandsSimulatedPolygons.shp", delete_layer=TRUE)
+setwd("./output")
+write.table(sf::st_drop_geometry(forestStands), sep=";", row.names=FALSE, file="forestStandsSimulatedData.csv")
+# put 0 mean volume per year to plots without operations
+# forestStands$mean.volume.per.year[is.na(forestStands$mean.volume.per.operation)] <- 0
+
+# put 0 number of operations to plots without operations
+# forestStands$nb.operation.per.period[is.na(forestStands$mean.volume.per.operation)] <- 0
+```
+
+Les cartes suivantes montrent la répartition des interventions sur le territoire, en nombre, intensité moyenne d'intervention et récolte totale. 
+
+```{r evolution.operations.map, echo=FALSE, warning=FALSE, message=FALSE}
+
+# plot(forestStands['nb.operation.per.period'], border=NA,  main="Nombre d'interventions pendant la période", breaks="quantile")
+plot(sf::st_geometry(forestStands), border=NA,  col=ifelse(substr(forestStands$COMMENT, 1, 3)=="Con", "grey", ifelse(forestStands$nb.operation.per.period==1, "orange", ifelse(forestStands$nb.operation.per.period==2, "yellow",  ifelse(forestStands$nb.operation.per.period>2, "green","red")))), main="Nombre d'interventions sur la période")
+legend("topright", c("Non géré", "0", "1", "2", "3+"), fill=c("grey", "red", "orange", "yellow", "green"))
+
+plot(forestStands['mean.volume.per.operation'], border=NA,  main=expression(paste("Intensité moyenne des interventions (m"^"3", "/ha/intervention)")), breaks="quantile")
+
+# set mean.volume.per.year to NA in unmanaged plots before plotting
+dummy <- which(substr(forestStands$COMMENT, 1, 3)=="Con")
+temp.mean.volume.per.year <- forestStands$mean.volume.per.year[dummy]
+forestStands$mean.volume.per.year[dummy] <- NA
+
+plot(forestStands['mean.volume.per.year'], border=NA,  main=expression(paste("Prélèvement moyen sur la période (m"^"3", "/ha/an)")), breaks="quantile")
+
+# set back values
+forestStands$mean.volume.per.year[dummy] <- temp.mean.volume.per.year
+```
+
+### Intensité des interventions
+
+Les histogrammes suivantes montrent la distribution de l'intensité des interventions, en volume, et en surface par itinéraire.
+
+```{r evolution.operations.stats, echo=FALSE, warning=FALSE, message=FALSE}
+# histogramme pour les parcelles gérées et avec une coupe
 # managed.plots <- which(substr(forestStands$COMMENT, 1, 3)!="Con")
-# # récolte moyenne annuelle
-# plotrix::weighted.hist(forestStands$mean.volume.per.year[managed.plots], forestStands$AREA[managed.plots]/10000, xlab="Volume (m3/ha/an)", ylab="Surface (ha)", main="Récolte moyenne pour les parcelles gérées", breaks=seq(from=0, to=37.5, by=2.5))
-# # récolte moyenne par parcelle (pondérée par surface et nombre d'opération)
-# plotrix::weighted.hist(forestStands$mean.volume.per.operation[managed.plots], forestStands$AREA[managed.plots]*forestStands$mean.operation.per.year[managed.plots]/10000, xlab="Volume (m3/ha)", ylab="Surface (ha)", main="Récolte moyenne par opération, par parcelle")
+# cut.plots <- which(forestStands$mean.volume.per.operation>0)
 # 
-# # récolte par type d'itinéraire
-# for (i in c("Ha", "Ir", "Th"))
-# {
-#   hist(df$volumeRemoved_m3[df$iti==i & df$volumeRemoved_m3>0], main=i, xlab="Prélèvement (m3/ha)", ylab="Nb de coupes")
-# }
+# par(mfrow=c(1,2))
+#
+# plotrix::weighted.hist(forestStands$mean.volume.per.operation[cut.plots], forestStands$AREA[cut.plots]/10000, xlab="Volume (m3/ha)", ylab="Surface (ha)", main="Intensité des interventions")
 # 
-# if (0)
-# {
-#   # table EXPLOITABILITY / silviculture
-#   test <- as.data.frame.matrix(questionr::wtd.table(forestStands$COMMENT, forestStands$EXPLOITABILITY, weights = forestStands$AREA/10000, digits=0))
-#   round(test,0)
-#   # table Gestion / silviculture
-#   test <- as.data.frame.matrix(questionr::wtd.table(forestStands$gestion, forestStands$COMMENT, weights = forestStands$AREA/10000, digits=0))
-#   round(test,0)
-#   # table stand type / silviculture
-#   test <- as.data.frame.matrix(questionr::wtd.table(forestStands$typologie, forestStands$COMMENT, weights = forestStands$AREA/10000, digits=0))
-#   round(test,0)
-#   # table stand type / silviculture type
-#   test <- as.data.frame.matrix(questionr::wtd.table(forestStands$typologie, substr(forestStands$COMMENT,1,3), weights = forestStands$AREA/10000, digits=0))
-#   round(test,0)
-#   # table gestion / silviculture type
-#   test <- as.data.frame.matrix(questionr::wtd.table(forestStands$gestion, substr(forestStands$COMMENT,1,3), weights = forestStands$AREA/10000, digits=0))
-#   round(test,0)
-#   # table owner / silviculture
-#   test <- as.data.frame.matrix(questionr::wtd.table(forestStands$DOMAINE_TYPE, forestStands$COMMENT, weights = forestStands$AREA/10000, digits=0))
-#   round(test,0)
-#   # table gestion / silviculture
-#   test <- as.data.frame.matrix(questionr::wtd.table(forestStands$gestion, forestStands$COMMENT, weights = forestStands$AREA/10000, digits=0))
-#   round(test,0)
-# }
+# dummy <- which(df$volumeRemoved>0)
+# plotrix::weighted.hist(df$volumeRemoved[dummy], df$AREA[dummy]/10000, xlab="Volume (m3/ha)", ylab="Surface (ha)", main="Intensité des interventions", breaks=seq(from=0, by=25, to=ceiling(max(df$annualVolumeRemoved)/25)*25))
+
+g1 <- ggplot(data=df[which(df$volumeRemoved>0),], aes(x=volumeRemoved_m3, weights=volumeRemoved_m3*AREA/10000, color=domainType)) +
+  geom_histogram(binwidth=25) +
+  labs(fill="") + labs(y="Volume exploité (m3)", x="Intensité (m3/ha)", main="Intensité des coupes")
+#
+g2 <- ggplot(data=df[df$volumeRemoved_m3>0,], aes(x=volumeRemoved_m3, color=iti, weights=AREA/10000)) +
+  geom_freqpoly(binwidth=25) +
+  labs(fill="") + labs(y="Surface (ha)", x="Intensité (m3/ha)", main="Intensité des coupes par itinéraire")
+
+cowplot::plot_grid(g1, g2)
+# plotrix::weighted.hist(forestStands$mean.volume.per.year[managed.plots], forestStands$AREA[managed.plots]/10000, xlab="Volume (m3/ha/an)", ylab="Surface (ha)", main="Prélèvement moyen par parcelle avec au moins une coupe", breaks=seq(from=0, to=37.5, by=2.5))
+# récolte moyenne par parcelle (pondérée par surface et nombre d'opération)
+
+meansd <- function(x){round(c(mean(x), sd(x)))}
+```
+
+Pour l'itinéraire irrégulier, la moyenne (± écart-type) de l'intensité de prélèvement est de `r paste0(meansd(df$volumeRemoved_m3[df$volumeRemoved_m3>0 & df$iti=="Ir"]), collapse="±")`. Les valeurs sont de `r paste0(meansd(df$volumeRemoved_m3[df$volumeRemoved_m3>0 & df$iti=="Ha"]), collapse="±")` pour l'itinéraire coupe rase, alors que pour l"amélioration elles sont de `r paste0(meansd(df$volumeRemoved_m3[df$volumeRemoved_m3>0 & df$iti=="Th"]), collapse="±")`. Dans ce dernier cas la distribution est plutôt multi-modale, avec un pic vers 70m^3^/ha correspondant aux éclaircies, et une reste de distribution plus étalé vers les fortes valeurs, correspondant aux coupes finales.
+
+### Récolte moyenne
+
+L'histogramme suivant montre la distribution de la récolte moyenne par parcelle (parcelles gérées).
+
+```{r evolution.operations.stats2, echo=FALSE, warning=FALSE, message=FALSE}
+# 
+# plotrix::weighted.hist(df$annualVolumeRemoved[dummy], df$AREA[dummy], xlab="Volume (m3/ha)", ylab="Surface (ha)", main="Intensité des interventions", breaks=seq(from=0, by=25, to=ceiling(max(df$annualVolumeRemoved)/25)*25))
+
+ggplot(data=forestStands[which(forestStands$itineraire!="Inaction"),], aes(x=mean.volume.per.year, weights=AREA/10000)) +
+  geom_histogram(breaks=seq(from=0, by=2.5, to=ceiling(max(forestStands$mean.volume.per.year)/2.5)*2.5)) +
+  labs(fill="") + labs(y="Surface (ha)", x="Exploitation moyenne sur la période (m3/ha/an)")
+#dummy <- which(forestStands$itineraire!="Inaction");plotrix::weighted.hist(forestStands$mean.volume.per.year[dummy], forestStands$AREA[dummy]/10000, xlab="Volume (m3/ha/an)", ylab="Surface (ha)", main="Prélèvement moyen par parcelle avec au moins une coupe", breaks=seq(from=-2.49, to=37.51, by=2.5))
+# récolte moyenne par parcelle (pondérée par surface et nombre d'opération)
+```
+hop 
+
+
+```{r evolution.harv3, echo=FALSE, warning=FALSE, message=FALSE}
+if (0)
+{
+  # table EXPLOITABILITY / silviculture
+  test <- as.data.frame.matrix(questionr::wtd.table(forestStands$COMMENT, forestStands$EXPLOITABILITY, weights = forestStands$AREA/10000, digits=0))
+  round(test,0)
+  # table Gestion / silviculture
+  test <- as.data.frame.matrix(questionr::wtd.table(forestStands$gestion, forestStands$COMMENT, weights = forestStands$AREA/10000, digits=0))
+  round(test,0)
+  # table stand type / silviculture
+  test <- as.data.frame.matrix(questionr::wtd.table(forestStands$typologie, forestStands$COMMENT, weights = forestStands$AREA/10000, digits=0))
+  round(test,0)
+  # table stand type / silviculture type
+  test <- as.data.frame.matrix(questionr::wtd.table(forestStands$typologie, substr(forestStands$COMMENT,1,3), weights = forestStands$AREA/10000, digits=0))
+  round(test,0)
+  # table gestion / silviculture type
+  test <- as.data.frame.matrix(questionr::wtd.table(forestStands$gestion, substr(forestStands$COMMENT,1,3), weights = forestStands$AREA/10000, digits=0))
+  round(test,0)
+  # table owner / silviculture
+  test <- as.data.frame.matrix(questionr::wtd.table(forestStands$DOMAINE_TYPE, forestStands$COMMENT, weights = forestStands$AREA/10000, digits=0))
+  round(test,0)
+  # table gestion / silviculture
+  test <- as.data.frame.matrix(questionr::wtd.table(forestStands$gestion, forestStands$COMMENT, weights = forestStands$AREA/10000, digits=0))
+  round(test,0)
+}
 ```
