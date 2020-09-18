@@ -103,7 +103,7 @@ barplot(apply(tab.typo.gestion, 2, function(x){x/sum(x)*100}), width=apply(tab.t
 
 ## Itinéraires sylvicoles
 
-Différent itinéraires sylicoles sont possibles (cf document sur la typologie / les itinéaires, à rédiger avec FCBA). À chaque polygone est affecté un itinéraire sylvicole, en respectant une certaine répartition des polygones dans les itinéraires selon leur type. Le paramétrage des itinéraires, notamment le diamètre objectif, dépend de la typologie des polygones et de leur composition en essence.
+Différent itinéraires sylvicoles sont possibles (cf document sur la typologie / les itinéaires, à rédiger avec FCBA). À chaque polygone est affecté un itinéraire sylvicole, en respectant une certaine répartition des polygones dans les itinéraires selon leur type. Le paramétrage des itinéraires, notamment le diamètre objectif, dépend de la typologie des polygones et de leur composition en essence.
 
 ```{r itineraire, echo=FALSE, warning=FALSE, message=FALSE}
 # gestion et type de peuplements
@@ -130,9 +130,9 @@ barplot(apply(tab.typo.itineraire, 2, function(x){x/sum(x)*100}), width=apply(ta
 
 Les graphiques suivants montrent sous forme de boîtes à moustaches les valeurs initiales de RDI (indice de densité relatif correspondant à la densité du peuplement divisée par la densité maximale permise par la loi d’auto-éclaircie) et de Dg (diamètre quadratique moyen d’un peuplement) pour les itinéraires et sous-itinéraires appliqués aux différents types de polygones. La largeur des boîtes est proportionnelle à la surface totale des polygones de chaque type.  
 
-La ligne rouge pointillée sur le graphique de RDI correspond au maximum possible (1). Au dessus de cette valeur, la densité est réduite par mortalité. Les lignes bleues en pointillés sur les graphiques de RDI correspondent à la plage de densité objectif. Lorsque que la valeur supérieure de RDI autorisée est atteinte, une éclaircie est déclenchée afin de ramener le RDI à la valeur inférieure. Plusieurs lignes peuvent figurer dans les cas où des sous-itinéraires (définis par des plages de densités différentes) existent.
+La ligne rouge pointillée sur le graphique de RDI correspond au maximum possible (1). Au dessus de cette valeur, la densité est réduite par mortalité. Les lignes bleues en pointillés sur les graphiques de RDI correspondent à la plage de densité autorisée Lorsque que la valeur supérieure de RDI autorisée est atteinte, une éclaircie est déclenchée afin de ramener le RDI à la valeur inférieure. Plusieurs lignes peuvent figurer dans les cas où des sous-itinéraires (définis par des plages de densité différentes) existent.
 
-* Amélioration puis coupe rase : les sous-itinéraires sont caractérisés par des plages de RDI autorisées de 0,6 $\pm$ 0,05 et 0,7 $\pm$ 0,05. L'éclaircie se fait plutôt parmi les arbres les plus petits.
+* Amélioration puis coupe rase : les sous-itinéraires sont caractérisés par des plages de RDI autorisées de 0,6 $\pm$ 0,05 et 0,7 $\pm$ 0,05. L'éclaircie se fait plutôt parmi les arbres les plus petits. L'ensemble du peuplement est coupé quand le diamètre objectif est atteint.
 - Coupe rase : la coupe est déclenchée uniquement quand le diamètre objectif est atteint. Le RDI est maintenu au-dessous de 1 par mortalité.
 - Irrégulier : les trois sous-itinéraires sont caractérisés par des plages de RDI autorisées de 0,5 $\pm$ 0,1 (clair), 0,7 $\pm$ 0,1 (moyen) et 0,9 $\pm$ 0,1 (dense). L'éclaircie se fait plutôt parmi les arbres les plus gros.
 - Inaction : la mortalité s'applique pour maintenir le RDI au-dessous de 1.
@@ -165,8 +165,18 @@ for (i in levels(forestStands$itineraire))
   test <- aggregate(AREA~COMMENT, data=dummy, FUN=sum)
   boxplot(RDI~COMMENT, data=dummy, xlab="", width=test$AREA, main=paste0("RDI ",i))#, xaxt="n")
   # if (i=="Coupe rase") {abline(h=1.5, col="blue");abline(h=c(1.5-0.05, 1.5+0.05), col="blue", lty=2)}
-  if (i=="Amélioration") {abline(h=c(0.6, 0.7), col="blue");abline(h=c(0.55, 0.65, 0.75), col="blue", lty=2)}
-  if (i=="Irrégulier") {abline(h=c(0.5, 0.7, 0.9), col="blue");abline(h=c(0.4, 0.6, 0.8), col="blue", lty=2)}
+  # if (i=="Amélioration") {abline(h=c(0.6, 0.7), col="blue");abline(h=c(0.55, 0.65, 0.75), col="blue", lty=2)}
+  if (i=="Amélioration")
+  {
+    segments(x0=0, x1=5.5, y0=c(0.55, 0.6, 0.65), col="blue", lty=c(2,1,2))
+    segments(x0=5.5, x1=11, y0=c(0.65, 0.7, 0.75), col="blue", lty=c(2,1,2))
+    }
+  if (i=="Irrégulier")
+  {
+    segments(x0=0, x1=5.5, y0=c(0.4, 0.5, 0.6), col="blue", lty=c(2,1,2))
+    segments(x0=5.5, x1=11, y0=c(0.6, 0.7, 0.8), col="blue", lty=c(2,1,2))
+    segments(x0=11, x1=16.5, y0=c(0.8, 0.9, 1), col="blue", lty=c(2,1,2))
+    }
   abline(h=1, col="red", lty=3)
   #
   boxplot(Dgtot~COMMENT, data=dummy, xlab="", width=test$AREA, main=paste0("Dg ",i))#, xaxt="n")
@@ -270,7 +280,7 @@ Les graphiques suivantes montrent l'évolution du RDI et de la surface terrière
 * Con : inaction
 - Har : coupe rase
 - Ir1, Ir2 et Ir3 : irrégulier clair, moyen et dense,
-- Th1 et Thé : amélioration clair et dense.
+- Th1 et Th2 : amélioration clair et dense.
 
 et différentes compositions (en ligne) :
 
@@ -308,7 +318,7 @@ ggplot(data = df, aes(x = date, y = basalArea_m2, group = standId, col = standId
 
 ### Évolution des volumes exploités et surfaces traitées
 
-Les graphique suivants montrent l'évolution des volumes exploités et des surfaces traitées (une éclaircie ou coupe réalisée) pendant la période simulée. La forte valeur de la première année correspond aux coupes de rattrapage liées au fait que des polygones aux caractéristiques très diverses sont engagés dans des itinéraires sylvicoles n'autorisant pas de variabilité hors des plages autorisées. Cette forte valeur initiale est logiquement suivie par une valeur plus faible lors du cycle simulé suivant.
+Les graphique suivants montrent l'évolution des volumes exploités et des surfaces traitées (une éclaircie ou coupe réalisée) pendant la période simulée. La forte valeur de la première année correspond aux coupes de rattrapage liées au fait que des polygones aux caractéristiques très diverses sont engagés dans des itinéraires sylvicoles n'autorisant pas de variabilité hors des plages autorisées. Cette forte valeur initiale est suivie par une valeur plus faible lors du cycle simulé suivant.
 
 ```{r evolution.total, echo=FALSE, warning=FALSE, message=FALSE}
 par(mfrow=c(1,2))
@@ -505,7 +515,7 @@ Les histogrammes suivantes montrent la distribution de l'intensité des interven
 # dummy <- which(df$volumeRemoved>0)
 # plotrix::weighted.hist(df$volumeRemoved[dummy], df$AREA[dummy]/10000, xlab="Volume (m3/ha)", ylab="Surface (ha)", main="Intensité des interventions", breaks=seq(from=0, by=25, to=ceiling(max(df$annualVolumeRemoved)/25)*25))
 
-g1 <- ggplot(data=df[which(df$volumeRemoved>0),], aes(x=volumeRemoved_m3, weights=volumeRemoved_m3*AREA/10000, color=domainType)) +
+g1 <- ggplot(data=df[which(df$volumeRemoved>0),], aes(x=volumeRemoved_m3, weights=volumeRemoved_m3*AREA/10000, fill=domainType)) +
   geom_histogram(binwidth=25) +
   labs(fill="") + labs(y="Volume exploité (m3)", x="Intensité (m3/ha)", main="Intensité des coupes")
 #
@@ -532,11 +542,90 @@ L'histogramme suivant montre la distribution de la récolte moyenne par parcelle
 
 ggplot(data=forestStands[which(forestStands$itineraire!="Inaction"),], aes(x=mean.volume.per.year, weights=AREA/10000)) +
   geom_histogram(breaks=seq(from=0, by=2.5, to=ceiling(max(forestStands$mean.volume.per.year)/2.5)*2.5)) +
-  labs(fill="") + labs(y="Surface (ha)", x="Exploitation moyenne sur la période (m3/ha/an)")
+  labs(fill="") + labs(y="Surface (ha)", x="Récolte moyenne sur la période (m3/ha/an)")
 #dummy <- which(forestStands$itineraire!="Inaction");plotrix::weighted.hist(forestStands$mean.volume.per.year[dummy], forestStands$AREA[dummy]/10000, xlab="Volume (m3/ha/an)", ylab="Surface (ha)", main="Prélèvement moyen par parcelle avec au moins une coupe", breaks=seq(from=-2.49, to=37.51, by=2.5))
 # récolte moyenne par parcelle (pondérée par surface et nombre d'opération)
 ```
-hop 
+
+## Évolution de la surface terrière
+
+Les graphique suivants montrent l'évolution du capital sur pied pendant la période simulée. 
+
+```{r evolution.G.total, echo=FALSE, warning=FALSE, message=FALSE}
+par(mfrow=c(1,2))
+# surface terriere totale du peuplement
+df$basalArea_tot <- df$basalArea_m2 * (df$AREA / 10000)
+batot <- ddply(df, .(date, exploitability), summarise, ba = sum(basalArea_tot))
+g1 <- ggplot(data = batot, aes(x = date, y = ba, fill = exploitability)) +
+  geom_col()
+batot <- ddply(df[df$iti!="Co",], .(date, domainType), summarise, ba = sum(basalArea_tot))
+g2 <- ggplot(data = batot, aes(x = date, y = ba, fill = domainType)) +
+  geom_col()
+#plot(batot$ba ~ batot$date, pch = 16, ylab = "Surface terrière", xlab = "")
+#lines(batot$ba ~ batot$date)
+cowplot::plot_grid(g1, g2, labels=c("Peuplements gérés ou non", "Par propriété (peuplements gérés)"))
+```
+
+Commentaire : Par itinéraire sylvicole, par composition en essence
+
+```{r evolution.managType, echo=FALSE, warning=FALSE, message=FALSE}
+# volume removed each year for each managtype
+batot <- ddply(df[df$iti!="Co",], .(date, managType), summarise, ba = sum(basalArea_tot))
+g1 <- ggplot(data = batot, aes(x = date, y = ba, fill = managType)) +
+  geom_col()
+batot <- ddply(df[df$iti!="Co",], .(date, compo), summarise, ba = sum(basalArea_tot))
+g2 <- ggplot(data = batot, aes(x = date, y = ba, fill = compo)) +
+  geom_col()
+
+cowplot::plot_grid(g1, g2, labels=c("Par itinéraire (peuplements gérés)", "Par composition  (peuplements gérés)"))
+```
+
+
+#### Par itinéraire, composition et propriété
+
+```{r evolution.manag_compo, echo=FALSE, warning=FALSE, message=FALSE}
+
+# volumes et surface traités
+# total area harvested/thinned each year for each managType and compo
+df$iti <- substr(df$managType, 1, 2)
+area <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, iti, compo, domainType), summarise, area = sum(annualAREA))
+g1 <- ggplot(data = area, aes(x = date, y = area, group = domainType, col=domainType)) +
+  geom_line() +
+  #geom_point() +
+  facet_grid(compo ~ iti)
+
+# total vol harvested/thinned each year for each managType and compo
+vol <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, iti, compo, domainType), summarise, vol = sum(annualVolumeRemoved_m3))
+g2 <- ggplot(data = vol, aes(x = date, y = vol, group = domainType, col=domainType)) +
+  geom_line() +
+  #geom_point() +
+  facet_grid(compo ~ iti)
+
+cowplot::plot_grid(g1, g2, labels="AUTO")
+# # volume removed each year for each managtype and compo
+# vol <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, managType, compo), summarise, vol = sum(annualVolumeRemoved_m3))
+# ggplot(data = vol, aes(x = date, y = vol, group = compo)) +
+#   geom_line() +
+#   geom_point() +
+#   facet_grid(compo ~ managType)
+# # total area harvested/thinned each year for each managType and compo
+# area <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, managType, compo), summarise, area = sum(annualAREA))
+# ggplot(data = area, aes(x = date, y = area, group = managType)) +
+#   geom_line() +
+#   geom_point() +
+#   facet_grid(compo ~ managType)
+```
+
+<!-- ### Itinéraire "coupe rase", par propriété -->
+
+```{r evolution.harv, echo=FALSE, warning=FALSE, message=FALSE}
+# # surface harvested each year for each ownership type for Har scenario
+# areaPP <- ddply(df[df$volumeRemoved_m3 > 0 & df$managType=="Th2" & df$compo=="bfs",], .(date, domainType), summarise, area = sum(annualAREA))
+# ggplot(data = areaPP, aes(x = date, y = area, group = domainType, col = domainType)) +
+#   geom_line() +
+#   geom_point()
+```
+
 
 
 ```{r evolution.harv3, echo=FALSE, warning=FALSE, message=FALSE}
