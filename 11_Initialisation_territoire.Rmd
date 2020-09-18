@@ -120,7 +120,7 @@ Les catégories TFV auraient pu être fusionnées selon ces nouvelles classes, a
 
 ### Dendrométrie
 
-Les couches dendrométriques (résolution : 25 m) sont issues d'un modélisation réalisée à partir de placettes relevés sur le terrain et de données LiDAR (cf document "modélisation des paramètres forestiers") :
+Les couches dendrométriques (résolution : 25 m) sont issues d'un modélisation réalisée à partir de placettes relevése sur le terrain et de données LiDAR (cf document "modélisation des paramètres forestiers") :
 
 * diamètre quadratique moyen ($Dg$, cm) des arbres de plus de 7,5 cm de diamètre ;
 - surface terrière ($G$, m^2^/ha) des arbres de plus de 7,5 cm de diamètre ;
@@ -267,7 +267,7 @@ Le nombre final de polygones est de 26660, pour 52577 ha.
 
 # Données modélisées
 
-Cette étape est réalisée par le script "04_export.R", qui s'occuper également de la mise au format SIMMEM.
+Cette étape est réalisée par le script "04_export.R", qui s'occupe également de la mise au format SIMMEM.
 
 ## Site index
 
@@ -275,7 +275,7 @@ Un site index $si$ pour chaque espèce est affecté à chaque polygone suivant u
 
 Les variables nécessaires au calcul de $si$ n'étant pas disponibles sur l'ensemble de la zone d'étude, $si$ est tout d'abord modélisé sur les placettes IFN en fonction des variables environnementales et géographiques, en utilisant des modèles linéaires généralisés (GLM) avec une probabilité de distribution Gamma ($\Gamma$). Les variables ne sont pas extraites à la position exacte de la placette IFN, mais au centre du carré de 900 m de côté qui la contient. Ce carré correspondant à la zone de floutage des coordonnées des points IFN.
 $si$ étant dépendant de l'espèce, des modèles de la forme suivante sont calibrés séparément pour les quatre espèces : $\widehat{si} = a + b_1 alti + b_2 slope + b_3 rum + b_4 pH + b_5 expoNS + b_6 expoEW + b_7 greco + b_8 hydro + b_9 carbo$ avec 
-$si \sim \Gamma(\alpha, \frac{\alpha}{\widehat{si}})$ et où $a$, $(b_i)_{i \in \{1,...,9\}}$ et $\alpha$ sont des paramètres à estimer. Les variables correspondent à celles décrites plus haut.
+$si \sim \Gamma(\alpha, \frac{\alpha}{\widehat{si}})$ et où $a$, $(b_i)_{i \in \{1,...,9\}}$ et $\alpha$ sont des paramètres à estimer. Les variables correspondent à celles décrites précèdemment.
 
 Une procédure de sélection de variable est ensuite appliqué à chaque modèle.
   
@@ -333,7 +333,7 @@ Ensuite les valeurs $P_{Gsap}$ sont affectées à chaque polygone $p$ de mélang
 
 Le diamètre quadratique par espèce ($Dg_{sp}$) est affecté à chaque polygone d'une manière différente selon la composition. Pour les peuplements purs, la valeur ($Dg_t$) estimée à partir des données LiDAR est utilisée. Pour les peuplements mélangés, une procédure en trois étapes est appliquée car on ne dispose que d'une seule valeur de $Dg$ pour deux essences.
 
-Le ratio $R_{Dg} = \frac{Dg_{sp1}}{Dg_{sp2}}$ des $Dg_{sp}$ des espèces en mélange ($sp1$ et $sp2$) est modélisé sur les placettes PROTEST $i$, séparémment pour chaque mélange (hêtre-sapin, hêtre-épicéa and sapin-épicéa), en fonction des variables environnementales et LiDAR, selon un modèle linéaire généralisé avec une distribution Gamma ($\Gamma$). Les trois modèles sont de la forme :
+Le ratio $R_{Dg} = \frac{Dg_{sp1}}{Dg_{sp2}}$ des $Dg_{sp}$ des espèces en mélange ($sp1$ et $sp2$) est modélisé sur les placettes PROTEST $i$, séparément pour chaque mélange (hêtre-sapin, hêtre-épicéa and sapin-épicéa), en fonction des variables environnementales et LiDAR, selon un modèle linéaire généralisé avec une distribution Gamma ($\Gamma$). Les trois modèles sont de la forme :
 $\widehat{R_{Dg, i}} = a + b_1 alti_i + b_2 slope_i + b_3 rum_i + b_4 pH_i + b_5 expoNS_i +\\ b_6 expoEW_i + b_7 Dg_i + b_8 g_i + b_9 greco_i + b_{10} hydro_i + b_{11} carbo_i$  
 $R_{Dg, i} \sim \Gamma(\alpha, \frac{\alpha}{\widehat{R_{Dg, i}}})$  
 avec $a$, $b_{1-11}$ et $\alpha$ des paramètres à estimer. Une procédure de sélection de variables similaire à celle appliquée pour le site index est utilisée. Dans ce cas, les placettes PROTEST dans lesquelles $sp1$ et $sp2$ représentent plus de 75\% de la surface terrière des arbres de plus de 17,5 cm ont été utilisées (l'espèce des perches étant inconnue, celles-ci n'ont pas été prises en compte lors de la sélection des placettes).

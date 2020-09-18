@@ -13,6 +13,6 @@ if (user[[1]]=="jm")
 {
   # user$WorkingDir <- "/media/data/R/packages/PROTEST"
   user$WorkingDir <- "/home/jean-matthieu/R/PROTEST"
-  user$NetworkProtestDir <- "/media/reseau/services/LESSEM/ProjetsCommuns/PROTEST/"
+  user$NetworkProtestDir <- "/media/reseau/LESSEM/ProjetsCommuns/PROTEST/"
   user$confinement <- TRUE
 }
