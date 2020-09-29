@@ -1,8 +1,8 @@
 ---
-title: Analyse des simulations
+title: Résultat des simulations
 subtitle: Parc naturel régional du Massif des Bauges
 author: "Raphaël Aussenac, Jean-Matthieu MONNET, Patrick Vallet"
-date: "29 juin 2020"
+date: "24 septembre 2020"
 output:
   html_document:
     self_contained: TRUE
@@ -103,7 +103,7 @@ barplot(apply(tab.typo.gestion, 2, function(x){x/sum(x)*100}), width=apply(tab.t
 
 ## Itinéraires sylvicoles
 
-Différent itinéraires sylvicoles sont possibles (cf document sur la typologie / les itinéaires, à rédiger avec FCBA). À chaque polygone est affecté un itinéraire sylvicole, en respectant une certaine répartition des polygones dans les itinéraires selon leur type. Le paramétrage des itinéraires, notamment le diamètre objectif, dépend de la typologie des polygones et de leur composition en essence.
+Différents itinéraires sylvicoles sont possibles (cf document sur la typologie / les itinéaires, à rédiger avec FCBA). À chaque polygone est affecté un itinéraire sylvicole, en respectant une certaine répartition des polygones dans les itinéraires selon leur type. Le paramétrage des itinéraires, notamment le diamètre objectif, dépend de la typologie des polygones et de leur composition en essence.
 
 ```{r itineraire, echo=FALSE, warning=FALSE, message=FALSE}
 # gestion et type de peuplements
@@ -130,7 +130,7 @@ barplot(apply(tab.typo.itineraire, 2, function(x){x/sum(x)*100}), width=apply(ta
 
 Les graphiques suivants montrent sous forme de boîtes à moustaches les valeurs initiales de RDI (indice de densité relatif correspondant à la densité du peuplement divisée par la densité maximale permise par la loi d’auto-éclaircie) et de Dg (diamètre quadratique moyen d’un peuplement) pour les itinéraires et sous-itinéraires appliqués aux différents types de polygones. La largeur des boîtes est proportionnelle à la surface totale des polygones de chaque type.  
 
-La ligne rouge pointillée sur le graphique de RDI correspond au maximum possible (1). Au dessus de cette valeur, la densité est réduite par mortalité. Les lignes bleues en pointillés sur les graphiques de RDI correspondent à la plage de densité autorisée Lorsque que la valeur supérieure de RDI autorisée est atteinte, une éclaircie est déclenchée afin de ramener le RDI à la valeur inférieure. Plusieurs lignes peuvent figurer dans les cas où des sous-itinéraires (définis par des plages de densité différentes) existent.
+La ligne rouge pointillée sur le graphique de RDI correspond au maximum possible (1). Au dessus de cette valeur, la densité est réduite par mortalité. Les lignes bleues en pointillés sur les graphiques de RDI correspondent à la plage de densité autorisée. Lorsque que la valeur supérieure de RDI autorisée est atteinte, une éclaircie est déclenchée afin de ramener le RDI à la valeur inférieure. Plusieurs lignes peuvent figurer dans les cas où des sous-itinéraires (définis par des plages de densité différentes) existent.
 
 * Amélioration puis coupe rase : les sous-itinéraires sont caractérisés par des plages de RDI autorisées de 0,6 $\pm$ 0,05 et 0,7 $\pm$ 0,05. L'éclaircie se fait plutôt parmi les arbres les plus petits. L'ensemble du peuplement est coupé quand le diamètre objectif est atteint.
 - Coupe rase : la coupe est déclenchée uniquement quand le diamètre objectif est atteint. Le RDI est maintenu au-dessous de 1 par mortalité.
@@ -395,7 +395,7 @@ g2 <- ggplot(data = areaPP, aes(x = date, y = area, group = domainType, col = do
   geom_line() +
   geom_point()
 
-cowplot::plot_grid(g1, g2, labels="AUTO")
+cowplot::plot_grid(g1, g2, labels=c("Volume (m3)", "Surface (ha)"))
 ```
 
 #### Par itinéraire, composition et propriété
@@ -418,7 +418,7 @@ g2 <- ggplot(data = vol, aes(x = date, y = vol, group = domainType, col=domainTy
   #geom_point() +
   facet_grid(compo ~ iti)
 
-cowplot::plot_grid(g1, g2, labels="AUTO")
+cowplot::plot_grid(g2, g1, labels=c("Volume (m3)", "Surface (ha)"))
 # # volume removed each year for each managtype and compo
 # vol <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, managType, compo), summarise, vol = sum(annualVolumeRemoved_m3))
 # ggplot(data = vol, aes(x = date, y = vol, group = compo)) +
@@ -501,7 +501,7 @@ forestStands$mean.volume.per.year[dummy] <- temp.mean.volume.per.year
 
 ### Intensité des interventions
 
-Les histogrammes suivantes montrent la distribution de l'intensité des interventions, en volume, et en surface par itinéraire.
+Les histogrammes suivantes montrent la distribution de l'intensité des interventions, en volume par propriété, et en surface par itinéraire.
 
 ```{r evolution.operations.stats, echo=FALSE, warning=FALSE, message=FALSE}
 # histogramme pour les parcelles gérées et avec une coupe
@@ -549,7 +549,9 @@ ggplot(data=forestStands[which(forestStands$itineraire!="Inaction"),], aes(x=mea
 
 ## Évolution de la surface terrière
 
-Les graphique suivants montrent l'évolution du capital sur pied pendant la période simulée. 
+Les graphique suivants montrent l'évolution du capital sur pied (exprimé en surface terrière totale) pendant la période simulée. 
+
+Par gestion/non gestion, par propriété (peuplements gérés).
 
 ```{r evolution.G.total, echo=FALSE, warning=FALSE, message=FALSE}
 par(mfrow=c(1,2))
@@ -566,9 +568,9 @@ g2 <- ggplot(data = batot, aes(x = date, y = ba, fill = domainType)) +
 cowplot::plot_grid(g1, g2, labels=c("Peuplements gérés ou non", "Par propriété (peuplements gérés)"))
 ```
 
-Commentaire : Par itinéraire sylvicole, par composition en essence
+Par itinéraire sylvicole, par composition en essence.
 
-```{r evolution.managType, echo=FALSE, warning=FALSE, message=FALSE}
+```{r evolution.managTypeG, echo=FALSE, warning=FALSE, message=FALSE}
 # volume removed each year for each managtype
 batot <- ddply(df[df$iti!="Co",], .(date, managType), summarise, ba = sum(basalArea_tot))
 g1 <- ggplot(data = batot, aes(x = date, y = ba, fill = managType)) +
@@ -581,51 +583,67 @@ cowplot::plot_grid(g1, g2, labels=c("Par itinéraire (peuplements gérés)", "Pa
 ```
 
 
-#### Par itinéraire, composition et propriété
+Par itinéraire (colonne), composition (ligne) et propriété (couleur).
 
-```{r evolution.manag_compo, echo=FALSE, warning=FALSE, message=FALSE}
+```{r evolution.manag_compoG, echo=FALSE, warning=FALSE, message=FALSE}
 
 # volumes et surface traités
 # total area harvested/thinned each year for each managType and compo
-df$iti <- substr(df$managType, 1, 2)
-area <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, iti, compo, domainType), summarise, area = sum(annualAREA))
-g1 <- ggplot(data = area, aes(x = date, y = area, group = domainType, col=domainType)) +
+ba <- ddply(df, .(date, iti, compo, domainType), summarise, ba = sum(basalArea_tot))
+ggplot(data = ba, aes(x = date, y = ba, group = domainType, col=domainType)) +
   geom_line() +
   #geom_point() +
   facet_grid(compo ~ iti)
 
-# total vol harvested/thinned each year for each managType and compo
-vol <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, iti, compo, domainType), summarise, vol = sum(annualVolumeRemoved_m3))
-g2 <- ggplot(data = vol, aes(x = date, y = vol, group = domainType, col=domainType)) +
-  geom_line() +
-  #geom_point() +
-  facet_grid(compo ~ iti)
-
-cowplot::plot_grid(g1, g2, labels="AUTO")
-# # volume removed each year for each managtype and compo
-# vol <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, managType, compo), summarise, vol = sum(annualVolumeRemoved_m3))
-# ggplot(data = vol, aes(x = date, y = vol, group = compo)) +
-#   geom_line() +
-#   geom_point() +
-#   facet_grid(compo ~ managType)
-# # total area harvested/thinned each year for each managType and compo
-# area <- ddply(df[df$volumeRemoved_m3 > 0,], .(date, managType, compo), summarise, area = sum(annualAREA))
-# ggplot(data = area, aes(x = date, y = area, group = managType)) +
-#   geom_line() +
-#   geom_point() +
-#   facet_grid(compo ~ managType)
 ```
 
-<!-- ### Itinéraire "coupe rase", par propriété -->
 
-```{r evolution.harv, echo=FALSE, warning=FALSE, message=FALSE}
-# # surface harvested each year for each ownership type for Har scenario
-# areaPP <- ddply(df[df$volumeRemoved_m3 > 0 & df$managType=="Th2" & df$compo=="bfs",], .(date, domainType), summarise, area = sum(annualAREA))
-# ggplot(data = areaPP, aes(x = date, y = area, group = domainType, col = domainType)) +
-#   geom_line() +
-#   geom_point()
+```{r evolution.map, eval=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+
+pnr <- sf::st_read("~/Bureau/temp/parc_filled.shp", stringsAsFactors = FALSE)
+#pnr_union = sf::st_union(forestStands)
+forestAnim <- NULL
+for (d in unique(df$date))
+{
+  forestAnim <- rbind(forestAnim,merge(forestStands[,"STAND_ID"], df[df$date==d,c("standId", "date", "basalArea_m2", "Dg_cm")], by.x="STAND_ID", by.y="standId"))
+}
+bb_contig <- sf::st_bbox(pnr)
+pal = viridis::viridis(n = 6, direction = -1)
+pb = c(0, 10, 20, 30, 40, 50, 80.2)
+facet_anim = 
+  tmap::tm_shape(forestAnim, bbox = bb_contig, projection = 2154) +
+  tmap::tm_polygons("basalArea_m2", colorNA = NULL, border.col = NULL, palette = pal, breaks = pb)+#, border.alpha = 0) +
+  tmap::tm_facets(free.scales.fill = FALSE, ncol = 1, nrow = 1, by = "date") +
+  #tm_shape(usa_union) + tm_borders(lwd = 2) +
+  tmap::tm_layout(legend.position = c("left", "bottom"))
+tmap::tmap_animation(tm = facet_anim, filename = "map_basalarea.gif", width = 800, height = 600)
+browseURL("09-us_pop.gif")
 ```
 
+Cartographie de l'évolution de la surface terrière.
+
+![Cartographie de l'évolution de la surface terrière.](map_basalarea.gif)
+
+```{r evolution.map2, eval=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+movinghist <- ggplot(df, aes(basalArea_m2))+ #, fill = factor(Income_group))) +
+  geom_histogram() +
+  #facet_grid(~date) +
+  # scale_fill_manual(values = c(high, upmiddle, lowmiddle, low)) +
+  theme_minimal() +
+  # coord_flip() +
+  #animation setting
+  labs(
+    title = 'Year: {frame_time}',
+    y = 'Nombre de polygones', 
+    x = 'G m2/ha'
+  ) +
+  gganimate::transition_time(date) + #show the Year as integer
+  gganimate::ease_aes('linear')
+animatedhist <- gganimate::animate(movinghist, width = 600, height = 600)
+magick::image_write(animatedhist, path="hist_basalarea.gif")
+
+```
+![Histogramme de l'évolution de la surface terrière.](hist_basalarea.gif)
 
 
 ```{r evolution.harv3, echo=FALSE, warning=FALSE, message=FALSE}
