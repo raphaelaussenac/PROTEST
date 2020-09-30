@@ -18,9 +18,9 @@ source(paste0(user$WorkingDir, "/src/siteIndexModel.R"))
 ###############################################################
 
 # load forest plots
-forestStands <- readOGR(dsn = "./data", layer = "forestStands", encoding = "UTF-8", use_iconv = TRUE)
+forestStands <- readOGR(dsn = "./data", layer = "forestStands03a", encoding = "UTF-8", use_iconv = TRUE)
 # plot(forestStands, col = forestStands$CODE_TFV, border = forestStands$CODE_TFV)
-plot(coordinates(forestStands), asp = 1)
+# plot(coordinates(forestStands), asp = 1)
 
 # add the coordinates of the polygons' centroids (since X and Y may be used
 # in the models)
@@ -36,7 +36,7 @@ modDf <- modDf[, c("alti", "slope", "greco", "expoNS", "expoEW", "ph", "rum", 'g
 modDf[modDf$slope > 200, "slope"] <- 200
 
 # plot area histogram
-hist(area(forestStands), breaks = 1000)
+# hist(area(forestStands), breaks = 1000)
 # hist(area(forestStands)[area(forestStands)<20], breaks = 10)
 
 # predict fertility index
