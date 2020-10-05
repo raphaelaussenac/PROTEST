@@ -1,0 +1,310 @@
+---
+title: Initialisation du territoire forestier
+subtitle: Parc naturel régional du Massif des Bauges
+author: "Raphaël Aussenac, Jean-Matthieu MONNET, Patrick Vallet"
+date: "5 octobre 2020"
+output:
+  html_document:
+    self_contained: TRUE
+    number_sections: true
+    toc: true
+    toc_depth: 2
+  pdf_document:
+    number_sections: true
+    fig_caption: yes
+  word_document: default
+urlcolor: blue
+---
+
+```{r setup, include=FALSE}
+rm(list=ls())
+library(knitr)
+knitr::opts_chunk$set(echo = TRUE, fig.width=12, fig.height=8)
+# library(kableExtra)
+#library(rgl)
+#knit_hooks$set(webgl = hook_webgl)
+options(scipen=999)
+# wkhtmltopdf -B 15 -L 15 -R 15 -T 15 fiche-observatoire.html fiche-observatoire.pdf
+```
+
+---
+# Introduction {-}
+
+L'objectif de ce document est de présenter les procédures permettant d'initialiser les peuplements pour les simulations d'évolution de la dynamique forestière avec le module SIMMEM. SIMMEM permet de faire évoluer les caractéristiques d'un ensemble de peuplements selon des itinéraires sylvicoles prédéfinis, il a besoin pour cela que chaque peuplement soit décrit par :
+
+* son emprise géographique
+- la fertilité (site index)
+- la composition en essence (pur ou mélange de deux essences)
+- la surface terrière par essence
+- le nombre de tiges par essence (ou le diamètre quadratique moyen pour chaque essence)
+
+Afin de tenir compte des essences présentes sur la zone et de celles qui peuvent être modélisées par le simulateur, il a été décidé de simuler les essences pures et mélanges suivants :
+
+ * hêtre
+ - épicéa
+ - sapin
+ - autres feuillus (paramétrage du chêne sessile)
+ - mélange hêtre-sapin
+ - mélange hêtre-épicéa
+ - mélange sapin-épicéa.
+
+L'emprise géographique résulte d'un découpage du territoire. Les autres variables sont obtenues par calibration d'un modèle d'estimation de la variable objectif à partir de variables intermédiaires qui doivent être disponibles pour chaque peuplement (sur l'ensemble du territoire d'étude), ainsi qu'aux localisations des placettes IFN ou PROTEST qui servent pour la calibration.
+
+Dans la suite du document, on utilisera le mot "polygones", qui se réfère aux entités spatiales résultant du découpage du territoire, pour désigner les peuplements simulés. Le mot "placettes" désigne les surfaces circulaires inventoriées soit dans le cadre de l'observatoire du projet PROTEST, soit par l'IFN. Les variables intermédiaires sont extraites à la fois sur les placettes, pour la calibration des modèles, et sur les polygones, pour estimer les variables d'intérêt.
+
+# Découpage du territoire
+
+```{r charge.donnees.peuplement, echo=FALSE, warning=FALSE, message=FALSE}
+# load full file
+forestStands <- read.table("./output/forestStandsFULL.txt", header=TRUE, sep = '\t')
+forestStands$WKT.GEOM <- as.character(forestStands$WKT.GEOM)
+forestStands <- sf::st_sf(forestStands[,-which(names(forestStands)=="WKT.GEOM")], geom=sf::st_as_sfc(forestStands$WKT.GEOM))
+sf::st_crs(forestStands) <- 2154
+```
+
+L'emprise des forêts dont l'évolution est simulée est définie par la BD Forêt v2, en excluant les catégories "landes", "formation herbacées", "peupleraies".
+
+L'entrée principale pour le paramétrage de la croissance des peuplements étant les essences, les polygones définis par les catégories TFV de la BD Forêt de l'IFN sont utilisés comme base pour le découpage du territoire.  
+D'autres entrées sont jugées importantes pour déterminer si les peuplements sont gérés, et le cas échéant, quel itinéaire sylvicole leur est appliqué :
+
+* la propriété (publique / privé)
+- la taille moyenne des parcelles cadastrales
+- les conditions d'accessibilité.
+
+Le découpage du territoire selon toutes ces catégories aurait résulté en un nombre trop grand de polygones, il a été décidé de découper itérativement les polygones TFV de la BD Forêt en polygones d'une taille maximale de 3 ha. Cette surface permet d'atteindre un compromis entre le nombre de polygones à traiter (environ `r round(nrow(forestStands), -3)`) et une taille de polygone assurant une certaine homogénéité du peuplement.
+
+Le découpage de la BD Forêt a été réalisé avec l'outil ShapeTools. Les données sont préparées avant découpage par le script "01_prepForShptool.R". Une étape supplémentaire visant à raccrocher des polygones très petits à un polygone adjacent plus gros de même catégorie TFV a été ajoutée (script "02_polyMerge"). Il peut donc exister dans le découpage des polygones légèrement plus grands que 3 ha. La surface moyenne est de `r round(mean(forestStands$AREA/10000), 1)` ha avec un écart-type de `r round(sd(forestStands$AREA/10000), 1)`. Le nombre de polygones est de 26876, pour une surface totale de 52825 ha.
+
+```{r histo.surface, echo=FALSE, warning=FALSE, message=FALSE}
+# load full file
+hist(forestStands$AREA/10000, main="Histogramme de la surface des polygones", xlab="Surface (ha)", ylab="Nombre", col="lightgreen")
+```
+
+Les cartes des polygones présentées ensuite sont basées sur les polygones subsistant à la fin de l'ensemble du processus d'initialisation. Une minorité d'entre eux est enlevée en cours de traitement car il n'est pas possible de leur affecter les valeurs nécessaires aux simulations.
+
+# Extraction des variables
+
+L'extraction est réalisée par le script "03a_extract_biophy.R".
+
+## Forêt
+
+### Type de peuplement IFN
+
+Les catégories d'essences TFV étant trop détaillées par rapport aux peuplements purs ou en mélange paramétrés dans le simulateur, une simplification de la classification TFV a été effectuée en gardant les catégories principales suivantes (cf code dans "/src/composition.R") :
+
+* A <- 'FF1-00-00' : Forêt fermée à mélange de feuillus
+- B <- 'FF2G61-61' : Forêt fermée de sapin ou épicéa
+- C <- 'FF31' : Forêt fermée à mélange de feuillus prépondérants et conifères
+- D <- 'FF32' : Forêt fermée à mélange de conifères prépondérants et feuillus
+- E <- 'FF1-09-09' : Forêt fermée de hêtre pur
+
+Ces cinq types TFV englobent 96\% de la surface. Les quinze types minoritaires sont supprimés ou intégrés à l'un de ces types selon la correspondance suivante : 
+
+* A <- FO1 : Forêt ouverte de feuillus purs
+- A <- FF1-00 : Forêt fermée de feuillus purs en îlots
+- A <- FF1-49-49 : Forêt fermée d’un autre feuillu pur
+- A <- FF1G01-01 : Forêt fermée de chênes décidus purs
+- A <- FF1-10-10 : Forêt fermée de châtaignier pur
+- B <- FO2 : Forêt ouverte de conifères purs
+- B <- FF2-00-00 : Forêt fermée à mélange de conifères
+- B <- FF2G53-53 : Forêt fermée de pin laricio ou pin noir pur
+- B <- FF2-90-90 : Forêt fermée à mélange d’autres conifères
+- B <- FF2-64-64 : Forêt fermée de douglas pur
+- B <- FF2-00 : Forêt fermée de conifères purs en îlots
+- B <- FF2-52-52 : Forêt fermée de pin sylvestre pur
+- C <- FO3 : Forêt ouverte à mélange de feuillus et conifères
+- supprimé <- FO0 : Forêt ouverte sans couvert arboré -> QUELLE SURFACE ? OU ?
+- supprimé <- FF0 : Forêt fermée sans couvert arboré -> QUELLE SURFACE ? OU ?
+
+Les catégories TFV auraient pu être fusionnées selon ces nouvelles classes, avant découpage en polygones de moins de 3 ha, ce qui aurait peut-être un peu limité la création de très petits polygones.
+
+### Dendrométrie
+
+Les couches dendrométriques (résolution : 25 m) sont issues d'un modélisation réalisée à partir de placettes relevése sur le terrain et de données LiDAR (cf document "modélisation des paramètres forestiers") :
+
+* diamètre quadratique moyen ($Dg$, cm) des arbres de plus de 7,5 cm de diamètre ;
+- surface terrière ($G$, m^2^/ha) des arbres de plus de 7,5 cm de diamètre ;
+- pourcentage en surface terrière des arbres feuillus dans le peuplement ($P_{Gf}$) ;
+
+La densité de tiges est calculée comme suit : $N = {{4 G} \over {\pi {Dg}^2}}$
+
+La surface terrière totale est calculée pour chaque polygone, ainsi que la surface terrière totale feuillue (somme des pixels du raster obtenu en faisant le produit de la surface terrière et du pourcentage de feuillus, divisé par 100). On en déduit ensuite le pourcentage de feuillus pour l'ensemble du polygone.
+
+La surface terrière moyenne est calculée en faisant la moyenne des surface terrières des pixels.
+
+Le diamètre quadratique moyen pour chaque polygone est obtenu par la formule suivante : $Dg = \sqrt{\sum{N_i \times {Dg_{i}}^2} \over \sum{N_i}}$ avec ${i}$ les pixels contenus dans le polygone.
+
+```{r carte.dendro, echo=FALSE, warning=FALSE, message=FALSE}
+par(mfrow=c(1,2))
+plot(forestStands["Dgtot"], border=NA, main="Diamètre quadratique moyen (cm)", breaks="quantile")
+plot(forestStands["G"], border=NA, main=expression(paste("Surface terrière (m"^"2", "/ha)")), breaks="quantile")
+```
+
+### Grandes Régions Écologiques
+
+Sur le territoire du PNR, seules deux SylvoEcoRégions (SER) sont présentes :
+
+* SER H10 : Préalpes du Nord, qui appartient à la Greco H (Alpes)
+- SER C52 : Plaines et piémonts alpins, qui appartient à la Greco C (Grand-Est semi-continental).
+
+À chaque placette IFN est affecté dans la variable $greco$ le CODEGRECO se trouvant à la localisation du centre de la placette sur la couche vecteur des Grandes Régions Écologiques (GRECO : https://inventaire-forestier.ign.fr/spip.php?article773).
+
+Le champ CODEGRECO de cette couche vecteur est rasterisé au pas de 5 m. À chaque polygone est affecté dans la variables $greco$ le CODEGRECO correspondant au mode des pixels qui sont contenus par le polygone.
+
+## Sol
+
+### Topographie
+
+La couche d'altitude est un MNT de résolution 5 m issu du rééchantillonnage d'un MNT à 1 m. Ce MNT à 1 m est une fusion des MNT LiDAR obtenus à partir des acquisitions effectuées d'une part en Savoie (chantier B de la RGD 73-74) et d'autre part en Haute-Savoie (données acquises par le PNR).
+
+Des rasters de pente (en degrés) et d'exposition sont calculés à partir du MNT. Deux autres rasters sont dérivés du raster d'exposition :  
+
+* l'exposition selon l'axe Nord-Sud en prenant le cosinus de l'exposition,
+- l'exposition selon l'axe Est-Ouest en prenant le sinus de l'exposition.
+
+Les valeurs moyennes de ces deux rasters ainsi que des rasters d'altitude et de pente sont extraites (variables $expoNS$, $expoEW$, $alti$ et $slope$) :
+
+* sur une emprise circulaire de 15 m autour du centre de chaque placette IFN ;
+- sur l'emprise de chaque polygone.
+
+La pente  ($slope$) est ensuite convertie en pourcentage.
+
+### Géologie
+
+Les informations sur la couche "Géologie" ont été fournies par Raphaël Bondu.
+
+La variable “code carbonate” décrit la teneur en minéraux carbonatés de la roche-mère suivant 4 catégories :
+
+* 0 : Pas à peu de carbonates (ex. schiste)
+- 1 : Présence modérée de carbonates (ex. marne)
+- 2 : Riche en carbonates (ex. calcaire argileux)
+- 3 : Carbonates quasi-purs (ex. calcaire lithographique)
+
+Lorsque les ensembles géologiques regroupent des formations variées du point de vue lithologique, la valeur assignée a tenu compte de l’épaisseur de chacune des formations. Cette classification est basée sur les informations qualitatives tirées des documents du Bureau de Recherche Géologique et Minière (BRGM) suivants :
+
+* Doudoux B., Barféty J.C., Vivier G., Carfantan J.C., Nicoud G., Tardy M., avec la collaboration de Monjuvent G., Debon F., Menot R.-P., Aprahamian J. (1999) - Notice explicative, Carte géol. France (1/50 000), feuille Albertville (726). Orléans : BRGM, 119 p. Carte géologique par B. Doudoux, J.-C. Barféty, G. Vivier, J.-C. Carfantan, G. Nicoud, B. Colletta, M. Tardy (1999).
+- F. Cagnard (2008) – Carte géologique harmonisée du département de la Haute-Savoie. BRGM/RP-5 59 30 -FR, 329 p.,7 fig., 2 tab., 3 pl. Hors-texte.
+
+La variable “code hydro” décrit la perméabilité potentielle de la roche-mère en fonction de sa nature minéralogique suivant 4 catégories :
+
+* 0 : Fortement perméable (ex. calcaire massif karstifié)
+- 1 : Perméable (ex. calcaire argileux)
+- 2 : Peu perméable (ex. alternance marne et calcaire)
+- 3 : Imperméable ou quasi-imperméable (ex. argile)
+
+À chaque placette IFN est affecté le champ NOTATION se trouvant à la localisation du centre de la placette sur la couche vecteur de la géologie.
+
+Le champ NOTATION de cette couche vecteur est rasterisé au pas de 5 m. La catégorie de géologie affectée à chaque polygone correspond au mode des pixels qui sont contenus par le polygone.
+
+Les champs "code carbonate" et "code hydro" sont ensuite affectés aux polygones et placettes IFN, dans les variables $carbo$ et $hydro$ en utilisant le tableau de correspondance "classificationGeol.csv"
+
+### Sol
+
+Les couches décrivant le sol sont celles disponibles sur le portail Silvae (https://silvae.agroparistech.fr/home/)
+
+* La couche de la Réserve Utile Maximale (2009) est à résolution de 500 m. (https://silvae.agroparistech.fr/home/?page_id=925).
+- La couche du pH des sols forestiers (2008) est à résolution de 1000 m. (https://silvae.agroparistech.fr/home/?page_id=809).
+
+Les valeurs de RUM (variable $rum$) et de pH (variable $pH$) sont extraites pour chaque placette IFN et chaque polygone comme la valeur moyenne des pixels contenus.
+
+
+## Nettoyage des polygones
+
+Le nombre initial de polygones est 26876, pour 52825 ha. Le nettoyage est effectué de manière séquentielle.
+
+On vérifie tout d'abord qu'aucun polygone n'a pour classe géologique "hydro" (surface en eau).
+
+76 polygones ont une valeur NA pour la surface terrière. Ils totalisent moins de 1 ha. Il s'agit de polygones très petits (plus de 50 font moins de 100 m^2^). Une rasterisation de la BD Forêt à résolution 25 m sert de masque pour les rasters de prédiction de paramètres dendrométriques. Du fait de leur taille et de leur localisation, ces polygones se retrouvent donc hors de la BD Forêt rasterisée et aucune valeur ne leur est attribuée. Ils sont supprimés.
+
+13 des polygones restant ont une valeur nulle pour la surface terrière. Ils totalisent 18 ha, il s'agit principalement de polygones situés sur une zone non couverte par l'acquisition Lidar. Ils sont supprimés.
+
+107 des polygones restant ont une valeur nulle pour le diamètre quadratique moyen. Ils totalisent 212 ha, il s'agit principalement de polygones situés dans les vallées périphériques. Ils sont supprimés.
+
+Le nombre final de polygones est de 26680, pour 52594 ha.
+
+# Données modélisées
+
+Cette étape est réalisée par le script "03b_model_biophy.R".
+
+## Site index
+
+Un site index $si$ pour chaque espèce est affecté à chaque polygone suivant une procédure en deux étapes.
+
+Les variables nécessaires au calcul de $si$ n'étant pas disponibles sur l'ensemble de la zone d'étude, $si$ est tout d'abord modélisé sur les placettes IFN en fonction des variables environnementales et géographiques, en utilisant des modèles linéaires généralisés (GLM) avec une probabilité de distribution Gamma ($\Gamma$). Les variables ne sont pas extraites à la position exacte de la placette IFN, mais au centre du carré de 900 m de côté qui la contient. Ce carré correspondant à la zone de floutage des coordonnées des points IFN.
+$si$ étant dépendant de l'espèce, des modèles de la forme suivante sont calibrés séparément pour les quatre espèces : $\widehat{si} = a + b_1 alti + b_2 slope + b_3 rum + b_4 pH + b_5 expoNS + b_6 expoEW + b_7 greco + b_8 hydro + b_9 carbo$ avec 
+$si \sim \Gamma(\alpha, \frac{\alpha}{\widehat{si}})$ et où $a$, $(b_i)_{i \in \{1,...,9\}}$ et $\alpha$ sont des paramètres à estimer. Les variables correspondent à celles décrites précèdemment.
+
+Une procédure de sélection de variable est ensuite appliqué à chaque modèle.
+  
+* Les variables non-significatives sont enlevées successivement en commençant par la moins significative, jusqu'à que toutes les variables soient significatives. 
+- Un effet quadratique est ensuite ajouté à toutes les variables restantes. (NOTE : En fait, il y a un souci avec cette procédure.
+On pourrait rater un effet dont la composante linéaire seule serait non significative, mais où un effet quadratique serait nécessaire. C'est le cas par exemple d'un effet purement symétrique par rapport à la base de données (un optimum par exemple).
+Pour identifier ça, il faut analyser les résidus, y compris en fonction des variables non sélectionnées. Je suppose que tu l'as fait, mais il faudrait le noter.)
+- De nouveau, les variables non-significatives sont enlevées successivement en commençant par la moins significative, jusqu'à que toutes les variables soient significatives. 
+
+Une valeur de $si$ est ensuite attribuée à chaque polygone de la zone d'étude par tirage au sort dans la distribution Gamma $\Gamma(\alpha, \frac{\alpha}{\widehat{si_p}})$, où $\widehat{si_p}$ est la valeur de $si$ estimée par le modèle pour le polygone $p$.
+
+## Composition
+
+La composition en essence est affectée aux polygones en suivant une procédure en quatre étapes. 
+
+Étape 1. Les placettes PROTEST sont classées en sept compositions correspondant aux compositions qui seront simulées : quatre compositions pures (hêtre, chêne, sapin, épicéa), quand la proportion de ces espèces en surface terrière représente plus de 75\% du peuplement, et trois compositions de mélange (hêtre-sapin, hêtre-épicéa, sapin-épicéa) quand ces deux espèces sont les plus abondantes et représentent ensemble plus de 75\% du peuplement. Cependant, comme d'autres espèces sont présentes sur la zone d'étude, les espèces ont été regroupées auparavant de la manière suivante :
+
+* quand une espèce résineuse autre que sapin ou épicéa est présente, sa surface terrière est reportée au sapin et à l'épicéa selon les proportions relatives de ces deux espèces dans la placette.
+- de même, quand une espèce feuillue autre que chêne et hêtre est présente, sa surface terrière est reporté au chêne et au hêtre selon les proportions relatives de ces deux espèces dans la placette. Ceci à l'exception des espèces de chêne qui sont toujours reportées sur le chêne *Quercus petraea*.  
+
+Les perches ont été prises en compte dans ce calcul. Les perches viables de feuillus et les brins de taillis ont été considérés comme des feuillus indeterminés. Les perches résineuses viables ont été considérées comme des conifères indeterminés. Les perches non viables, sans information d'espèce, ont été reportées sur les perches feuillues et résineuses selon les proportions relatives de ces dernières. Les placettes PROTEST dont la composition n'entre pas dans les sept compositions proposées ont été enlevés.
+
+Étape 2. Tous les polygones ont été classés selon trois compositions: feuillus, résineux, mélange, en utilisant le pourcentage de surface terrière feuillue ($P{Gf}$) extraite des données LiDAR selon la clé suivante : feuillus si $P_{Gf}>75$, résineux si $P_{Gf}<25$, mélange sinon.
+
+Étape 3. La liste des compositions sur les placettes PROTEST est extraite pour chacun des cinq regroupements de type TFV (voir section au dessus). Cette liste peut contenir des répétitions.
+
+Étape 4. Pour attribuer une composition à un polygone associé à un goupe TFV donné, un tirage au sort est effectué dans la liste de compositions des placettes PROTEST associée à ce groupe TFV. La procédure est répétée au cas où la composition sélectionnée ne soit pas compatible avec la composition (feuillus / résineux / mélange) déjà attribuée au polygone.
+
+La carte ci-dessous présente les compositions affectées aux polygones.
+
+```{r carte.composition, echo=FALSE, warning=FALSE, message=FALSE}
+par(mfrow=c(1,1))
+levels(forestStands$FOREST_TYPE_CODE) <- gsub("salem_", "", levels(forestStands$FOREST_TYPE_CODE))
+levels(forestStands$FOREST_TYPE_CODE) <- gsub("oak", "chêne", levels(forestStands$FOREST_TYPE_CODE))
+levels(forestStands$FOREST_TYPE_CODE) <- gsub("fir", "sapin", levels(forestStands$FOREST_TYPE_CODE))
+levels(forestStands$FOREST_TYPE_CODE) <- gsub("spruce", "épicéa", levels(forestStands$FOREST_TYPE_CODE))
+levels(forestStands$FOREST_TYPE_CODE) <- gsub("beech", "hêtre", levels(forestStands$FOREST_TYPE_CODE))
+plot(forestStands["FOREST_TYPE_CODE"], border=NA, main="Composition", key.pos=1, key.length=0.7)
+# plot(forestStands["FOREST_TYPE_CODE"], border=NA, main="Composition", col=ifelse(forestStands$FOREST_TYPE_CODE))
+```
+
+## Dendrométrie par essence
+
+### Surface terrière
+
+La surface terrière par essence est attribuée ($G_{sp}$) à chaque polygone à partir de la surface terrière totale ($G_t$) et de la proportion de feuillus dans la surface terrière ($P_{Gf}$) extraite des estimations LiDAR. $G_{sp}$ est directement calculée dans le cas de peuplements purs ou de mélanges feuillus-conifères (i.e. hêtre-sapin ou hêtre-épicéa). Une procédure en deux étapes est appliquée pour les mélanges de conifères (i.e. sapin-épicéa).
+
+Tout d'abord la proportion de sapin ($P_{Gsap} = \frac{G_{sap}}{G_{sap} + G_{ép}}$) est modélisée à partir des placettes PROTEST $i$ en fonction des variables environnementales et des données LiDAR, selon une régression beta ($Be$) avec lien logit :  
+$\widehat{P_{Gsap}} = logit(a + b_1 alti + b_2 slope + b_3 rum + b_4 pH + b_5 expoNS + b_6 expoEW + b_7 Dg + b_8 G + b_9 greco + b_{10} hydro + b_{11} carbo)$
+avec $P_{Gsap} \sim Be (\widehat{P_{Gsap}}\phi, (1-\widehat{P_{Gsap}})\phi)$, et où $a$, $(b_i)_{i\in{\{1, ..., 11\}}}$ et $\phi$ les paramètres à estimer. Une procédure de sélection de variables similaire à celle appliquée pour le site index est utilisée. Dans ce cas, les placettes PROTEST dans lesquelles sapin et épicéa représentent plus de 75\% de la surface terrière des arbres de plus de 17,5 cm ont été utilisées (l'espèce des perches étant inconnue, celles-ci n'ont pas été prises en compte lors de la sélection des placettes). La surface terrière des perches et espèces non modélisées a été répartie entre $G_{sap}$ et $G_{ép}$ selon leurs proportions relatives.
+
+Ensuite les valeurs $P_{Gsap}$ sont affectées à chaque polygone $p$ de mélange sapin / épicéa en tirant au sort un nombre dans la distribtion beta $Be (\widehat{P_{Gsap,p}}\phi, (1-\widehat{P_{Gsap,p}})\phi)$, avec $\widehat{P_{Gsap,p}}$ la valeur de $P_{Gsap}$ prédite par le modèle pour le polygone $p$. $G_{sap}$ et $G_{ép}$ sont ensuite calculées à partir de $P_{Gsap}$ et $G_t$.
+
+### Diamètre quadratique par essence
+
+Le diamètre quadratique par espèce ($Dg_{sp}$) est affecté à chaque polygone d'une manière différente selon la composition. Pour les peuplements purs, la valeur ($Dg_t$) estimée à partir des données LiDAR est utilisée. Pour les peuplements mélangés, une procédure en trois étapes est appliquée car on ne dispose que d'une seule valeur de $Dg$ pour deux essences.
+
+Le ratio $R_{Dg} = \frac{Dg_{sp1}}{Dg_{sp2}}$ des $Dg_{sp}$ des espèces en mélange ($sp1$ et $sp2$) est modélisé sur les placettes PROTEST $i$, séparément pour chaque mélange (hêtre-sapin, hêtre-épicéa and sapin-épicéa), en fonction des variables environnementales et LiDAR, selon un modèle linéaire généralisé avec une distribution Gamma ($\Gamma$). Les trois modèles sont de la forme :
+$\widehat{R_{Dg, i}} = a + b_1 alti_i + b_2 slope_i + b_3 rum_i + b_4 pH_i + b_5 expoNS_i +\\ b_6 expoEW_i + b_7 Dg_i + b_8 g_i + b_9 greco_i + b_{10} hydro_i + b_{11} carbo_i$  
+$R_{Dg, i} \sim \Gamma(\alpha, \frac{\alpha}{\widehat{R_{Dg, i}}})$  
+avec $a$, $b_{1-11}$ et $\alpha$ des paramètres à estimer. Une procédure de sélection de variables similaire à celle appliquée pour le site index est utilisée. Dans ce cas, les placettes PROTEST dans lesquelles $sp1$ et $sp2$ représentent plus de 75\% de la surface terrière des arbres de plus de 17,5 cm ont été utilisées (l'espèce des perches étant inconnue, celles-ci n'ont pas été prises en compte lors de la sélection des placettes).
+  
+$R_{Dg}$ est ensuite affecté à chaque polygone $p$ de peuplement mélangé en tirant au sort dans une distribtion Gamma $\Gamma(\alpha, \frac{\alpha}{\widehat{R_{Dg, p}}})$, avec $\widehat{R_{Dg, p}}$ le $R_{Dg}$ estimé par le modèle pour le polygone $p$.
+
+Le diamètre quadratique par espèce est ensuite calculé à partir des deux équations reliant les surfaces terrières et diamètres quadratiques par espèce. $G_{sp} = \frac{N_{sp}\pi {Dg_{sp}}^2}{4}$  
+avec $G_{sp}$, $Dg_{sp}$ et $N_{sp}$ la surface terrière, le diamètre quadratique et le nombre de tige par espèce, et  
+$Dg_t^2 = \frac{N_{sp1}{Dg_{sp1}}^2 + N_{sp2}{Dg_{sp2}}^2}{N_{sp1} + N_{sp2}}$  
+avec $Dg_t$ le diamètre quadratique total; $Dg_{sp1}$ et $Dg_{sp2}$, les diamètres quadratiques des espèces $sp1$ et $sp2$; et $N_{sp1}$ et $N_{sp2}$, le nombre de tiges des espèces $sp1$ et $sp2$. $Dg_{sp1}$ et $Dg_{sp2}$ sont donc exprimés comme suit :
+$Dg_{sp1} = Dg_t\sqrt{\frac{G_{sp1} + {R_{Dg}}^2G_{sp2}}{G_{sp1} + G_{sp2}}}$
+$Dg_{sp2} = \frac{Dg_{sp1}}{R_{Dg}}$
+
+### Nombre d'arbres par essence
+
+Le nombre d'arbres par espèce ($N_{sp}$) est calculé sur chaque polygone selon l'équation:
+$N_{sp} = \frac{4G_{sp}}{\pi Dg_{sp}^2}$ 

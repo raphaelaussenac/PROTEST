@@ -1,0 +1,54 @@
+      </standIds>
+    </group>
+    <actions>
+      <simmem.model.rule.ClearCuttingAction>
+        <ddomMap>
+          <entry>
+            <simmem.model.SimSpecies reference="../../../../../../simmem.model.rule.SimRule[2]/actions/simmem.model.rule.ClearCuttingAction/ddomMap/entry/simmem.model.SimSpecies"/>
+            <double>50.0</double>
+          </entry>
+          <entry>
+            <simmem.model.SimSpecies reference="../../../../../../simmem.model.rule.SimRule[2]/actions/simmem.model.rule.ClearCuttingAction/ddomMap/entry[3]/simmem.model.SimSpecies"/>
+            <double>50.0</double>
+          </entry>
+          <entry>
+            <simmem.model.SimSpecies reference="../../../../../../simmem.model.rule.SimRule[2]/actions/simmem.model.rule.ClearCuttingAction/ddomMap/entry[4]/simmem.model.SimSpecies"/>
+            <double>40.0</double>
+          </entry>
+        </ddomMap>
+        <fallowMap>
+          <entry>
+            <simmem.model.SimSpecies reference="../../../../../../simmem.model.rule.SimRule[2]/actions/simmem.model.rule.ClearCuttingAction/ddomMap/entry/simmem.model.SimSpecies"/>
+            <int>0</int>
+          </entry>
+          <entry>
+            <simmem.model.SimSpecies reference="../../../../../../simmem.model.rule.SimRule[2]/actions/simmem.model.rule.ClearCuttingAction/ddomMap/entry[3]/simmem.model.SimSpecies"/>
+            <int>2</int>
+          </entry>
+          <entry>
+            <simmem.model.SimSpecies reference="../../../../../../simmem.model.rule.SimRule[2]/actions/simmem.model.rule.ClearCuttingAction/ddomMap/entry[4]/simmem.model.SimSpecies"/>
+            <int>0</int>
+          </entry>
+        </fallowMap>
+        <allowNewSpeciesAfterClearCut>false</allowNewSpeciesAfterClearCut>
+      </simmem.model.rule.ClearCuttingAction>
+      <simmem.model.rule.ThinningAction>
+        <triplets>
+          <simmem.model.rule.ThinningAction_-Triplet>
+            <ddom>0.5</ddom>
+            <density>0.60</density>
+            <thickness>0.1</thickness>
+          </simmem.model.rule.ThinningAction_-Triplet>
+        </triplets>
+        <considerThinningTableToSort>false</considerThinningTableToSort>
+        <minThinningInterval>-1</minThinningInterval>
+      </simmem.model.rule.ThinningAction>
+    </actions>
+    <defaultRule>false</defaultRule>
+  </simmem.model.rule.SimRule>
+  <simmem.model.rule.SimRule>
+    <id>5</id>
+    <name>R?gle 5</name>
+    <group>
+      <id>5</id>
+      <standIds>

@@ -1,0 +1,15 @@
+      </standIds>
+    </group>
+    <actions>
+      <simmem.model.rule.ExploitabilityAction>
+        <exploitabilityEnabled>false</exploitabilityEnabled>
+      </simmem.model.rule.ExploitabilityAction>
+    </actions>
+    <defaultRule>false</defaultRule>
+  </simmem.model.rule.SimRule>
+  <simmem.model.rule.SimRule>
+    <id>3</id>
+    <name>R?gle 3</name>
+    <group>
+      <id>3</id>
+      <standIds>
