@@ -30,7 +30,8 @@ library(ggplot2)
 library(plyr)
 #
 # set work directory
-setwd("/home/jean-matthieu/R/PROTEST")
+setwd("/media/data/R/packages/PROTEST")#"/home/jean-matthieu/R/PROTEST")
+
 ```
 
 ---
@@ -42,7 +43,7 @@ La première partie décrit les conditions initiales du territoire simulé. La d
 
 ```{r charge.donnees.initiales, echo=FALSE, warning=FALSE, message=FALSE}
 # load full file
-forestStands <- read.table("./output/forestStandsFULL.txt", header=TRUE, sep = '\t')
+forestStands <- read.table("./output/forestStandsFULL.txt", header=TRUE, sep = '\t', dec=".")
 forestStands$WKT.GEOM <- as.character(forestStands$WKT.GEOM)
 forestStands <- sf::st_sf(forestStands[,-which(names(forestStands)=="WKT.GEOM")], geom=sf::st_as_sfc(forestStands$WKT.GEOM))
 sf::st_crs(forestStands) <- 2154

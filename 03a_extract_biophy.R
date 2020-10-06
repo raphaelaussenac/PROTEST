@@ -5,6 +5,9 @@
 # clean up environment except user variable with path values
 rm(list = setdiff(ls(),"user"))
 user$checkSurfaces <- FALSE
+# process stands of Mihai (modelling)
+# or extract whole Bauges stands
+user$mihai <- FALSE
 
 # load packages
 library(rgdal)
@@ -15,10 +18,6 @@ library(sf)
 
 # set work directory
 setwd(user$WorkingDir)
-
-# process stands of Mihai (modelling)
-# or extract whole Bauges stands
-user$mihai <- FALSE
 
 ###############################################################
 # LOAD GEOGRAPHICAL DATA
@@ -533,15 +532,14 @@ classGeol$rocheCalc <- as.factor(classGeol$rocheCalc)
 # insert geol classification in forestStands
 forestStands <- merge(forestStands, classGeol, by.x = "geolNotation", by.y = 'NOTATION', all.x = TRUE)
 #
-# sauvegarde des peuplements
-forestStands03aNotCleaned <- forestStands
-save(forestStands03aNotCleaned, file="forestStands03aNotCleaned.rda")
-rm(forestStands03aNotCleaned)
-#
 ##################################################################
+# NETTOYAGE DES POLYGONES
 #
 if (!user$mihai)
 {
+  forestStands03aNotCleaned <- forestStands
+  save(forestStands03aNotCleaned, file="forestStands03aNotCleaned.rda")
+  rm(forestStands03aNotCleaned)
   ###############################################################
   # filters
   ###############################################################
@@ -551,22 +549,24 @@ if (!user$mihai)
   sum(forestStands$geolNotation == 'hydro')
   forestStands <- forestStands[forestStands$geolNotation != 'hydro', ]
   #
-  # remove forest plots where gPred == 0 & NA
-  # mostly polygons in a area not covered by lidar flight (13 polygons / 18 ha)
+  # remove forest plots where gPred missing
+  # 76 very small polygons with NA values
   sum(is.na(forestStands$gPred))
   sum(forestStands$area[is.na(forestStands$gPred)])/10000
   forestStands <- forestStands[!is.na(forestStands$gPred), ]
-  #
+  # no polygons with 0 value
   sum(forestStands$gPred==0)
   sum(forestStands$area[forestStands$gPred==0])/10000
   forestStands <- forestStands[forestStands$gPred > 0, ]
-  
+
   # remove forest plots where dgPred == 0
   # a few polygons, mostly in lowlands
   sum(is.na(forestStands$dgPred))
-  sum(forestStands$dgPred==0)
-  sum(forestStands$area[forestStands$dgPred==0])/10000
+  sum(forestStands$area[is.na(forestStands$dgPred)])/10000
   forestStands <- forestStands[!is.na(forestStands$dgPred), ]
+  #
+  sum(forestStands$dgPred==0, na.rm=TRUE)
+  sum(forestStands$area[forestStands$dgPred==0])/10000
   forestStands <- forestStands[forestStands$dgPred > 0, ]
 
   # remove plot where p100gfP = NA (none)
@@ -576,9 +576,9 @@ if (!user$mihai)
   # convert mean BA/ha --> BA (real stock associated to each plot)
   forestStands$area <- raster::area(forestStands) / 10000
   forestStands$gPred <- forestStands$gPred * forestStands$area
-  
   #
   dim(forestStands)
+  sum(forestStands$area)
   
   # remove useless columns
   forestStands$id <- NULL

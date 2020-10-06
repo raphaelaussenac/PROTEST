@@ -249,21 +249,17 @@ legend("topright", c("Accessible <2km", "Accessible >2km", "Non accessible", "No
 
 ## Nettoyage des polygones
 
-Le nombre initial de polygones est 26876, pour 52825 ha.
+Le nombre initial de polygones est 26876, pour 52825 ha. Le nettoyage est effectué de manière séquentielle.
 
 On vérifie tout d'abord qu'aucun polygone n'a pour classe géologique "hydro" (surface en eau).
 
 76 polygones ont une valeur NA pour la surface terrière. Ils totalisent moins de 1 ha. Il s'agit de polygones très petits (plus de 50 font moins de 100 m^2^). Une rasterisation de la BD Forêt à résolution 25 m sert de masque pour les rasters de prédiction de paramètres dendrométriques. Du fait de leur taille et de leur localisation, ces polygones se retrouvent donc hors de la BD Forêt rasterisée et aucune valeur ne leur est attribuée. Ils sont supprimés.
 
-13 polygones ont une valeur nulle pour la surface terrière. Ils totalisent 18 ha, il s'agit principalement de polygones situés sur une zone non couverte par l'acquisition Lidar. Ils sont supprimés.
+13 des polygones restant ont une valeur nulle pour la surface terrière. Ils totalisent 18 ha, il s'agit principalement de polygones situés sur une zone non couverte par l'acquisition Lidar. Ils sont supprimés.
 
-107 polygones ont une valeur nulle pour le diamètre quadratique moyen. Ils totalisent 212 ha, il s'agit principalement de polygones situés dans les vallées périphériques. Ils sont supprimés.
+107 des polygones restant ont une valeur nulle pour le diamètre quadratique moyen. Ils totalisent 212 ha, il s'agit principalement de polygones situés dans les vallées périphériques. Ils sont supprimés.
 
-3 polygones n'ont pas d'information de propriété. Ils totalisent 3 ha, ils sont supprimés.
-
-17 polygones n'ont pas de taille moyenne de parcelle cadastrale. Ils sont situés le long de l'Isère et totalisent 17 ha. Ils sont supprimés.
-
-Le nombre final de polygones est de 26660, pour 52577 ha.
+Le nombre final de polygones est de 26680, pour 52594 ha.
 
 # Données modélisées
 
@@ -385,4 +381,7 @@ levels(forestStands$gestion) <- gsub("NonBuch", "Non bûcheronnable", levels(for
 plot(forestStands["gestion"], border=NA, main="Gestion", col=ifelse(forestStands$gestion=="Non bûcheronnable", "purple", ifelse(forestStands$gestion=="Non accessible", "pink", ifelse(forestStands$gestion=="Accessible géré", "green", "yellow"))))
 legend("topright", c("Accessible géré", "Accessible non géré", "Non accessible", "Non bûcheronnable"), fill=c("green", "yellow", "pink", "purple"))
 ```
-  
+
+4 polygones n'ont pas d'information de propriété. Ils totalisent 26 m2, ils sont supprimés.
+
+19 polygones n'ont pas de taille moyenne de parcelle cadastrale. Ils sont situés le long de l'Isère et totalisent 17 ha. Ils sont supprimés.

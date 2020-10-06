@@ -3,7 +3,6 @@
 # 
 rm(list = setdiff(ls(),"user"))
 load(file="forestStands03c.rda")
-summary(forestStands[,-which(names(forestStands)=="WKT-GEOM")])
 #
 # DOMAINE_TYPE
 colnames(forestStands)[colnames(forestStands) == "owner"] <- 'DOMAINE_TYPE'
@@ -26,12 +25,7 @@ load(file="./data/modelGestion.rda")
 model.glm
 # convert mean parcel surface in hectares
 forestStands$surface <- forestStands$meanParcelleArea/10000
-# replace distances by before application of model
-# (was calibrated with NA distances replaced by 2000)
-# first save data
-#forestStands$dist <- forestStands$distWithNA
-forestStands$distWithNA <- forestStands$dist
-# forestStands$dist[is.na(forestStands$dist)] <- 2000
+#
 # apply model only to private forests
 dummy <- which(forestStands$DOMAINE_TYPE=="Priv")
 # estimate probability of management in private forests
@@ -119,9 +113,17 @@ round(test,0)
 test <- as.data.frame.matrix(questionr::wtd.table(forestStands$nonHarv, forestStands$gestion, weights = forestStands$AREA/10000, digits=0))
 round(test,0)
 
-forestStandsGEOM <- forestStands
+# recuperer spatial extent
+xmin <- raster::extent(forestStands)@xmin
+ymin <- raster::extent(forestStands)@ymin
+xmax <- raster::extent(forestStands)@xmax
+ymax <- raster::extent(forestStands)@ymax
+
+# enlever la geometrie (suite du code requiert un data.frame)
+forestStands$`WKT-GEOM` <- sf::st_as_text(forestStands$geom)
 forestStands <- as.data.frame(forestStands)
-forestStands <- forestStands[,-which(is.element(colnames(forestStands),c("area", "geom")))]
+# forestStands <- forestStands[,-which(is.element(colnames(forestStands),c("area", "geom")))]
+#
 # calculate RDI and compute probability of being irregular stand
 source("./code1.R")
 
@@ -153,12 +155,7 @@ source('./src/sc1_BAU.R')
 # graphiques
 source("./code2.R")
 
-
-####################### ICI
-
-save(list=ls(), file="intermediaryExport2.rda")
-rm(list=ls())
-load(file="intermediaryExport2.rda")
+#####################################
 
 # reduire la taille
 # facteur <- 4
@@ -190,15 +187,15 @@ round(test,0)
 test <- as.data.frame.matrix(questionr::wtd.table(forestStands$gestion, forestStands$COMMENT, weights = forestStands$AREA/10000, digits=0))
 round(test,0)
 
-# TODO: arriver a ce stade -> executer tous les scenarios de gestion avec le même forestPLot
-# (car attention -> processus rdm en amont)
 
 # write full table
+forestStands$geom <- NULL
 write.table(forestStands, file="./output/forestStandsFULL.txt", row.names = FALSE, quote = FALSE, sep = '\t')
 
 
+# forestStands[, c('nonHarv', 'dist', 'Gsp1', 'Gsp2', 'G', 'proba', 'surface', 'geom','meanParcelleArea', 'gestion', 'typologie', 'RDI1', 'RDI2', 'RDI', 'Dgtot', 'probaDg', 'probaRDI', 'jointProba', 'area')] <- NULL
 
-forestStands[, c('nonHarv', 'dist', 'distWithNA', 'Gsp1', 'Gsp2', 'G', 'proba', 'surface', 'mnPrclA', 'gestion', 'typologie', 'RDI1', 'RDI2', 'RDI', 'Ntot', 'Dgtot', 'probaDg', 'probaRDI', 'jointProba')] <- NULL
+forestStands <- forestStands[,c("STAND_ID", "FOREST_TYPE_CODE", "FOREST_TYPE_NAME", "AREA", "SITE_INDEX_1", "NHA_1", "AGE_1", "HDOM_1", "DDOM_1", "HG_1", "DG_1", "SITE_INDEX_2", "NHA_2", "AGE_2", "HDOM_2", "DDOM_2", "HG_2", "DG_2", "EXPLOITABILITY", "DOMAINE_TYPE", "FOREST", "INVENTORY_DATE", "DEPARTMENT", "CITY", "COMMENT", "WKT-GEOM")]
 
 ###############################################################
 # create management scenario java file to run SIMMEM

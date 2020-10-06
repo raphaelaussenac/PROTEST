@@ -26,7 +26,6 @@ forestStandsSiteIndex <- forestStands
 rm(list=setdiff(ls(), c('forestStandsSiteIndex', 'mod03', 'mod09', 'mod61', 'mod62', 'predFert', 'user')))
 
 # compo g Dg and N
-dev.new()
 source(paste0(user$WorkingDir,"/src/gDgN.R"))
 
 forestStands
@@ -44,6 +43,12 @@ forestStandsSiteIndex@data[forestStandsSiteIndex@data$WKTid %in% disapearedPlots
 table(forestStandsSiteIndex$CODE_TF)
 table(forestStandsCompogDgN$CODE_TF)
 
+load(file="data/forestStands03a.rda")
+
+# missing stands : 5 polygons, 8.6 ha
+disapearedPlots <- forestStands$WKTid[!is.element(forestStands$WKTid, forestStandsCompogDgN$WKTid)]
+disapearedPlots <- unique(disapearedPlots, forestStands$WKTid[!is.element(forestStands$WKTid, forestStandsSiteIndex$WKTid)])
+
 ###############################################################
 # merge
 ###############################################################
@@ -57,16 +62,10 @@ forestStands <- merge(forestStandsSiteIndex[, c('WKTid', 'pot03', 'pot03Epsilon'
                                                 "nOak", "nFir", "nSpruce")],
                       by = 'WKTid')
 
-# retrieve spatial extent
-xmin <- extent(forestStands)@xmin
-ymin <- extent(forestStands)@ymin
-xmax <- extent(forestStands)@xmax
-ymax <- extent(forestStands)@ymax
-
-############### HERE CHECK DISAPPEARED PLOTS
-
 # remove 'disapearedPlots'
 forestStands <- forestStands[!forestStands$WKTid %in% disapearedPlots, ]
+
+
 
 # add geometry attribute and keep only data.frame
 sf.forestStands <- sf::st_as_sf(forestStands)

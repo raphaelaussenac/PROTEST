@@ -70,7 +70,6 @@ if (0)
 #
 # load rasterized cadastre
 if (user$confinement) {cadastreR <- raster("./data/cadastreAREA.tif")} else {cadastreR <- raster(paste0(user$NetworkProtestDir, "T1/Donnees_SIG/Cadastre/cadastreAREA.tif"))}
-cadastreR <- raster(paste0(user$NetworkProtestDir, "T1/Donnees_SIG/Cadastre/cadastreAREA.tif"))
 
 ###############################################################
 # land ownership
@@ -242,18 +241,24 @@ forestStands$access <- paste('dist', round(forestStands$dist), 'harv', forestSta
 # compute area
 forestStands$area <- sf::st_area(forestStands)
 
-# remove forest plots where owner ==  NA (3)
-sum(is.na(forestStands$owner))
-sum(forestStands$area[is.na(forestStands$owner)])
-forestStands <- forestStands[!is.na(forestStands$owner), ]
 
-# for 17 stands located inside or along the riverbed of Isere, there are no parcells in the cadastre
-# stand are removed
-sum(is.na(forestStands$meanParcelleArea))
-sum(forestStands$area[is.na(forestStands$meanParcelleArea)])/10000
-forestStands <- forestStands[!is.na(forestStands$meanParcelleArea), ]
 
-if (!user$mihai) {save(forestStands, file="forestStands03c.rda")}
+if (!user$mihai)
+{
+  # remove forest plots where owner ==  NA (4, 26m2)
+  sum(is.na(forestStands$owner))
+  sum(forestStands$area[is.na(forestStands$owner)])
+  forestStands <- forestStands[!is.na(forestStands$owner), ]
+  
+  # for 19 stands (16.9 ha) located inside or along the riverbed of Isere, there are no parcells in the cadastre
+  # stand are removed
+  sum(is.na(forestStands$meanParcelleArea))
+  sum(forestStands$area[is.na(forestStands$meanParcelleArea)])
+  forestStands <- forestStands[!is.na(forestStands$meanParcelleArea), ]
+  #
+  # save
+  save(forestStands, file="forestStands03c.rda")
+  }
 
 
 ############################
