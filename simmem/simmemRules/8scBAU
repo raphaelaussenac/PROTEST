@@ -34,7 +34,7 @@
           </entry>
           <entry>
             <simmem.model.SimSpecies reference="../../../../../../simmem.model.rule.SimRule[2]/actions/simmem.model.rule.ClearCuttingAction/ddomMap/entry[3]/simmem.model.SimSpecies"/>
-            <int>2</int>
+            <int>0</int>
           </entry>
           <entry>
             <simmem.model.SimSpecies reference="../../../../../../simmem.model.rule.SimRule[2]/actions/simmem.model.rule.ClearCuttingAction/ddomMap/entry[4]/simmem.model.SimSpecies"/>

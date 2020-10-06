@@ -11,9 +11,8 @@ if (user[[1]]=="raph")
 # define path variables
 if (user[[1]]=="jm")
 {
-  user$WorkingDir <- "/media/data/R/packages/PROTEST"
-  # user$WorkingDir <- "/home/jean-matthieu/R/PROTEST"
-  user$NetworkProtestDir <- "/media/reseau/lessem/ProjetsCommuns/PROTEST/"
-  user$confinement <- FALSE
+  # user$WorkingDir <- "/media/data/R/packages/PROTEST"
+  user$WorkingDir <- "/home/jean-matthieu/R/PROTEST/"
+  user$NetworkProtestDir <- user$WorkingDir #"/media/reseau/lessem/ProjetsCommuns/PROTEST/"
 }
 

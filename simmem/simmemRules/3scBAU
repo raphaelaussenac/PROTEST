@@ -28,7 +28,7 @@
               <maxDdom>70.0</maxDdom>
               <defaultFallow>0</defaultFallow>
             </simmem.model.SimSpecies>
-            <double>20.0</double>
+            <double>30.0</double>
           </entry>
           <entry>
             <simmem.model.SimSpecies>
@@ -44,7 +44,7 @@
               <maxDdom>60.0</maxDdom>
               <defaultFallow>0</defaultFallow>
             </simmem.model.SimSpecies>
-            <double>20.0</double>
+            <double>30.0</double>
           </entry>
         </ddomMap>
         <fallowMap>
@@ -58,7 +58,7 @@
           </entry>
           <entry>
             <simmem.model.SimSpecies reference="../../../ddomMap/entry[3]/simmem.model.SimSpecies"/>
-            <int>2</int>
+            <int>0</int>
           </entry>
           <entry>
             <simmem.model.SimSpecies reference="../../../ddomMap/entry[4]/simmem.model.SimSpecies"/>

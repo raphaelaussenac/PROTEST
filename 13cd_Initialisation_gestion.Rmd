@@ -1,0 +1,181 @@
+---
+title: Initialisation de la gestion forestière, scénario BAU
+subtitle: Parc naturel régional du Massif des Bauges
+author: "Raphaël Aussenac, Jean-Matthieu MONNET, Patrick Vallet"
+date: "6 octobre 2020"
+output:
+  html_document:
+    self_contained: TRUE
+    number_sections: true
+    toc: true
+    toc_depth: 2
+  pdf_document:
+    number_sections: true
+    fig_caption: yes
+  word_document: default
+urlcolor: blue
+---
+
+```{r setup, include=FALSE}
+rm(list=ls())
+library(knitr)
+knitr::opts_chunk$set(echo = TRUE, fig.width=12, fig.height=8)
+# library(kableExtra)
+#library(rgl)
+#knit_hooks$set(webgl = hook_webgl)
+options(scipen=999)
+# wkhtmltopdf -B 15 -L 15 -R 15 -T 15 fiche-observatoire.html fiche-observatoire.pdf
+```
+
+---
+# Introduction {-}
+
+La procédure précédente (cf document 13ab_Initialisation_biophys.Rmd) a permis de découper les forêts du PNR du Massif des Bauges en un ensemble de polygones, et de leur affecter des caractéristiques forestières initiales (composition, dendrométrie) ainsi qu'un indice de fertilité. La procédure qui suit vise à leur attribuer des itinéraires de gestion sylvicole, et à préparer les fichiers d'entrée qui permettront au module CAPSIS SIMMEM de simuler l'évolution de ces peuplements, selon le scénario "BAU".
+
+Plusieurs variables sont jugées importantes pour déterminer si les peuplements sont gérés, et le cas échéant, quel itinéaire sylvicole leur est appliqué :
+
+* la propriété (publique / privé)
+- la taille moyenne des parcelles cadastrales
+- les conditions d'accessibilité.
+
+Les étapes suivantes sont réalisées pour affecter un itinéraire sylvicole à chaque polygone :
+
+* extraction des variables pour chaque polygone
+- modélisation de la probabilité de gestion / non-gestion
+- affectation d'un itinéraire.
+
+```{r charge.donnees.peuplement, echo=FALSE, warning=FALSE, message=FALSE}
+# load full file
+forestStands <- read.table("./output/forestStandsFULL.txt", header=TRUE, sep = '\t')
+forestStands$`WKT-GEOM` <- as.character(forestStands$`WKT.GEOM`)
+forestStands <- sf::st_sf(forestStands[,-which(names(forestStands)=="WKT-GEOM")], geom=sf::st_as_sfc(forestStands$`WKT-GEOM`))
+sf::st_crs(forestStands) <- 2154
+```
+
+Les cartes des polygones présentées ensuite sont basées sur les polygones subsistant à la fin de l'ensemble du processus d'initialisation. Une minorité d'entre eux est enlevée en cours de traitement car il n'est pas possible de leur affecter les valeurs nécessaires aux simulations.
+
+# Extraction des variables
+
+L'extraction est réalisée par le script "03c_extract_anthr.R".
+
+## Propriété et parcellaire
+
+### Superficie des parcelles cadastrales
+
+La couche de la taille de la parcelle est obtenue à partir de la couche vecteur BD PARCELLAIRE v1.2. La surface de chaque polygone est calculée. Puis ces valeurs de surface sont rasterisées au pas de 5 m. La superficie moyenne des parcelles cadastrales est calculée comme la moyenne des pixels contenus pour chaque polygone.
+
+```{r carte.taille.parcelle, echo=FALSE, warning=FALSE, message=FALSE}
+par(mfrow=c(1,1))
+plot(forestStands["surface"], border=NA, main="Surface cadastrale moyenne (ha)", logz=TRUE)
+```
+
+### Public et privé
+
+La couche des forêts publiques est rasterisée au pas de 5 m. Les forêts hors de cette emprise sont considérées comme étant des forêts privées. Chaque polygone est affecté à la catégorie public ou privé selon la valeur majoritaire des pixels qu'il contient.
+
+```{r carte.propriete, echo=FALSE, warning=FALSE, message=FALSE}
+par(mfrow=c(1,1))
+levels(forestStands$DOMAINE_TYPE) <- ifelse(levels(forestStands$DOMAINE_TYPE)=="Priv", "Privé", "Public")
+plot(forestStands["DOMAINE_TYPE"], border=NA, main="Propriété",col=ifelse(forestStands$DOMAINE_TYPE=="Privé", "green","blue"))
+legend("topright", c("Privé", "Public"), fill=c("green", "blue"))
+```
+
+## Accessibilité
+
+Le modèle Sylvaccess est utilisé sur le territoire du PNR pour cartographier les zones bûcheronnables et celles accessibles aux engins forestiers (cf. livrable 1.3A).
+
+Un polygone est considéré comme non-bûcheronnable si il contient au minimum 35,15% de pixels classés non-bûcheronnable. Ce seuil est choisi car il permet de conserver la surface totale non-bûcheronnable sur l'ensemble du territoire. Les pixels non-bûcheronnables formant rarement de grands ensembles contigus, l'utilisation d'un seuil à 50% conduirait à une surface totale des polygones classés "non-bûcheronnables" inférieure à la surface totale des pixels classés "non-bûcheronnables".
+
+Pour la même raison de conservation des surfaces entre la carte raster et la carte des polygones, un polygone est considéré comme non accessible aux engins si le nombre de pixels non accessibles est supérieur à 0,85 fois le nombre de pixels accessibles.
+
+Pour les polygones accessibles, la distance moyenne de débardage est égale à la moyenne des distances des pixels accessibles.
+
+```{r carte.accessibilite, echo=FALSE, warning=FALSE, message=FALSE}
+par(mfrow=c(1,2))
+plot(forestStands["gestion"], border=NA, main="Accessibilité", col=ifelse(forestStands$gestion=="NonAcc", "pink", ifelse(forestStands$gestion=="NonBuch", "purple", ifelse(forestStands$dist>=2000, "yellow", "green" ))))
+legend("topright", c("Accessible <2km", "Accessible >2km", "Non accessible", "Non bûcheronnable"), fill=c("green", "yellow", "pink", "purple"))
+# plot(forestStands["dist"], border=NA, main="Distance forêt-route (m), polygones <2km")
+```
+
+## Nettoyage des polygones
+
+Le nombre de polygones est ???, pour 52825 ha. Le nettoyage est effectué de manière séquentielle.
+
+4 polygones n'ont pas d'information de propriété. Ils totalisent 26 m2, ils sont supprimés.
+
+19 des polygones restants n'ont pas de taille moyenne de parcelle cadastrale. Ils sont situés le long de l'Isère et totalisent 17 ha. Ils sont supprimés.
+
+Le nombre final de polygones est de ???, pour ??? ha.
+
+# Gestion / non-gestion
+
+Cette étape est réalisée par le script "03d_model_anthr.R", qui s'occupe également de l'affectation des itinéraires, ainsi que de la mise au format SIMMEM.
+
+## Modélisation de la probabilité de gestion
+
+Dans le cadre du projet OUI-GEF, une enquête a été mise en oeuvre par Mihai Tivadar (UR LESSEM, INRAE Grenoble) sur les conditions influençant la gestion des parcelles. Sur le massif des Bauges, 311 parcelles ont été enquêtées. On s'intéresse notamment à la réponse à la question : "avez-vous réalisé une opération de gestion sur votre parcelle ?". Plusieurs choix étaient proposés, la réponse a été convertie en réponse binaire oui/non. Pour chaque parcelle enquêtée sont extraites les variables suivantes, de la même manière que pour les polygones :
+
+* surface cadastrale $surface$,
+- distance moyenne de débardage $dist$.
+
+Un modèle linéaire généralisé avec une loi binomiale est utilisé pour modéliser la probabilité de gestion en fonction de deux variables : le logarithme de $surface$ et la variable $(dist - 1000) \times (dist < 2000)$ qui tient compte de l'effet de la distance de débardage pour les distances inférieures à 2000 m.
+
+Ce modèle est ensuite appliqué aux polygones en propriété privée pour estimer la probabilité de gestion. Pour les polygones en forêt publique, on définit arbitrairement la probabilité de gestion comme étant de 1 pour une distance de débardage de 0 m, et décroissant linéairement à 0,8 pour une distance de débardage de 2000 m.
+
+Les polygones avec une distance de débardage supérieure à 2000 m, ou se trouvant en zone non débardable ou non bûcheronnable sont affectés d'une probabilité de gestion de 0.
+
+
+```{r modele.gestion, echo=FALSE, warning=FALSE, message=FALSE}
+par(mfrow=c(1,2))
+plot(forestStands$dist, forestStands$proba, col=forestStands$DOMAINE_TYPE, xlab="Distance (m)", ylab="Probabilité de gestion", cex=0.5, main="Probabilité de gestion estimée")
+legend("topright", c("Public","Privé"), fill=c("red", "black"))
+plot(log(forestStands$surface), forestStands$proba, col=forestStands$DOMAINE_TYPE, xlab="Surface cadastrale moyenne (ha)", ylab="Probabilité de gestion", cex=0.5, main="Probabilité de gestion estimée")
+```
+
+## Choix gestion / non-gestion
+
+Un tirage au sort est ensuite effectué selon un loi uniforme entre 0 et 1 pour déterminer si une parcelle est gérée (valeur inférieure à la probabilité modélisée) ou non. Les parcelles non bûcheronnables ou situées à plus de 2 km d'une route forestière sont donc systématiquement non-gérés, pour les autres cela dépend de la surface moyenne des parcelles cadastrales qu'ils contiennent (pour les forêts privées), ou de la distance à la route forestière. Les résultats sont présentés sur les figures suivantes.
+
+```{r carte.gestion, echo=FALSE, warning=FALSE, message=FALSE}
+par(mfrow=c(1,2))
+plot(forestStands["proba"], border=NA, main="Probabilité de gestion")
+levels(forestStands$gestion) <- gsub("AccGere", "Accessible géré", levels(forestStands$gestion))
+levels(forestStands$gestion) <- gsub("AccNonGere", "Accessible non géré", levels(forestStands$gestion))
+levels(forestStands$gestion) <- gsub("NonAcc", "Non accessible", levels(forestStands$gestion))
+levels(forestStands$gestion) <- gsub("NonBuch", "Non bûcheronnable", levels(forestStands$gestion))
+plot(forestStands["gestion"], border=NA, main="Gestion", col=ifelse(forestStands$gestion=="Non bûcheronnable", "purple", ifelse(forestStands$gestion=="Non accessible", "pink", ifelse(forestStands$gestion=="Accessible géré", "green", "yellow"))))
+legend("topright", c("Accessible géré", "Accessible non géré", "Non accessible", "Non bûcheronnable"), fill=c("green", "yellow", "pink", "purple"))
+```
+
+# Affectation des itinéraires
+
+Afin de limiter la quantité de paramétrage à effectuer pour les itinéraires, il a été choisi de limiter à la fois le nombre d'itinéraires sylvicoles, et le nombre de catégories de peuplements.
+
+## Typologie des peuplements
+
+On considère que les itinéraires appliqués vont dépendre de la propriété (public / privé) et de la composition en essence. Une typologie des peuplements selon ces deux critères est donc proposée :
+
+* sapin et/ou épicéa en public
+- sapin et/ou épicéa en privé
+- mixte public : hêtre et (sapin ou épicéa) en public
+- mixte privé : hêtre et (sapin ou épicéa) en privé
+- hêtre pur
+- autres feuillus
+
+```{r typologie, echo=FALSE, warning=FALSE, message=FALSE}
+# gestion et type de peuplements
+# par(mfrow=c(1,2))
+tab.typo.gestion <- as.data.frame.matrix(questionr::wtd.table(forestStands$typologie, forestStands$gestion, weights = forestStands$AREA/10000, digits=0))
+tab.typo.gestion <- as.matrix(t(tab.typo.gestion))
+#
+tab.typo <- apply(tab.typo.gestion, 2, sum)
+pie(tab.typo, col=c("red", "orange", "green", "cyan", "darkgreen", "blue"), labels=paste(names(tab.typo), round(tab.typo/sum(tab.typo)*100, 1)))
+plot(forestStands["typologie"], border=NA, key.pos=NULL, pal=c("red", "orange", "green", "cyan", "darkgreen", "blue"), main="Typologie des polygones")
+```
+
+## Typologie des itinéraires
+
+Les itinéraires proposés sont les suivants :
+
+* inaction
+- 

@@ -2,7 +2,7 @@
 # COMPOSITION DONE - NOW MANAGEMENT
 # 
 rm(list = setdiff(ls(),"user"))
-load(file="forestStands03c.rda")
+load(file="./data/forestStands03c.rda")
 #
 # DOMAINE_TYPE
 colnames(forestStands)[colnames(forestStands) == "owner"] <- 'DOMAINE_TYPE'

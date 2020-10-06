@@ -69,7 +69,7 @@ if (0)
 }
 #
 # load rasterized cadastre
-if (user$confinement) {cadastreR <- raster("./data/cadastreAREA.tif")} else {cadastreR <- raster(paste0(user$NetworkProtestDir, "T1/Donnees_SIG/Cadastre/cadastreAREA.tif"))}
+cadastreR <- raster(paste0(user$NetworkProtestDir, "T1/Donnees_SIG/Cadastre/cadastreAREA.tif"))
 
 ###############################################################
 # land ownership
@@ -257,7 +257,7 @@ if (!user$mihai)
   forestStands <- forestStands[!is.na(forestStands$meanParcelleArea), ]
   #
   # save
-  save(forestStands, file="forestStands03c.rda")
+  save(forestStands, file="./data/forestStands03c.rda")
   }
 
 

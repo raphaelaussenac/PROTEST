@@ -1,9 +1,6 @@
 # clean up environment
 rm(list = setdiff(ls(), "user"))
 
-# REORGANISER SCRIPTS : FAIRE MODELISATION COMPO ET DENDRO PUIS POINT DE SAUVEGARDE
-# ENSUITE POSSIBILITE DE MODIFIER GESTION OU NON ET ITINERAIRE AVANT EXPORT
-
 # load packages
 library(plyr)
 library(reshape2)

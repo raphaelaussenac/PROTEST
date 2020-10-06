@@ -1,5 +1,5 @@
 ---
-title: Initialisation du territoire forestier
+title: Initialisation des peuplements forestiers
 subtitle: Parc naturel régional du Massif des Bauges
 author: "Raphaël Aussenac, Jean-Matthieu MONNET, Patrick Vallet"
 date: "5 octobre 2020"
@@ -62,7 +62,7 @@ forestStands <- sf::st_sf(forestStands[,-which(names(forestStands)=="WKT.GEOM")]
 sf::st_crs(forestStands) <- 2154
 ```
 
-L'emprise des forêts dont l'évolution est simulée est définie par la BD Forêt v2, en excluant les catégories "landes", "formation herbacées", "peupleraies".
+L'emprise des forêts dont l'évolution est simulée est définie par la BD Forêt v2, en excluant les catégories "landes", "formations herbacées", "peupleraies".
 
 L'entrée principale pour le paramétrage de la croissance des peuplements étant les essences, les polygones définis par les catégories TFV de la BD Forêt de l'IFN sont utilisés comme base pour le découpage du territoire.  
 D'autres entrées sont jugées importantes pour déterminer si les peuplements sont gérés, et le cas échéant, quel itinéaire sylvicole leur est appliqué :
@@ -73,7 +73,7 @@ D'autres entrées sont jugées importantes pour déterminer si les peuplements s
 
 Le découpage du territoire selon toutes ces catégories aurait résulté en un nombre trop grand de polygones, il a été décidé de découper itérativement les polygones TFV de la BD Forêt en polygones d'une taille maximale de 3 ha. Cette surface permet d'atteindre un compromis entre le nombre de polygones à traiter (environ `r round(nrow(forestStands), -3)`) et une taille de polygone assurant une certaine homogénéité du peuplement.
 
-Le découpage de la BD Forêt a été réalisé avec l'outil ShapeTools. Les données sont préparées avant découpage par le script "01_prepForShptool.R". Une étape supplémentaire visant à raccrocher des polygones très petits à un polygone adjacent plus gros de même catégorie TFV a été ajoutée (script "02_polyMerge"). Il peut donc exister dans le découpage des polygones légèrement plus grands que 3 ha. La surface moyenne est de `r round(mean(forestStands$AREA/10000), 1)` ha avec un écart-type de `r round(sd(forestStands$AREA/10000), 1)`. Le nombre de polygones est de 26876, pour une surface totale de 52825 ha.
+Le découpage de la BD Forêt a été réalisé avec l'outil ShapeTools. Les données sont préparées avant découpage par le script "01_prepForShptool.R". Une étape supplémentaire visant à raccrocher des polygones très petits à un polygone adjacent plus gros de même catégorie TFV a été ajoutée (script "02_polyMerge.R"). Il peut donc exister dans le découpage des polygones légèrement plus grands que 3 ha. La surface moyenne est de `r round(mean(forestStands$AREA/10000), 1)` ha avec un écart-type de `r round(sd(forestStands$AREA/10000), 1)`. Le nombre de polygones est de 26876, pour une surface totale de 52825 ha.
 
 ```{r histo.surface, echo=FALSE, warning=FALSE, message=FALSE}
 # load full file
@@ -167,7 +167,7 @@ Les valeurs moyennes de ces deux rasters ainsi que des rasters d'altitude et de 
 * sur une emprise circulaire de 15 m autour du centre de chaque placette IFN ;
 - sur l'emprise de chaque polygone.
 
-La pente  ($slope$) est ensuite convertie en pourcentage.
+La pente ($slope$) est ensuite convertie en pourcentage.
 
 ### Géologie
 
@@ -216,9 +216,9 @@ On vérifie tout d'abord qu'aucun polygone n'a pour classe géologique "hydro" (
 
 76 polygones ont une valeur NA pour la surface terrière. Ils totalisent moins de 1 ha. Il s'agit de polygones très petits (plus de 50 font moins de 100 m^2^). Une rasterisation de la BD Forêt à résolution 25 m sert de masque pour les rasters de prédiction de paramètres dendrométriques. Du fait de leur taille et de leur localisation, ces polygones se retrouvent donc hors de la BD Forêt rasterisée et aucune valeur ne leur est attribuée. Ils sont supprimés.
 
-13 des polygones restant ont une valeur nulle pour la surface terrière. Ils totalisent 18 ha, il s'agit principalement de polygones situés sur une zone non couverte par l'acquisition Lidar. Ils sont supprimés.
+13 des polygones restants ont une valeur nulle pour la surface terrière. Ils totalisent 18 ha, il s'agit principalement de polygones situés sur une zone non couverte par l'acquisition Lidar. Ils sont supprimés.
 
-107 des polygones restant ont une valeur nulle pour le diamètre quadratique moyen. Ils totalisent 212 ha, il s'agit principalement de polygones situés dans les vallées périphériques. Ils sont supprimés.
+107 des polygones restants ont une valeur nulle pour le diamètre quadratique moyen. Ils totalisent 212 ha, il s'agit principalement de polygones situés dans les vallées périphériques. Ils sont supprimés.
 
 Le nombre final de polygones est de 26680, pour 52594 ha.
 

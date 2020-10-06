@@ -40,7 +40,7 @@ ownership <- raster::raster(paste0(user$NetworkProtestDir, "T1/Donnees_SIG/BDFor
 ###############################################################
 # elevation
 #
-if (user$confinement) {elev <- raster("./data/MNT_all_5m.tif")} else {elev <- raster(paste0(user$NetworkProtestDir, "T1/Donnees_SIG/MNT/MNT_all_5m.tif"))}
+elev <- raster(paste0(user$NetworkProtestDir, "T1/Donnees_SIG/MNT/MNT_all_5m.tif"))
 #
 # set projection
 elev@crs <- pnr@proj4string
@@ -221,7 +221,7 @@ if (!user$mihai)
   forestStands$id <- NULL
 } else {
   # parcelles enquetees
-  if (user$confinement)
+  if (user$local)
   {
     forestStands <-rgdal::readOGR("/media/reseau/jmm/Private/datadisk/travaux/projets/ouigef/Mihai", layer="EnqOG_Bauges", encoding="latin1")
   }
@@ -538,7 +538,7 @@ forestStands <- merge(forestStands, classGeol, by.x = "geolNotation", by.y = 'NO
 if (!user$mihai)
 {
   forestStands03aNotCleaned <- forestStands
-  save(forestStands03aNotCleaned, file="forestStands03aNotCleaned.rda")
+  save(forestStands03aNotCleaned, file="./data/forestStands03aNotCleaned.rda")
   rm(forestStands03aNotCleaned)
   ###############################################################
   # filters
