@@ -643,7 +643,7 @@ animatedhist <- gganimate::animate(movinghist, width = 600, height = 600)
 magick::image_write(animatedhist, path="hist_basalarea.gif")
 
 ```
-# ![Histogramme de l'évolution de la surface terrière.](hist_basalarea.gif)
+<!-- # ![Histogramme de l'évolution de la surface terrière.](hist_basalarea.gif) -->
 
 
 ```{r evolution.harv3, echo=FALSE, warning=FALSE, message=FALSE}
