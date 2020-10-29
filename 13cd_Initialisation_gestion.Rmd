@@ -101,7 +101,7 @@ legend("topright", c("Accessible <2km", "Accessible >2km", "Non accessible", "No
 
 Le nombre de polygones est ???, pour 52825 ha. Le nettoyage est effectué de manière séquentielle.
 
-4 polygones n'ont pas d'information de propriété. Ils totalisent 26 m2, ils sont supprimés.
+4 polygones n'ont pas d'information de propriété. Ils totalisent 26 m^2^, ils sont supprimés.
 
 19 des polygones restants n'ont pas de taille moyenne de parcelle cadastrale. Ils sont situés le long de l'Isère et totalisent 17 ha. Ils sont supprimés.
 
@@ -129,7 +129,7 @@ Les polygones avec une distance de débardage supérieure à 2000 m, ou se trouv
 par(mfrow=c(1,2))
 plot(forestStands$dist, forestStands$proba, col=forestStands$DOMAINE_TYPE, xlab="Distance (m)", ylab="Probabilité de gestion", cex=0.5, main="Probabilité de gestion estimée")
 legend("topright", c("Public","Privé"), fill=c("red", "black"))
-plot(log(forestStands$surface), forestStands$proba, col=forestStands$DOMAINE_TYPE, xlab="Surface cadastrale moyenne (ha)", ylab="Probabilité de gestion", cex=0.5, main="Probabilité de gestion estimée")
+plot(log(forestStands$surface), forestStands$proba, col=forestStands$DOMAINE_TYPE, xlab="Logarithme de la surface cadastrale moyenne (ha)", ylab="Probabilité de gestion", cex=0.5, main="Probabilité de gestion estimée")
 ```
 
 ## Choix gestion / non-gestion
@@ -143,11 +143,27 @@ levels(forestStands$gestion) <- gsub("AccGere", "Accessible géré", levels(fore
 levels(forestStands$gestion) <- gsub("AccNonGere", "Accessible non géré", levels(forestStands$gestion))
 levels(forestStands$gestion) <- gsub("NonAcc", "Non accessible", levels(forestStands$gestion))
 levels(forestStands$gestion) <- gsub("NonBuch", "Non bûcheronnable", levels(forestStands$gestion))
-plot(forestStands["gestion"], border=NA, main="Gestion", col=ifelse(forestStands$gestion=="Non bûcheronnable", "purple", ifelse(forestStands$gestion=="Non accessible", "pink", ifelse(forestStands$gestion=="Accessible géré", "green", "yellow"))))
-legend("topright", c("Accessible géré", "Accessible non géré", "Non accessible", "Non bûcheronnable"), fill=c("green", "yellow", "pink", "purple"))
+plot(forestStands["gestion"], border=NA, main="Gestion", col=ifelse(forestStands$gestion=="Non bûcheronnable", "purple", ifelse(forestStands$gestion=="Non accessible", "pink", ifelse(forestStands$gestion=="Accessible géré", "blue", "red"))))
+legend("topright", c("Accessible géré", "Accessible non géré", "Non accessible", "Non bûcheronnable"), fill=c("blue", "red", "pink", "purple"))
+```
+La répartition des types de polygones selon la gestion (ou non) est présentée dans les figures ci-dessous.
+
+```{r gestion.typo, echo=FALSE, warning=FALSE, message=FALSE}
+# gestion et type de peuplements
+tab.typo.gestion <- as.data.frame.matrix(questionr::wtd.table(forestStands$typologie, forestStands$gestion, weights = forestStands$AREA/10000, digits=0))
+tab.typo.gestion <- as.matrix(t(tab.typo.gestion))
+#
+# tab.typo <- apply(tab.typo.gestion, 2, sum)
+#
+par(mar=c(7,4,2,2))
+par(mfrow=c(1,2))
+barplot(tab.typo.gestion, col=c("blue", "red", "pink", "purple"), las=2, cex.names=0.8, main="Surface (ha)")
+# legend("topright", c("Accessible géré", "Accessible non géré", "Non débardable", "Non bûcheronnable"), fill=c("green", "blue", "pink", "purple"), cex=0.7)
+barplot(apply(tab.typo.gestion, 2, function(x){x/sum(x)*100}), width=apply(tab.typo.gestion, 2, sum), col=c("blue", "red", "pink", "purple"), las=2, cex.names=0.8, main="Pourcentage")
 ```
 
-# Affectation des itinéraires
+
+# Affectation des itinéraires sylvicoles
 
 Afin de limiter la quantité de paramétrage à effectuer pour les itinéraires, il a été choisi de limiter à la fois le nombre d'itinéraires sylvicoles, et le nombre de catégories de peuplements.
 
@@ -173,9 +189,104 @@ pie(tab.typo, col=c("red", "orange", "green", "cyan", "darkgreen", "blue"), labe
 plot(forestStands["typologie"], border=NA, key.pos=NULL, pal=c("red", "orange", "green", "cyan", "darkgreen", "blue"), main="Typologie des polygones")
 ```
 
+Pour chaque polygone, la valeur de RDI est calculée pour chaque espèce du mélange (le cas échéant) et pour l'ensemble du peuplement. Sur la base du RDI et du diamètre quadratique du polygone, une probabilité d'être un peuplement irrégulier est calculée (script code1.R)
+
 ## Typologie des itinéraires
 
-Les itinéraires proposés sont les suivants :
+Les itinéraires proposés et leur implémentation dans le simulateur sont décrits ci-dessous :
 
-* inaction
-- 
+* Amélioration puis coupe rase : les sous-itinéraires sont caractérisés par des plages de RDI autorisées de 0,6 $\pm$ 0,05 et 0,7 $\pm$ 0,05. L'éclaircie se fait plutôt parmi les arbres les plus petits (Kg=0,9). L'ensemble du peuplement est coupé quand le diamètre objectif est atteint.
+- Coupe rase : la coupe est déclenchée uniquement quand le diamètre objectif est atteint. Le RDI est maintenu au-dessous de 1 par mortalité.
+- Irrégulier : les trois sous-itinéraires sont caractérisés par des plages de RDI autorisées de 0,5 $\pm$ 0,1 (clair), 0,7 $\pm$ 0,1 (moyen) et 0,9 $\pm$ 0,1 (dense). L'éclaircie se fait plutôt parmi les arbres les plus gros (Kg=1,5 par défaut), de manière permanente car le diamètre objectif fixé (200) est impossible à atteindre.
+- Inaction : la mortalité s'applique pour maintenir le RDI au-dessous de 1.
+
+Dans le cas de peuplements mélangés, le comportement par défaut du simulateur est de tendre vers l'équilibre des deux espèces.
+
+##  Répartition des itinéraires
+
+Chaque scénario se caractérise par une matrice de répartition de chaque catégorie de peuplement dans les différents itinéraires. Tout d'abord les polygones non-bucheronnables sont placés en "Inaction". Pour autres polygones c'est à dire ceux que l'on peut atteindre, un premier tableau de répartition a été proposé par FCBA sur la base de l'analyse des structures des placettes PROTEST et IFN (ces placettes étant jugés représentatives des peuplements qu'il est possible d'atteindre).
+
+### Affectaction des polygones bûcheronnables aux itinéraires
+
+Pour chaque catégorie de polygones, les étapes successives pour l'affectaction des polygones bucheronnables aux itinéraires sont (script "src/sc1_BAU.R" contenant les proportions, et qui appelle des fonctions définies dans "src/management.R") :
+
+* Les polygones considérés comme non-gérés sont placés en "Inaction". Si le pourcentage de polygones placés en "Inaction" est supérieur au pourcentage indiqué dans la matrice, alors le pourcentage des autres itinéraires est modifié par réduction en proportion de leurs valeurs respectives. Sinon des peuplements tirés au sort sont affectés en "Inaction" jusqu'à que le pourcentage indiqué dans la matrice soit atteint.
+- Parmi les polygones restants, des polygones sont affectés à l'itinéraires "Irrégulier" jusqu'à atteindre le pourcentage indiqué, par tirage au sort prenant en compte la probabilité des polygones d'être des peuplements irréguliers.
+- Parmi les polygones restants, des polygones sont affectés par tirage au sort à l'itinéraire "Coupe Rase" jusqu'à atteindre le pourcentage indiqué.
+- Parmi les polygones restants, des polygones sont affectés par tirage au sort à l'itinéraire "Amélioration puis coupe Rase" jusqu'à atteindre le pourcentage indiqué (en théorie il s'agit de tous les polygones restants).
+
+La répartition finale des itinéraires est la suivante:
+```{r itineraire, echo=FALSE, warning=FALSE, message=FALSE}
+# itineraire
+forestStands$itineraire <- factor(ifelse(substr(forestStands$COMMENT,1,2)=="Co", "Inaction",
+                                  ifelse(substr(forestStands$COMMENT,1,2)=="Ir", "Irrégulier",
+                                         ifelse(substr(forestStands$COMMENT,1,2)=="Th", "Amélioration","Coupe rase"))))
+# gestion et type de peuplements
+tab.typo.itineraire <- as.data.frame.matrix(questionr::wtd.table(forestStands$typologie, forestStands$itineraire, weights = forestStands$AREA/10000, digits=0))
+tab.typo.itineraire <- as.matrix(t(tab.typo.itineraire))
+tab.typo.itineraire <- tab.typo.itineraire[c(2,1,4,3),]
+#
+tab.itineraire <- apply(tab.typo.itineraire, 1, sum)
+pie(tab.itineraire, col=c("red", "orange", "yellow", "darkgrey"), labels=paste(names(tab.itineraire), round(tab.itineraire/sum(tab.itineraire)*100, 1)), main="Pourcentage des itinéraires")
+plot(forestStands["itineraire"], pal=c("orange", "red", "darkgrey", "yellow"), border=NA, key.pos=1)
+```
+
+```{r itineraire.typo, echo=FALSE, warning=FALSE, message=FALSE}
+par(mar=c(7,4,2,2))
+par(mfrow=c(1,2))
+barplot(tab.typo.itineraire, col=c("red", "orange", "yellow", "darkgrey"), las=2, cex.names = 0.8, main="Surface (ha)")
+# legend("topright", row.names(tab.typo.itineraire), fill=c("orange", "red", "darkgrey", "yellow"))
+barplot(apply(tab.typo.itineraire, 2, function(x){x/sum(x)*100}), width=apply(tab.typo.itineraire, 2, sum), col=c("red", "orange", "yellow", "darkgrey"), las=2, cex.names = 0.8, main="Pourcentage")
+```
+
+### Affectation aux sous-itinéraires
+
+Afin de limiter les coupes initiales de rattrapage lorsque des peuplements avec un fort RDI sont affectés à un itinéraire autorisant des plages de RDI plus faibles, des sous-itinéraires sont proposés pour les itinéraires "Irrégulier" et "Amélioration puis coupe rase" (script code2.R). Étant donné qu'un peuplement avec un RDI et un Dg moyen "pousse" d'environ 0,047 RDI sur un intervalle de 3 ans, un polygone est affecté par défaut au sous-itinéraire vérifiant RDI_inf + 0.05 <= RDI_polygone < RDI_sup + 0.05. Les polygones avec des RDI hors de ces plages sont affectés, pour les RDI inférieurs (resp. supérieurs) au sous-itinéraire avec l'intervalle le plus bas (resp. le plus élevé).
+
+Les croix bleues sur les graphiques de Dg correspondent à la valeur de diamètre dominant (moyenne des 100 plus gros diamètres par hectare) qui va déclencher la coupe finale. Le scénario irrégulier est simulé comme un système permanent d'éclaircie, en fixant un diamètre objectif impossible à atteindre quand les éclaircies sont réalisées en prélevant préférentiellement les arbres les plus gros du peuplement.
+
+```{r rdi, echo=FALSE, warning=FALSE, message=FALSE}
+# État initial des peuplements
+# summary(forestStands[,-26])
+# hist(forestStands$RDI)
+# boxplot(RDI~gestion, data=forestStands, las=2)
+# boxplot(RDI~COMMENT, data=forestStands)
+#
+# test <- aggregate(AREA~COMMENT, data)
+for (i in levels(forestStands$itineraire))
+{
+  par(mar=c(9.5,4,2,2))
+  par(mfrow=c(1,2))
+  par(las=2)
+  dummy <- forestStands[forestStands$itineraire==i,]
+  dummy$COMMENT <- factor(dummy$COMMENT)
+  levels(dummy$COMMENT) <- substr(levels(dummy$COMMENT), ifelse(is.element(i, c("Inaction", "Coupe rase")), 4, 3), 100)
+  levels(dummy$COMMENT) <- gsub("bfs","Mixte", levels(dummy$COMMENT))
+  levels(dummy$COMMENT) <- gsub("fsp","Sapin-épicéa", levels(dummy$COMMENT))
+  levels(dummy$COMMENT) <- gsub("oak","Chêne", levels(dummy$COMMENT))
+  levels(dummy$COMMENT) <- gsub("bee","Hêtre", levels(dummy$COMMENT))
+  levels(dummy$COMMENT) <- gsub("Pu","_Public", levels(dummy$COMMENT))
+  levels(dummy$COMMENT) <- gsub("Pr","_Privé", levels(dummy$COMMENT))
+  levels(dummy$COMMENT) <- gsub("PP","", levels(dummy$COMMENT))
+  test <- aggregate(AREA~COMMENT, data=dummy, FUN=sum)
+  boxplot(RDI~COMMENT, data=dummy, xlab="", width=test$AREA, main=paste0("RDI ",i))#, xaxt="n")
+  # if (i=="Coupe rase") {abline(h=1.5, col="blue");abline(h=c(1.5-0.05, 1.5+0.05), col="blue", lty=2)}
+  # if (i=="Amélioration") {abline(h=c(0.6, 0.7), col="blue");abline(h=c(0.55, 0.65, 0.75), col="blue", lty=2)}
+  if (i=="Amélioration")
+  {
+    segments(x0=0, x1=5.5, y0=c(0.55, 0.6, 0.65), col="blue", lty=c(2,1,2))
+    segments(x0=5.5, x1=11, y0=c(0.65, 0.7, 0.75), col="blue", lty=c(2,1,2))
+    }
+  if (i=="Irrégulier")
+  {
+    segments(x0=0, x1=5.5, y0=c(0.4, 0.5, 0.6), col="blue", lty=c(2,1,2))
+    segments(x0=5.5, x1=11, y0=c(0.6, 0.7, 0.8), col="blue", lty=c(2,1,2))
+    segments(x0=11, x1=16.5, y0=c(0.8, 0.9, 1), col="blue", lty=c(2,1,2))
+    }
+  abline(h=1, col="red", lty=3)
+  #
+  boxplot(Dgtot~COMMENT, data=dummy, xlab="", width=test$AREA, main=paste0("Dg ",i))#, xaxt="n")
+  if (i=="Coupe rase") {points(c(1,2,3), c(30, 40, 30),col="blue", pch=3)}
+  if (i=="Amélioration") {points(c(1,2,3,4, 6, 7,8,9, 3,5,8,10), c(rep(40,8), rep(50, 4)),col="blue", pch=3)}
+}
+```
