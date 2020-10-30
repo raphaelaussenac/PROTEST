@@ -62,7 +62,7 @@ L'extraction est réalisée par le script "03c_extract_anthr.R".
 
 ### Superficie des parcelles cadastrales
 
-La couche de la taille de la parcelle est obtenue à partir de la couche vecteur BD PARCELLAIRE v1.2. La surface de chaque polygone est calculée. Puis ces valeurs de surface sont rasterisées au pas de 5 m. La superficie moyenne des parcelles cadastrales est calculée comme la moyenne des pixels contenus pour chaque polygone.
+La couche de la taille de la parcelle est obtenue à partir de la couche vecteur BD PARCELLAIRE v1.2. La surface de chaque parcelle est calculée. Puis ces valeurs de surface sont rasterisées au pas de 5 m. La superficie moyenne des parcelles cadastrales est calculée comme la moyenne des pixels contenus pour chaque polygone. Comme les polygones découpés pour la simulation ne s'alignent pas parfaitement avec les parcelles cadastrales, des effets de bordures peuvent être constatés lorsque de petites parcelles jouxtent une très grande parcelle.
 
 ```{r carte.taille.parcelle, echo=FALSE, warning=FALSE, message=FALSE}
 par(mfrow=c(1,1))
@@ -82,7 +82,7 @@ legend("topright", c("Privé", "Public"), fill=c("green", "blue"))
 
 ## Accessibilité
 
-Le modèle Sylvaccess est utilisé sur le territoire du PNR pour cartographier les zones bûcheronnables et celles accessibles aux engins forestiers (cf. livrable 1.3A).
+Le modèle Sylvaccess est utilisé sur le territoire du PNR pour cartographier les zones bûcheronnables et celles accessibles aux engins forestiers (cf. livrable 1.3A). Dans la suite du document, on désigne par non-bûcheronnables les zones où l'on considère que la pente (supérieure à 110%) rend l'accessibilité à pied difficile et le bûcheronnage impossible. On désigne par non accessible les zones auxquelles les engins forestiers de débardage ne peuvent pas accéder d'après le modèle Sylvaccess.
 
 Un polygone est considéré comme non-bûcheronnable si il contient au minimum 35,15% de pixels classés non-bûcheronnable. Ce seuil est choisi car il permet de conserver la surface totale non-bûcheronnable sur l'ensemble du territoire. Les pixels non-bûcheronnables formant rarement de grands ensembles contigus, l'utilisation d'un seuil à 50% conduirait à une surface totale des polygones classés "non-bûcheronnables" inférieure à la surface totale des pixels classés "non-bûcheronnables".
 
@@ -99,13 +99,13 @@ legend("topright", c("Accessible <2km", "Accessible >2km", "Non accessible", "No
 
 ## Nettoyage des polygones
 
-Le nombre de polygones est ???, pour 52825 ha. Le nettoyage est effectué de manière séquentielle.
+Le nombre de polygones est 26675, pour 52585 ha. Le nettoyage est effectué de manière séquentielle.
 
 4 polygones n'ont pas d'information de propriété. Ils totalisent 26 m^2^, ils sont supprimés.
 
-19 des polygones restants n'ont pas de taille moyenne de parcelle cadastrale. Ils sont situés le long de l'Isère et totalisent 17 ha. Ils sont supprimés.
+18 des polygones restants n'ont pas de taille moyenne de parcelle cadastrale. Ils sont situés le long de l'Isère et totalisent 17 ha. Ils sont supprimés.
 
-Le nombre final de polygones est de ???, pour ??? ha.
+Le nombre final de polygones est de 26653, pour 52568 ha.
 
 # Gestion / non-gestion
 
@@ -146,21 +146,7 @@ levels(forestStands$gestion) <- gsub("NonBuch", "Non bûcheronnable", levels(for
 plot(forestStands["gestion"], border=NA, main="Gestion", col=ifelse(forestStands$gestion=="Non bûcheronnable", "purple", ifelse(forestStands$gestion=="Non accessible", "pink", ifelse(forestStands$gestion=="Accessible géré", "blue", "red"))))
 legend("topright", c("Accessible géré", "Accessible non géré", "Non accessible", "Non bûcheronnable"), fill=c("blue", "red", "pink", "purple"))
 ```
-La répartition des types de polygones selon la gestion (ou non) est présentée dans les figures ci-dessous.
 
-```{r gestion.typo, echo=FALSE, warning=FALSE, message=FALSE}
-# gestion et type de peuplements
-tab.typo.gestion <- as.data.frame.matrix(questionr::wtd.table(forestStands$typologie, forestStands$gestion, weights = forestStands$AREA/10000, digits=0))
-tab.typo.gestion <- as.matrix(t(tab.typo.gestion))
-#
-# tab.typo <- apply(tab.typo.gestion, 2, sum)
-#
-par(mar=c(7,4,2,2))
-par(mfrow=c(1,2))
-barplot(tab.typo.gestion, col=c("blue", "red", "pink", "purple"), las=2, cex.names=0.8, main="Surface (ha)")
-# legend("topright", c("Accessible géré", "Accessible non géré", "Non débardable", "Non bûcheronnable"), fill=c("green", "blue", "pink", "purple"), cex=0.7)
-barplot(apply(tab.typo.gestion, 2, function(x){x/sum(x)*100}), width=apply(tab.typo.gestion, 2, sum), col=c("blue", "red", "pink", "purple"), las=2, cex.names=0.8, main="Pourcentage")
-```
 
 
 # Affectation des itinéraires sylvicoles
@@ -189,14 +175,30 @@ pie(tab.typo, col=c("red", "orange", "green", "cyan", "darkgreen", "blue"), labe
 plot(forestStands["typologie"], border=NA, key.pos=NULL, pal=c("red", "orange", "green", "cyan", "darkgreen", "blue"), main="Typologie des polygones")
 ```
 
-Pour chaque polygone, la valeur de RDI est calculée pour chaque espèce du mélange (le cas échéant) et pour l'ensemble du peuplement. Sur la base du RDI et du diamètre quadratique du polygone, une probabilité d'être un peuplement irrégulier est calculée (script code1.R)
+La répartition des types de peuplement selon la gestion (ou non) est présentée dans les figures ci-dessous.
+
+```{r gestion.typo, echo=FALSE, warning=FALSE, message=FALSE}
+# gestion et type de peuplements
+tab.typo.gestion <- as.data.frame.matrix(questionr::wtd.table(forestStands$typologie, forestStands$gestion, weights = forestStands$AREA/10000, digits=0))
+tab.typo.gestion <- as.matrix(t(tab.typo.gestion))
+#
+# tab.typo <- apply(tab.typo.gestion, 2, sum)
+#
+par(mar=c(7,4,2,2))
+par(mfrow=c(1,2))
+barplot(tab.typo.gestion, col=c("blue", "red", "pink", "purple"), las=2, cex.names=0.8, main="Surface (ha)")
+# legend("topright", c("Accessible géré", "Accessible non géré", "Non débardable", "Non bûcheronnable"), fill=c("green", "blue", "pink", "purple"), cex=0.7)
+barplot(apply(tab.typo.gestion, 2, function(x){x/sum(x)*100}), width=apply(tab.typo.gestion, 2, sum), col=c("blue", "red", "pink", "purple"), las=2, cex.names=0.8, main="Pourcentage")
+```
+
+Pour chaque polygone, la valeur de RDI est calculée pour chaque espèce du mélange (le cas échéant) et pour l'ensemble du peuplement. Sur la base du RDI et du diamètre quadratique moyen du polygone, une probabilité d'être un peuplement irrégulier est calculée (script code1.R)
 
 ## Typologie des itinéraires
 
 Les itinéraires proposés et leur implémentation dans le simulateur sont décrits ci-dessous :
 
-* Amélioration puis coupe rase : les sous-itinéraires sont caractérisés par des plages de RDI autorisées de 0,6 $\pm$ 0,05 et 0,7 $\pm$ 0,05. L'éclaircie se fait plutôt parmi les arbres les plus petits (Kg=0,9). L'ensemble du peuplement est coupé quand le diamètre objectif est atteint.
-- Coupe rase : la coupe est déclenchée uniquement quand le diamètre objectif est atteint. Le RDI est maintenu au-dessous de 1 par mortalité.
+* Amélioration puis coupe rase : les sous-itinéraires sont caractérisés par des plages de RDI autorisées de 0,6 $\pm$ 0,05 et 0,7 $\pm$ 0,05. L'éclaircie se fait plutôt parmi les arbres les plus petits (Kg=0,9). L'ensemble du peuplement est coupé quand le diamètre objectif est atteint (résineux 50 cm et hêtre 40 cm en pur résineux public ou mixte public, 40 cm pour toutes les essences en pur résineux privé,  mixte privé et en hêtre pur privé et public).
+- Coupe rase : la coupe est déclenchée uniquement quand le diamètre dominant objectif est atteint (sapin et épicéa : 40cm ; hêtre et autres feuillus : 30 cm). Le RDI est maintenu au-dessous de 1 par mortalité.
 - Irrégulier : les trois sous-itinéraires sont caractérisés par des plages de RDI autorisées de 0,5 $\pm$ 0,1 (clair), 0,7 $\pm$ 0,1 (moyen) et 0,9 $\pm$ 0,1 (dense). L'éclaircie se fait plutôt parmi les arbres les plus gros (Kg=1,5 par défaut), de manière permanente car le diamètre objectif fixé (200) est impossible à atteindre.
 - Inaction : la mortalité s'applique pour maintenir le RDI au-dessous de 1.
 
@@ -204,7 +206,7 @@ Dans le cas de peuplements mélangés, le comportement par défaut du simulateur
 
 ##  Répartition des itinéraires
 
-Chaque scénario se caractérise par une matrice de répartition de chaque catégorie de peuplement dans les différents itinéraires. Tout d'abord les polygones non-bucheronnables sont placés en "Inaction". Pour autres polygones c'est à dire ceux que l'on peut atteindre, un premier tableau de répartition a été proposé par FCBA sur la base de l'analyse des structures des placettes PROTEST et IFN (ces placettes étant jugés représentatives des peuplements qu'il est possible d'atteindre).
+Chaque scénario se caractérise par une matrice de répartition de chaque catégorie de peuplement dans les différents itinéraires. Tout d'abord les polygones non-bûcheronnables sont placés en "Inaction". Pour les polygones bûcheronnables, un tableau de répartition a été proposé par FCBA sur la base de l'analyse des structures des placettes PROTEST et IFN (ces placettes étant jugés représentatives des peuplements qu'il est possible d'atteindre).
 
 ### Affectaction des polygones bûcheronnables aux itinéraires
 

@@ -255,7 +255,7 @@ if(1)
   testYear <- df$date[1:(nrow(df)-1)]==df$date[2:nrow(df)]-3
   testVolume <- df$volumeRemoved_m3[1:(nrow(df)-1)]==df$volumeRemoved_m3[2:nrow(df)]
   testVolumeZero <- df$volumeRemoved_m3[-nrow(df)]!=0
-  testManagTyp <- df$managType[-nrow(df)]=="Har"
+  # testManagTyp <- df$managType[-nrow(df)]=="Har"
   # testBasalArea <- df$basalArea_m2[1:(nrow(df)-1)]>=df$basalArea_m2[2:nrow(df)]
   falseVolume <- which(testStand & testVolume & testVolumeZero & testYear)
   df$volumeRemoved_m3[falseVolume+1] <- 0

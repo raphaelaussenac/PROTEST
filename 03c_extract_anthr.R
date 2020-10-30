@@ -250,7 +250,7 @@ if (!user$mihai)
   sum(forestStands$area[is.na(forestStands$owner)])
   forestStands <- forestStands[!is.na(forestStands$owner), ]
   
-  # for 19 stands (16.9 ha) located inside or along the riverbed of Isere, there are no parcells in the cadastre
+  # for 18 stands (16.9 ha) located inside or along the riverbed of Isere, there are no parcells in the cadastre
   # stand are removed
   sum(is.na(forestStands$meanParcelleArea))
   sum(forestStands$area[is.na(forestStands$meanParcelleArea)])
