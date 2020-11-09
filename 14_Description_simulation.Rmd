@@ -2,7 +2,7 @@
 title: Résultat des simulations
 subtitle: Parc naturel régional du Massif des Bauges
 author: "Raphaël Aussenac, Jean-Matthieu MONNET, Patrick Vallet"
-date: "24 septembre 2020"
+date: "4 novembre 2020"
 output:
   html_document:
     self_contained: TRUE
