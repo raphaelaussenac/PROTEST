@@ -18,14 +18,14 @@ setwd(user$WorkingDir)
 
 # process stands of Mihai (modelling)
 # or extract whole Bauges stands
-user$mihai <- FALSE
+user$mihai <- TRUE
 
 # load forestStands
 if (!user$mihai)
 {
   load(file="./data/forestStands03b.rda")
 } else {
-  load(file="./data/forestStandsMihai03a.rda")
+  load(file="./data/forestStandsMihai03b.rda")
 }
 # convert to sf object
 forestStands$`WKT-GEOM` <- as.character(forestStands$`WKT-GEOM`)
@@ -258,30 +258,32 @@ if (!user$mihai)
   #
   # save
   save(forestStands, file="./data/forestStands03c.rda")
-  }
-
-
-############################
-# modelisation de la gestion
-if (user$mihai) {
-  mihaiStands <- forestStands[, c("geolNotation", "Q7", "greco", "nonHarv", "dist", "alti", "slope", "gPred", "p100gfPred", "surface", "alti_mn","alti_mx", "alti_my")]
-  mihaiStands$Gestion <- mihaiStands$Q7!="(Vous n\u0092avez pas effectué de coupe sur cette parcelle)"
-  # point de sauvegarde
-  #save(list=ls(), file="analyseMihai.rda")
-  rm(list=ls())
-  load(file="analyseMihai.rda")
-  model.gam <- mgcv::gam(Gestion ~ surface +s(dist), data=mihaiStands@data,binomial)
-  dev.new();mgcv::plot.gam(model.gam)
-  # model.gam <- mgcv::gam(Gestion ~ surface +s(slope), data=mihaiStands@data,binomial)
-  # mgcv::plot.gam(model.gam)
-  # replace NA values in distance
-  mihaiStands$dist[is.na(mihaiStands$dist)] <- 2000
-  # model.glm <- glm(Gestion ~ I(surface * (dist - 500) * (dist < 2000) * nonHarv), data=mihaiStands@data,binomial)
-  # model.glm <- glm(Gestion ~ surface + I((dist - 1000) * (dist < 2000) * nonHarv) + I((slope-40)*(slope<80)), data=mihaiStands@data,binomial)
-  model.glm <- glm(Gestion ~ log(surface) + I((dist - 1000) * (dist < 2000)), data=mihaiStands@data,binomial)
-  # model.glm <- glm(Gestion ~ surface + I((slope - 40) * (slope < 80)), data=mihaiStands@data,binomial)
-  summary(model.glm)
-  step(model.glm)
-  save(model.glm, file=paste0(user$WorkingDir, "/data/modelGestion.rda"))
+} else {
+  save(forestStands, file="./data/forestStandsMihai03c.rda")
 }
+
+
+# ############################
+# # modelisation de la gestion
+# if (user$mihai) {
+#   mihaiStands <- forestStands[, c("geolNotation", "Q7", "greco", "nonHarv", "dist", "alti", "slope", "gPred", "p100gfPred", "surface", "alti_mn","alti_mx", "alti_my")]
+#   mihaiStands$Gestion <- mihaiStands$Q7!="(Vous n\u0092avez pas effectué de coupe sur cette parcelle)"
+#   # point de sauvegarde
+#   #save(list=ls(), file="analyseMihai.rda")
+#   rm(list=ls())
+#   load(file="analyseMihai.rda")
+#   model.gam <- mgcv::gam(Gestion ~ surface +s(dist), data=mihaiStands@data,binomial)
+#   dev.new();mgcv::plot.gam(model.gam)
+#   # model.gam <- mgcv::gam(Gestion ~ surface +s(slope), data=mihaiStands@data,binomial)
+#   # mgcv::plot.gam(model.gam)
+#   # replace NA values in distance
+#   mihaiStands$dist[is.na(mihaiStands$dist)] <- 2000
+#   # model.glm <- glm(Gestion ~ I(surface * (dist - 500) * (dist < 2000) * nonHarv), data=mihaiStands@data,binomial)
+#   # model.glm <- glm(Gestion ~ surface + I((dist - 1000) * (dist < 2000) * nonHarv) + I((slope-40)*(slope<80)), data=mihaiStands@data,binomial)
+#   model.glm <- glm(Gestion ~ log(surface) + I((dist - 1000) * (dist < 2000)), data=mihaiStands@data,binomial)
+#   # model.glm <- glm(Gestion ~ surface + I((slope - 40) * (slope < 80)), data=mihaiStands@data,binomial)
+#   summary(model.glm)
+#   step(model.glm)
+#   save(model.glm, file=paste0(user$WorkingDir, "/data/modelGestion.rda"))
+# }
 

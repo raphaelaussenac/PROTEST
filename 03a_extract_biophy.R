@@ -7,7 +7,7 @@ rm(list = setdiff(ls(),"user"))
 user$checkSurfaces <- FALSE
 # process stands of Mihai (modelling)
 # or extract whole Bauges stands
-user$mihai <- FALSE
+user$mihai <- TRUE
 
 # load packages
 library(rgdal)
@@ -76,11 +76,15 @@ geolRaster@crs <- pnr@proj4string
 #
 # Dg_pred
 dgPred <- raster::raster(paste0(user$NetworkProtestDir, "T1/Observatoire/Analyse/rastDg75error.clean.tif"))
+# for mihai stands, use estimation without residuals
+if(user$mihai) {dgPred <- raster::raster(paste0(user$NetworkProtestDir, "T1/Observatoire/Analyse/rastDg75.clean.tif"))}
 dgPred@crs <- pnr@proj4string
 dgPred <- dgPred / 100 # cm to m
 #
 # G_pred
 gPred <- raster::raster(paste0(user$NetworkProtestDir, "T1/Observatoire/Analyse/rastG75error.clean.tif"))
+# for mihai stands, use estimation without residuals
+if(user$mihai) {gPred <- raster::raster(paste0(user$NetworkProtestDir, "T1/Observatoire/Analyse/rastG75.clean.tif"))}
 gPred@crs <- pnr@proj4string
 #
 # GGB_pred
@@ -221,15 +225,17 @@ if (!user$mihai)
   forestStands$id <- NULL
 } else {
   # parcelles enquetees
-  if (user$local)
-  {
-    forestStands <-rgdal::readOGR("/media/reseau/jmm/Private/datadisk/travaux/projets/ouigef/Mihai", layer="EnqOG_Bauges", encoding="latin1")
-  }
-  else
-  {
-    forestStands <-rgdal::readOGR("/media/data/travaux/projets/ouigef/Mihai/", layer="EnqOG_Bauges", encoding="latin1")
-  }
+  # if (user$local)
+  # {
+  # forestStands <-rgdal::readOGR("/media/reseau/jmm/Private/datadisk/travaux/projets/ouigef/Mihai", layer="EnqOG_Bauges", encoding="latin1")
+  # }
+  # else
+  #{
+  forestStands <-rgdal::readOGR("/media/data/travaux/projets/ouigef/Mihai/", layer="EnqOG_Bauges", encoding="latin1")
+  # }
   forestStands@proj4string <- pnr@proj4string
+  forestStands@data$AREA <- raster::area(forestStands)
+  forestStands@data[,which(!is.element(names(forestStands@data), c("AREA", "id")))] <- NULL
   user$checkSurfaces <- FALSE
 }
 
@@ -590,6 +596,5 @@ if (!user$mihai)
   raster::shapefile(forestStands, filename = './data/forestStands03a', overwrite = TRUE)
 } else {
   save(forestStands, file="./data/forestStandsMihai03a.rda")
+  raster::shapefile(forestStands, filename = './data/forestStandsMihai03a', overwrite = TRUE)
 }
-
-

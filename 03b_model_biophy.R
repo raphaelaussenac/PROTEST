@@ -1,5 +1,6 @@
 # clean up environment
 rm(list = setdiff(ls(), "user"))
+user$mihai <- TRUE
 
 # load packages
 library(plyr)
@@ -22,6 +23,18 @@ length(unique(forestStands$WKTid))
 forestStandsSiteIndex <- forestStands
 rm(list=setdiff(ls(), c('forestStandsSiteIndex', 'mod03', 'mod09', 'mod61', 'mod62', 'predFert', 'user')))
 
+### IF MIHAI STANDS STOP HERE
+if (user$mihai)
+{
+  forestStands <- forestStandsSiteIndex
+  sf.forestStands <- sf::st_as_sf(forestStands)
+  forestStands$WKT <- sf::st_as_text(sf.forestStands$geometry)
+  forestStands <- forestStands@data
+  colnames(forestStands)[colnames(forestStands) == "WKT"] <- 'WKT-GEOM'
+  save(forestStands, file="./data/forestStandsMihai03b.rda")
+}
+
+########################################################################
 # compo g Dg and N
 source(paste0(user$WorkingDir,"/src/gDgN.R"))
 
