@@ -7,7 +7,7 @@ rm(list = setdiff(ls(),"user"))
 user$checkSurfaces <- FALSE
 # process stands of Mihai (modelling)
 # or extract whole Bauges stands
-user$mihai <- TRUE
+user$mihai <- FALSE
 
 # load packages
 library(rgdal)
@@ -50,7 +50,7 @@ elev@crs <- pnr@proj4string
 # greco
 #
 # load shapefile
-greco <- sf::st_read(paste0(user$NetworkProtestDir,"T3/scriptIFNPatrick/DonneesIFN/Shapes_SER_GRECO/greco_l93.shp"), quiet=TRUE)
+greco <- sf::st_read(paste0(user$NetworkProtestDir,"T3/scriptIFNPatrick/DonneesIFN/Shapes_SER_GRECO/greco_l93.shp"), quiet=TRUE, , stringsAsFactors=TRUE)
 sf::st_crs(greco) = 2154
 # plot(greco)
 # convert to raster
@@ -62,7 +62,7 @@ grecoRaster@crs <- pnr@proj4string
 # geological data
 #
 # load shapefile
-geol <- sf::st_read("./data/geol.shp", quiet=TRUE, options = "ENCODING=latin1")
+geol <- sf::st_read("./data/geol.shp", quiet=TRUE, options = "ENCODING=latin1", stringsAsFactors=TRUE)
 sf::st_crs(geol) <- pnr@proj4string
 sf::st_crs(geol) <- 2154
 # plot(geolsf)

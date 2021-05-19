@@ -10,7 +10,6 @@ colnames(forestStands)[colnames(forestStands) == "owner"] <- 'DOMAINE_TYPE'
 # EXPLOITABILITY
 colnames(forestStands)[colnames(forestStands) == "access"] <- 'EXPLOITABILITY'
 
-
 # probability of management: 1 by default
 # reminder
 # nonHarv: 0-non bucheronnable / 1-bucheronnable
@@ -19,10 +18,34 @@ forestStands$proba <- 1
 #
 # set management probability of private forest
 #
+if (0)
+{
+  # load inquiry data
+  inquiry <- sf::st_read("./data/mihai/EnqOG_Bauges.shp", stringsAsFactors=TRUE)
+  summary(inquiry)
+  inquiry$gestion <- inquiry$Q7 != "(Vous n\u0092avez pas effectué de coupe sur cette parcelle)"
+  load(file = "./data/forestStandsMihai03c.rda")
+  test <- merge(sf::st_drop_geometry(inquiry[,c("id", "gestion")]), forestStands)
+  # set NA values in forestStands to 10000
+  test$proximity <- 1/test$dist
+  test$proximity[is.na(test$proximity)] <- 0
+  # surface in 
+  test$surface <- test$AREA/10000
+  # model.glm <- glm(gestion ~ gelNttn + AREA + greco + alti + slope + expoNS + expoEW + dgPred + gPred + ph + rum + p100gfP + Cd_crbn + Cd_hydr + rochClc + pot03 + pot03Epsilon + pot09 + pot09Epsilon + pot61 + pot61Epsilon + pot62 + pot62Epsilon + nonHarv + dist, family = binomial, data = test)
+  model.glm <- glm(gestion ~ gelNttn + surface + greco + alti + slope + expoNS + expoEW + dgPred + gPred + ph + rum + p100gfP + Cd_crbn + Cd_hydr + rochClc + proximity + nonHarv + dist, family = binomial, data = test)
+  model.glm <- glm(gestion ~ surface + greco + alti + slope + expoNS + expoEW + dgPred + gPred + ph + rum + p100gfP + Cd_crbn + Cd_hydr + rochClc + nonHarv , family = binomial, data = test)
+  model.glm.step <- MASS::stepAIC(model.glm, direction = "both", trace = FALSE)
+  summary(model.glm)
+  summary(model.glm.step)
+  model.glm <- model.glm.step
+  save(model.glm, file = "./data/modelGestion2.rda")
+}
 # load glm binomial model calibrated on Mihai dataset
 # should the forest type (TFV) be added ?
-load(file="./data/modelGestion.rda")
-model.glm
+# load(file="./data/modelGestion.rda")
+# new model
+load(file="./data/modelGestion2.rda")
+
 # convert mean parcel surface in hectares
 forestStands$surface <- forestStands$meanParcelleArea/10000
 #

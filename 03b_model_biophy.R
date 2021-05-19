@@ -1,6 +1,6 @@
 # clean up environment
 rm(list = setdiff(ls(), "user"))
-user$mihai <- TRUE
+user$mihai <- FALSE
 
 # load packages
 library(plyr)

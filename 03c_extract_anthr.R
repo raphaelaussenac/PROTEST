@@ -18,7 +18,7 @@ setwd(user$WorkingDir)
 
 # process stands of Mihai (modelling)
 # or extract whole Bauges stands
-user$mihai <- TRUE
+user$mihai <- FALSE
 
 # load forestStands
 if (!user$mihai)
