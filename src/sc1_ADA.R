@@ -21,7 +21,7 @@ forestStands <- management(type = 'fspPu', plotList = firSprucePubList,
 
 # fir + spruce + fir-spruce Private --------------------------------------------
 forestStands <- management(type = 'fspPr', plotList = firSprucePrivList,
-                        conservationThresh = 0.27, HarvThresh = 0.25,
+                        conservationThresh = 0.20, HarvThresh = 0.32,
                         thinHarvThresh = 0.13, irrThresh = 0.35)
 
 # beech Public + Private -------------------------------------------------------

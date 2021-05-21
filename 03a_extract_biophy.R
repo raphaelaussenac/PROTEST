@@ -50,7 +50,7 @@ elev@crs <- pnr@proj4string
 # greco
 #
 # load shapefile
-greco <- sf::st_read(paste0(user$NetworkProtestDir,"T3/scriptIFNPatrick/DonneesIFN/Shapes_SER_GRECO/greco_l93.shp"), quiet=TRUE, , stringsAsFactors=TRUE)
+greco <- sf::st_read(paste0(user$NetworkProtestDir,"T3/scriptIFNPatrick/DonneesIFN/Shapes_SER_GRECO/greco_l93.shp"), quiet=TRUE, stringsAsFactors=TRUE)
 sf::st_crs(greco) = 2154
 # plot(greco)
 # convert to raster

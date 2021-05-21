@@ -2,7 +2,7 @@
 title: Initialisation de la gestion forestière, scénario BAU
 subtitle: Parc naturel régional du Massif des Bauges
 author: "Raphaël Aussenac, Jean-Matthieu MONNET, Patrick Vallet"
-date: "4 novembre 2020"
+date: "20 mai 2021"
 output:
   html_document:
     self_contained: TRUE
@@ -34,9 +34,10 @@ La procédure précédente (cf document 13ab_Initialisation_biophys.Rmd) a permi
 
 Plusieurs variables sont jugées importantes pour déterminer si les peuplements sont gérés, et le cas échéant, quel itinéaire sylvicole leur est appliqué :
 
-* la propriété (publique / privé)
-- la taille moyenne des parcelles cadastrales
-- les conditions d'accessibilité.
+* la propriété (publique / privé),
+- la taille moyenne des parcelles cadastrales,
+- les conditions d'accessibilité,
+- la présence de zones à statut de protection.
 
 Les étapes suivantes sont réalisées pour affecter un itinéraire sylvicole à chaque polygone :
 
@@ -45,8 +46,9 @@ Les étapes suivantes sont réalisées pour affecter un itinéraire sylvicole à
 - affectation d'un itinéraire.
 
 ```{r charge.donnees.peuplement, echo=FALSE, warning=FALSE, message=FALSE}
+scenario <- "ADA"
 # load full file
-forestStands <- read.table("./output/forestStandsFULL.txt", header=TRUE, sep = '\t')
+forestStands <- read.table(paste0("./output/forestStandsFULL", scenario,".txt"), header=TRUE, sep = '\t', stringsAsFactors = TRUE)
 forestStands$`WKT-GEOM` <- as.character(forestStands$`WKT.GEOM`)
 forestStands <- sf::st_sf(forestStands[,-which(names(forestStands)=="WKT-GEOM")], geom=sf::st_as_sfc(forestStands$`WKT-GEOM`))
 sf::st_crs(forestStands) <- 2154
@@ -97,6 +99,21 @@ legend("topright", c("Accessible <2km", "Accessible >2km", "Non accessible", "No
 # plot(forestStands["dist"], border=NA, main="Distance forêt-route (m), polygones <2km")
 ```
 
+## Zones protégées
+
+Trois types de zones protégées ont été prises en compte :
+
+* les [Réserves Biologiques](https://www.datara.gouv.fr/geonetwork/srv/c106cad8-21d1-4d8d-bcf7-b69d494fac11),
+* la [Trame de vieux bois - Réseau FRENE (FoRêts en Evolution NaturellEs)](https://www.datara.gouv.fr/geonetwork/srv/8a4c73dc-eaf3-4b92-a731-b3c22be2bd62),
+* les [Arrêtés Préfectoraux de Protection de Biotope](https://www.datara.gouv.fr/geonetwork/srv/3cc95026-2022-4c36-a79c-0141964f96a7).
+
+Les fichiers SIG correspondants ont été téléchargés sur le site [https://www.datara.gouv.fr/](https://www.datara.gouv.fr/) le 19 mai 2021, puis fusionnés en un seul fichier. Une intersection a été ensuite été réalisée avec l'emprise des polygones pour connaître la proportion de chaque polygone non couverte par une zone protégées.
+
+
+```{r carte.protection, echo=FALSE, warning=FALSE, message=FALSE}
+plot(forestStands["PropNonProtected"], border=NA, main="Proportion de surface non concernée par une mesure de protection")
+```
+
 ## Nettoyage des polygones
 
 Le nombre de polygones est 26675, pour 52585 ha. Le nettoyage est effectué de manière séquentielle.
@@ -116,25 +133,55 @@ Cette étape est réalisée par le script "03d_model_anthr.R", qui s'occupe éga
 Dans le cadre du projet OUI-GEF, une enquête a été mise en oeuvre par Mihai Tivadar (UR LESSEM, INRAE Grenoble) sur les conditions influençant la gestion des parcelles. Sur le massif des Bauges, 311 parcelles ont été enquêtées. On s'intéresse notamment à la réponse à la question : "avez-vous réalisé une opération de gestion sur votre parcelle ?". Plusieurs choix étaient proposés, la réponse a été convertie en réponse binaire oui/non. Pour chaque parcelle enquêtée sont extraites les variables suivantes, de la même manière que pour les polygones :
 
 * surface cadastrale $surface$,
-- distance moyenne de débardage $dist$.
+- distance moyenne de débardage $dist$,
+- polygone accessible ou non.
 
-Un modèle linéaire généralisé avec une loi binomiale est utilisé pour modéliser la probabilité de gestion en fonction de deux variables : le logarithme de $surface$ et la variable $(dist - 1000) \times (dist < 2000)$ qui tient compte de l'effet de la distance de débardage pour les distances inférieures à 2000 m.
+Un modèle linéaire généralisé avec une loi binomiale est utilisé pour modéliser la probabilité de gestion en fonction de deux variables : le logarithme de $surface$ et la distance de débardage $dist$. Pour la calibration seules les parcelles suivantes sont prises en compte :
 
-Ce modèle est ensuite appliqué aux polygones en propriété privée pour estimer la probabilité de gestion. Pour les polygones en forêt publique, on définit arbitrairement la probabilité de gestion comme étant de 1 pour une distance de débardage de 0 m, et décroissant linéairement à 0,8 pour une distance de débardage de 2000 m.
+* parcelles considérées comme "accessibles";
+* parcelles avec une distance de débardage inférieure à 2000 m.
 
-Les polygones avec une distance de débardage supérieure à 2000 m, ou se trouvant en zone non débardable ou non bûcheronnable sont affectés d'une probabilité de gestion de 0.
+Des variables environmentales (altitude, pente) ou biophysiques (paramètres forestiers) auraient pu être intégrées au modèle mais on a préféré se restreindre à ces deux variables que l'on souhaite pouvoir faire varier entre les scénarios.
 
+Les paramètres du modèle, ainsi que les courbes de réponses en fonction de la distance, pour différentes surfaces, sont présentés ci-dessous.
 
 ```{r modele.gestion, echo=FALSE, warning=FALSE, message=FALSE}
+load(file="./data/modelGestion2.rda")
+summary(model.glm)
+plot.func <- function(dist, surface){predict(model.glm, newdata = data.frame(dist = dist, surface = surface), type = "response")}
+plot.func1 <- function(x){plot.func(x, 1)}
+plot.func10 <- function(x){plot.func(x, 10)}
+plot.func100 <- function(x){plot.func(x, 100)}
+plot.func1000 <- function(x){plot.func(x, 1000)}
+curve(plot.func1, xlim = c(0, 5000), ylim = c(0,1), xlab = "Distance (m)", ylab = "Probabilité de gestion")
+curve(plot.func10, add = TRUE, col ="green")
+curve(plot.func100, add = TRUE, col ="blue")
+curve(plot.func1000, add = TRUE, col ="red")
+legend("bottomleft", legend = c("Surface (ha)", as.character(10^(0:3))), col = c(NA, "black", "green", "blue", "red"), lty= 1)
+```
+
+Ce modèle est ensuite appliqué aux polygones en propriété privée pour estimer la probabilité de gestion (quelque soit la distance). Pour les polygones en forêt publique, on définit considère qu'ils ont tous une surface de 300 ha, ce qui les place dans la partie supérieure du nuage de points "probabilité en fonction de la distance", par rapport aux forêts privées.
+
+Spécificités liées aux scénarios :
+
+* Adaptation forcée : augmentation de la gestion des peuplements sujets au dépérissement, dynamique de regroupement propriétaires
+  * avant calcul de la probabilité de gestion, on simule une multiplication par 10 (resp. 3) de la surface cadastrale moyenne pour les peuplements épicéa / sapin / épicéa-sapin / épicéa-hêtre / sapin-hètre en forêt privée (resp. publique).
+  * après calcul de la probabilité de gestion, celle-ci est multipliée par 1.1 dans les zones de dépérissement figurant dans la couche SIG "zone.deperissement.shp" (plateau de la Feclaz, versant à Arith)
+
+Les polygones avec une distance de débardage non renseignée (NA), ou se trouvant en zone non débardable ou non bûcheronnable sont affectés d'une probabilité de gestion de 0.
+
+Enfin, la probabilité de gestion est pondérée par la proportion du polygone ne se trouvant pas dans une aire protégée. Par exemple, un polygone avec une probabilité de gestion de 0,8, dont la proportion non concernée par une mesure de protection vaut 0,6, aura une probabilité de gestion finale de 0,48.
+
+```{r plot.modele.gestion, echo=FALSE, warning=FALSE, message=FALSE}
 par(mfrow=c(1,2))
-plot(forestStands$dist, forestStands$proba, col=forestStands$DOMAINE_TYPE, xlab="Distance (m)", ylab="Probabilité de gestion", cex=0.5, main="Probabilité de gestion estimée")
+plot(forestStands$dist, forestStands$proba, col=forestStands$DOMAINE_TYPE, xlab="Distance (m)", ylab="Probabilité de gestion", cex=0.5, main="Probabilité de gestion estimée", ylim = c(0,1))
 legend("topright", c("Public","Privé"), fill=c("red", "black"))
-plot(log(forestStands$surface), forestStands$proba, col=forestStands$DOMAINE_TYPE, xlab="Logarithme de la surface cadastrale moyenne (ha)", ylab="Probabilité de gestion", cex=0.5, main="Probabilité de gestion estimée")
+plot(log(forestStands$surface), forestStands$proba, col=forestStands$DOMAINE_TYPE, xlab="Logarithme de la surface cadastrale moyenne (ha)", ylab="Probabilité de gestion", cex=0.5, main="Probabilité de gestion estimée", ylim = c(0,1))
 ```
 
 ## Choix gestion / non-gestion
 
-Un tirage au sort est ensuite effectué selon un loi uniforme entre 0 et 1 pour déterminer si une parcelle est gérée (valeur inférieure à la probabilité modélisée) ou non. Les parcelles non bûcheronnables ou situées à plus de 2 km d'une route forestière sont donc systématiquement non-gérés, pour les autres cela dépend de la surface moyenne des parcelles cadastrales qu'ils contiennent (pour les forêts privées), ou de la distance à la route forestière. Les résultats sont présentés sur les figures suivantes.
+Un tirage au sort est ensuite effectué selon un loi uniforme entre 0 et 1 pour déterminer si une parcelle est gérée (valeur inférieure à la probabilité modélisée) ou non. Les parcelles non bûcheronnables ou non accessibles sont donc systématiquement non-gérés, pour les autres cela dépend de la surface moyenne des parcelles cadastrales qu'ils contiennent (pour les forêts privées), et de la distance à la route forestière. Les résultats sont présentés sur les figures suivantes.
 
 ```{r carte.gestion, echo=FALSE, warning=FALSE, message=FALSE}
 par(mfrow=c(1,2))
@@ -198,7 +245,7 @@ Pour chaque polygone, la valeur de RDI est calculée pour chaque espèce du mél
 Les itinéraires proposés et leur implémentation dans le simulateur sont décrits ci-dessous :
 
 * Amélioration puis coupe rase : les sous-itinéraires sont caractérisés par des plages de RDI autorisées de 0,6 $\pm$ 0,05 et 0,7 $\pm$ 0,05. L'éclaircie se fait plutôt parmi les arbres les plus petits (Kg=0,9). L'ensemble du peuplement est coupé quand le diamètre objectif est atteint (résineux 50 cm et hêtre 40 cm en pur résineux public ou mixte public, 40 cm pour toutes les essences en pur résineux privé,  mixte privé et en hêtre pur privé et public).
-- Coupe rase : la coupe est déclenchée uniquement quand le diamètre dominant objectif est atteint (sapin et épicéa : 40cm ; hêtre et autres feuillus : 30 cm). Le RDI est maintenu au-dessous de 1 par mortalité.
+- Coupe rase : la coupe est déclenchée uniquement quand le diamètre dominant objectif est atteint (sapin et épicéa : 40cm ; hêtre et autres feuillus : 30 cm). Le RDI est maintenu au-dessous de 1 par mortalité. Pour le scénario "Adaptation forcée", le diamètre objectif de toutes les essences passe à 30 cm.
 - Irrégulier : les trois sous-itinéraires sont caractérisés par des plages de RDI autorisées de 0,5 $\pm$ 0,1 (clair), 0,7 $\pm$ 0,1 (moyen) et 0,9 $\pm$ 0,1 (dense). L'éclaircie se fait plutôt parmi les arbres les plus gros (Kg=1,5 par défaut), de manière permanente car le diamètre objectif fixé (200) est impossible à atteindre.
 - Inaction : la mortalité s'applique pour maintenir le RDI au-dessous de 1.
 
@@ -210,12 +257,14 @@ Chaque scénario se caractérise par une matrice de répartition de chaque caté
 
 ### Affectaction des polygones bûcheronnables aux itinéraires
 
-Pour chaque catégorie de polygones, les étapes successives pour l'affectaction des polygones bucheronnables aux itinéraires sont (script "src/sc1_BAU.R" contenant les proportions, et qui appelle des fonctions définies dans "src/management.R") :
+Pour chaque catégorie de polygones, les étapes successives pour l'affectaction des polygones bucheronnables aux itinéraires sont (scripts "src/sc1_XXX.R" contenant les proportions, et qui appelle des fonctions définies dans "src/management.R") :
 
 * Les polygones considérés comme non-gérés sont placés en "Inaction". Si le pourcentage de polygones placés en "Inaction" est supérieur au pourcentage indiqué dans la matrice, alors le pourcentage des autres itinéraires est modifié par réduction en proportion de leurs valeurs respectives. Sinon des peuplements tirés au sort sont affectés en "Inaction" jusqu'à que le pourcentage indiqué dans la matrice soit atteint.
 - Parmi les polygones restants, des polygones sont affectés à l'itinéraires "Irrégulier" jusqu'à atteindre le pourcentage indiqué, par tirage au sort prenant en compte la probabilité des polygones d'être des peuplements irréguliers.
 - Parmi les polygones restants, des polygones sont affectés par tirage au sort à l'itinéraire "Coupe Rase" jusqu'à atteindre le pourcentage indiqué.
 - Parmi les polygones restants, des polygones sont affectés par tirage au sort à l'itinéraire "Amélioration puis coupe Rase" jusqu'à atteindre le pourcentage indiqué (en théorie il s'agit de tous les polygones restants).
+
+Pour les scénarios autres que le tendanciel, seule la proportion de polygones en inaction est modifiée par ces scripts. Les variations de ventilation entre itinéraires sont réalisées dans un second temps, en réaffectant certaines peuplements selon les proportions proposées par le tableau FCBA. 
 
 La répartition finale des itinéraires est la suivante:
 ```{r itineraire, echo=FALSE, warning=FALSE, message=FALSE}
