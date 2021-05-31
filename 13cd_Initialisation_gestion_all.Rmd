@@ -1,0 +1,504 @@
+---
+title: "Initialisation de la gestion forestière, PNR du Massif des Bauges"
+subtitle: "Comparaison des scénarios"
+author: "Raphaël Aussenac, Jean-Matthieu MONNET, Patrick Vallet"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    self_contained: TRUE
+    number_sections: true
+    toc: true
+    toc_depth: 2
+  pdf_document:
+    number_sections: true
+    fig_caption: yes
+  word_document: default
+urlcolor: blue
+---
+
+
+```{r setup, include=FALSE}
+rm(list=ls())
+library(knitr)
+knitr::opts_chunk$set(echo = TRUE, fig.width=12, fig.height=8)
+# library(kableExtra)
+#library(rgl)
+#knit_hooks$set(webgl = hook_webgl)
+options(scipen=999)
+# wkhtmltopdf -B 15 -L 15 -R 15 -T 15 fiche-observatoire.html fiche-observatoire.pdf
+```
+
+
+# Introduction {-}
+
+La procédure précédente (cf document 13ab_Initialisation_biophys.Rmd) a permis de découper les forêts du PNR du Massif des Bauges en un ensemble de polygones, et de leur affecter des caractéristiques forestières initiales (composition, dendrométrie) ainsi qu'un indice de fertilité. La procédure qui suit vise à leur attribuer des itinéraires de gestion sylvicole, et à préparer les fichiers d'entrée qui permettront au module CAPSIS SIMMEM de simuler l'évolution de ces peuplements.
+
+Plusieurs variables sont jugées importantes pour déterminer si les peuplements sont gérés, et le cas échéant, quel itinéaire sylvicole leur est appliqué :
+
+* la propriété (publique / privé),
+- la taille moyenne des parcelles cadastrales,
+- les conditions d'accessibilité,
+- la présence de zones à statut de protection.
+
+Les étapes suivantes sont réalisées pour affecter un itinéraire sylvicole à chaque polygone :
+
+* extraction des variables pour chaque polygone
+- modélisation de la probabilité de gestion / non-gestion
+- affectation d'un itinéraire.
+
+```{r charge.donnees.peuplement, echo=FALSE, warning=FALSE, message=FALSE}
+l.forestStands <- list()
+liste.scenario <- c("ADA", "TRE", "DYN", "BAU", "SAN")
+for (i in liste.scenario)
+{
+  # load full file
+  forestStands <- read.table(paste0("./output/forestStandsFULL", i,".txt"), header=TRUE, sep = '\t', stringsAsFactors = TRUE)
+  forestStands$`WKT-GEOM` <- as.character(forestStands$`WKT.GEOM`)
+  forestStands <- sf::st_sf(forestStands[,-which(names(forestStands)=="WKT-GEOM")], geom=sf::st_as_sfc(forestStands$`WKT-GEOM`))
+  sf::st_crs(forestStands) <- 2154
+  levels(forestStands$DOMAINE_TYPE) <- ifelse(levels(forestStands$DOMAINE_TYPE)=="Priv", "Privé", "Public")
+  levels(forestStands$gestion) <- gsub("AccGere", "Accessible géré", levels(forestStands$gestion))
+  levels(forestStands$gestion) <- gsub("AccNonGere", "Accessible non géré", levels(forestStands$gestion))
+  levels(forestStands$gestion) <- gsub("NonAcc", "Non accessible", levels(forestStands$gestion))
+  levels(forestStands$gestion) <- gsub("NonBuch", "Non bûcheronnable", levels(forestStands$gestion))
+  forestStands$itineraire <- factor(ifelse(substr(forestStands$COMMENT,1,2)=="Co", "Inaction",
+                                  ifelse(substr(forestStands$COMMENT,1,2)=="Ir", "Irrégulier",
+                                         ifelse(substr(forestStands$COMMENT,1,2)=="Th", "Amélioration","Coupe rase"))))
+  l.forestStands[[i]] <- forestStands
+}
+liste.scenario <- names(l.forestStands) <- c("ADA", "TRE", "DYN", "PTR", "SCT")
+```
+
+Les cartes des polygones présentées ensuite sont basées sur les polygones subsistant à la fin de l'ensemble du processus d'initialisation. Une minorité d'entre eux est enlevée en cours de traitement car il n'est pas possible de leur affecter les valeurs nécessaires aux simulations.
+
+# Extraction des variables
+
+L'extraction est réalisée par le script "03c_extract_anthr.R".
+
+## Propriété et parcellaire
+
+### Superficie des parcelles cadastrales
+
+La couche de la taille de la parcelle est obtenue à partir de la couche vecteur BD PARCELLAIRE v1.2. La surface de chaque parcelle est calculée. Puis ces valeurs de surface sont rasterisées au pas de 5 m. La superficie moyenne des parcelles cadastrales est calculée comme la moyenne des pixels contenus pour chaque polygone. Comme les polygones découpés pour la simulation ne s'alignent pas parfaitement avec les parcelles cadastrales, des effets de bordures peuvent être constatés lorsque de petites parcelles jouxtent une très grande parcelle.
+
+```{r carte.taille.parcelle, echo=FALSE, warning=FALSE, message=FALSE, fig.width = 6}
+par(mfrow=c(1,1))
+plot(forestStands["surface"], border=NA, main="Surface cadastrale moyenne (ha)", logz=TRUE)
+```
+
+### Public et privé
+
+La couche des forêts publiques est rasterisée au pas de 5 m. Les forêts hors de cette emprise sont considérées comme étant des forêts privées. Chaque polygone est affecté à la catégorie public ou privé selon la valeur majoritaire des pixels qu'il contient.
+
+```{r carte.propriete, echo=FALSE, warning=FALSE, message=FALSE, fig.width = 6}
+par(mfrow=c(1,1))
+plot(forestStands["DOMAINE_TYPE"], border=NA, main="Propriété",col=ifelse(forestStands$DOMAINE_TYPE=="Privé", "green","blue"))
+legend("topright", c("Privé", "Public"), fill=c("green", "blue"))
+```
+
+## Accessibilité
+
+Le modèle Sylvaccess est utilisé sur le territoire du PNR pour cartographier les zones bûcheronnables et celles accessibles aux engins forestiers (cf. livrable 1.3A). Dans la suite du document, on désigne par non-bûcheronnables les zones où l'on considère que la pente (supérieure à 110%) rend l'accessibilité à pied difficile et le bûcheronnage impossible. On désigne par non accessible les zones auxquelles les engins forestiers de débardage ne peuvent pas accéder d'après le modèle Sylvaccess.
+
+Un polygone est considéré comme non-bûcheronnable si il contient au minimum 35,15% de pixels classés non-bûcheronnable. Ce seuil est choisi car il permet de conserver la surface totale non-bûcheronnable sur l'ensemble du territoire. Les pixels non-bûcheronnables formant rarement de grands ensembles contigus, l'utilisation d'un seuil à 50% conduirait à une surface totale des polygones classés "non-bûcheronnables" inférieure à la surface totale des pixels classés "non-bûcheronnables".
+
+Pour la même raison de conservation des surfaces entre la carte raster et la carte des polygones, un polygone est considéré comme non accessible aux engins si le nombre de pixels non accessibles est supérieur à 0,85 fois le nombre de pixels accessibles.
+
+Pour les polygones accessibles, la distance moyenne de débardage est égale à la moyenne des distances des pixels accessibles.
+
+```{r carte.accessibilite, echo=FALSE, warning=FALSE, message=FALSE, fig.width = 8}
+par(mfrow=c(1,1))
+plot(forestStands["gestion"], border=NA, main="Accessibilité", col=ifelse(forestStands$gestion=="Non accessible", "pink", ifelse(forestStands$gestion=="Non bûcheronnable", "purple", ifelse(forestStands$dist>=2000, "yellow", "green" ))))
+legend("topright", c("Accessible <2km", "Accessible >2km", "Non accessible", "Non bûcheronnable"), fill=c("green", "yellow", "pink", "purple"))
+# plot(forestStands["dist"], border=NA, main="Distance forêt-route (m), polygones <2km")
+```
+
+## Zones protégées
+
+Trois types de zones protégées ont été prises en compte :
+
+* les [Réserves Biologiques](https://www.datara.gouv.fr/geonetwork/srv/c106cad8-21d1-4d8d-bcf7-b69d494fac11),
+* la [Trame de vieux bois - Réseau FRENE (FoRêts en Evolution NaturellEs)](https://www.datara.gouv.fr/geonetwork/srv/8a4c73dc-eaf3-4b92-a731-b3c22be2bd62),
+* les [Arrêtés Préfectoraux de Protection de Biotope](https://www.datara.gouv.fr/geonetwork/srv/3cc95026-2022-4c36-a79c-0141964f96a7).
+
+Les fichiers SIG correspondants ont été téléchargés sur le site [https://www.datara.gouv.fr/](https://www.datara.gouv.fr/) le 19 mai 2021, puis fusionnés en un seul fichier. Une intersection a été ensuite été réalisée avec l'emprise des polygones pour connaître la proportion de chaque polygone non couverte par une zone protégées.
+
+
+```{r carte.protection, echo=FALSE, warning=FALSE, message=FALSE, fig.width = 8}
+plot(forestStands["PropNonProtected"], border=NA, main="Proportion de surface non concernée par une mesure de protection")
+```
+
+## Nettoyage des polygones
+
+Le nombre de polygones est 26675, pour 52585 ha. Le nettoyage est effectué de manière séquentielle.
+
+4 polygones n'ont pas d'information de propriété. Ils totalisent 26 m^2^, ils sont supprimés.
+
+18 des polygones restants n'ont pas de taille moyenne de parcelle cadastrale. Ils sont situés le long de l'Isère et totalisent 17 ha. Ils sont supprimés.
+
+Le nombre final de polygones est de 26653, pour 52568 ha.
+
+# Gestion / non-gestion
+
+Cette étape est réalisée par le script "03d_model_anthr.R", qui s'occupe également de l'affectation des itinéraires, ainsi que de la mise au format SIMMEM.
+
+## Modélisation de la probabilité de gestion
+
+Dans le cadre du projet OUI-GEF, une enquête a été mise en oeuvre par Mihai Tivadar (UR LESSEM, INRAE Grenoble) sur les conditions influençant la gestion des parcelles. Sur le massif des Bauges, 311 parcelles ont été enquêtées. On s'intéresse notamment à la réponse à la question : "avez-vous réalisé une opération de gestion sur votre parcelle ?". Plusieurs choix étaient proposés, la réponse a été convertie en réponse binaire oui/non. Pour chaque parcelle enquêtée sont extraites les variables suivantes, de la même manière que pour les polygones :
+
+* surface cadastrale $surface$,
+- distance moyenne de débardage $dist$,
+- polygone accessible ou non.
+
+Un modèle linéaire généralisé avec une loi binomiale est utilisé pour modéliser la probabilité de gestion en fonction de deux variables : le logarithme de $surface$ et la distance de débardage $dist$. Pour la calibration seules les parcelles suivantes sont prises en compte :
+
+* parcelles considérées comme "accessibles";
+* parcelles avec une distance de débardage inférieure à 2000 m.
+
+Des variables environmentales (altitude, pente) ou biophysiques (paramètres forestiers) auraient pu être intégrées au modèle mais on a préféré se restreindre à ces deux variables que l'on souhaite pouvoir faire varier entre les scénarios.
+
+Les paramètres du modèle, ainsi que les courbes de réponses en fonction de la distance, pour différentes surfaces, sont présentés ci-dessous.
+
+```{r modele.gestion, echo=FALSE, warning=FALSE, message=FALSE, fig.width = 6, fig.height = 6}
+load(file="./data/modelGestion2.rda")
+summary(model.glm)
+plot.func <- function(dist, surface){predict(model.glm, newdata = data.frame(dist = dist, surface = surface), type = "response")}
+plot.func1 <- function(x){plot.func(x, 1)}
+plot.func10 <- function(x){plot.func(x, 10)}
+plot.func100 <- function(x){plot.func(x, 100)}
+plot.func1000 <- function(x){plot.func(x, 1000)}
+curve(plot.func1, xlim = c(0, 5000), ylim = c(0,1), xlab = "Distance (m)", ylab = "Probabilité de gestion")
+curve(plot.func10, add = TRUE, col ="green")
+curve(plot.func100, add = TRUE, col ="blue")
+curve(plot.func1000, add = TRUE, col ="red")
+legend("bottomleft", legend = c("Surface (ha)", as.character(10^(0:3))), col = c(NA, "black", "green", "blue", "red"), lty= 1)
+```
+
+Ce modèle est ensuite appliqué aux polygones en propriété privée pour estimer la probabilité de gestion (quelque soit la distance). Pour les polygones en forêt publique, on définit considère qu'ils ont tous une surface de 300 ha, ce qui les place dans la partie supérieure du nuage de points "probabilité en fonction de la distance", par rapport aux forêts privées. 
+
+Spécificités liées aux scénarios :
+
+* Patrimonialisation (PTR) : ce scénario sert de base.
+
+* Adaptation forcée (ADA) : augmentation de la gestion des peuplements sujets au dépérissement, dynamique de regroupement propriétaires
+  * avant calcul de la probabilité de gestion, on simule une multiplication par 10 (resp. 3) de la surface cadastrale moyenne pour les peuplements épicéa / sapin / épicéa-sapin / épicéa-hêtre / sapin-hêtre en forêt privée (resp. publique).
+  * après calcul de la probabilité de gestion, celle-ci est multipliée par 1,1 dans les zones de dépérissement figurant dans la couche SIG "zone.deperissement.shp" (plateau de la Feclaz, versant à Arith)
+  
+* Transition énergétique (TRE) : augmentation du prix du bois-énergie, animation / coercition des propriétaires
+  * avant calcul de la probabilité de gestion, on simule une multiplication par 10 de la surface cadastrale moyenne pour les peuplements "hêtre" et "autres feuillus" en forêt privée.
+  * avant calcul de la probabilité de gestion, on simule une diminution de 500 m de la distance de débardage pour les peuplements "hêtre" et "autres feuillus" en forêt privée et publique.
+  * avant calcul de la probabilité de gestion, on simule une multiplication par 5 de la surface cadastrale moyenne et une diminution de 250 m de la distance de débardage pour les peuplements "mixte" en forêt privée.
+
+* Redynamisation forestière (DYN)
+  * avant calcul de la probabilité de gestion, on simule une multiplication par 7 de la surface cadastrale moyenne et une diminution de 250 m de la distance de débardage pour les peuplements "sapin/épicéa" et "mixte" en forêt privée.
+  * avant calcul de la probabilité de gestion, on simule une multiplication par 7 de la surface cadastrale moyenne pour les peuplements "hêtre" et "autres feuillus" en forêt privée.
+  * avant calcul de la probabilité de gestion, on simule une diminution de 250 m de la distance de débardage pour les peuplements "hêtre" et "autres feuillus" en forêt privée et publique.
+  * après calcul de la probabilité de gestion, celle-ci est multipliée par 1,1 dans les forêts privées situées sur les communes avec un effort d'animation (La Motte en Bauges et Le Chatelard).
+  
+* Sanctuarisation (SCT)
+  * après calcul de la probabilité de gestion, celle-ci est multipliée par 1,1 pour les peuplements "Autres feuillus"
+  * après calcul de la probabilité de gestion, celle-ci est multipliée par 0,85 pour les autres peuplements.
+
+Les polygones avec une distance de débardage non renseignée (NA), ou se trouvant en zone non débardable ou non bûcheronnable sont affectés d'une probabilité de gestion de 0.
+
+Enfin, la probabilité de gestion est pondérée par la proportion du polygone ne se trouvant pas dans une aire protégée. Par exemple, un polygone avec une probabilité de gestion de 0,8, dont la proportion non concernée par une mesure de protection vaut 0,6, aura une probabilité de gestion finale de 0,48.
+
+```{r plot.modele.gestion, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 4, fig.width = 12}
+# build df
+df.model.gestion <- list()
+
+for (i in liste.scenario)
+{
+  df.model.gestion[[i]] <- l.forestStands[[i]][,c("dist", "proba", "DOMAINE_TYPE", "surface")]
+  df.model.gestion[[i]]$scenario <- i
+}
+df.model.gestion <- do.call(rbind, df.model.gestion)
+df.model.gestion$scenario <- factor(df.model.gestion$scenario, levels = liste.scenario)
+
+library(ggplot2)
+g <- ggplot(data = df.model.gestion, aes(x=dist, y=proba, col=DOMAINE_TYPE)) +
+              geom_point(size = 0.3) +
+              facet_grid(.~scenario) +
+              scale_color_manual(breaks = c("Privé", "Public"),
+                        values=c("green", "blue")) +
+              labs(x = "Distance (m)", y = "Probabilité de gestion estimée", col = "Propriété")
+print(g)
+g <- ggplot(data = df.model.gestion, aes(x=surface, y=proba, col=DOMAINE_TYPE)) +
+              geom_point(size = 0.3) +
+              facet_grid(.~scenario) +
+                scale_color_manual(breaks = c("Privé", "Public"),
+                        values=c("green", "blue")) +
+              scale_x_log10() +
+              labs(x = "Surface cadastrale moyenne (ha)", y = "Probabilité de gestion estimée", col = "Propriété")
+print(g)
+```
+
+## Choix gestion / non-gestion
+
+Un tirage au sort est ensuite effectué selon un loi uniforme entre 0 et 1 pour déterminer si une parcelle est gérée (valeur inférieure à la probabilité modélisée) ou non. Les parcelles non bûcheronnables ou non accessibles sont donc systématiquement non-gérés, pour les autres cela dépend de la surface moyenne des parcelles cadastrales qu'ils contiennent (pour les forêts privées), et de la distance à la route forestière. Les résultats sont présentés sur les figures suivantes.
+
+```{r carte.probabilite.gestion, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 8, fig.width = 12}
+dummy <- lapply(l.forestStands, function(x){
+  ggplot() + geom_sf(data=x["proba"], aes(fill=proba), color = NA) + theme(legend.position="none") + scale_fill_gradientn(colours = sf::sf.colors(), limits = c(0,1)) +
+    theme(
+    panel.border = element_blank(),
+    axis.text = element_blank(),
+    panel.grid = element_blank(),
+    axis.ticks = element_blank()#,
+  )
+  })
+
+prow <- cowplot::plot_grid(plotlist = dummy,
+           align = 'vh',
+           labels = liste.scenario,
+           hjust = -1,
+           nrow = 2
+           )
+
+# extract the legend from one of the plots
+# (clearly the whole thing only makes sense if all plots
+# have the same legend, so we can arbitrarily pick one.)
+legend_b <- cowplot::get_legend(dummy[[1]] + theme(legend.position="right"))
+# add the legend underneath the row we made earlier. Give it 10% of the height
+# of one plot (via rel_heights).
+p <- cowplot::plot_grid(prow, legend_b, nrow = 1, rel_widths = c(10, 1))
+print(p)
+```
+
+```{r carte.gestion, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 9, fig.width = 12}
+dummy <- lapply(l.forestStands, function(x){
+  ggplot() + geom_sf(data=x["gestion"], aes(fill=gestion), color = NA) + theme(legend.position="none") +
+    scale_fill_manual(breaks = c("Non bûcheronnable", "Non accessible", "Accessible non géré", "Accessible géré"),
+                       values=c("purple", "pink", "red", "blue")) +
+    theme(
+      panel.border = element_blank(),
+      axis.text = element_blank(),
+      panel.grid = element_blank(),
+      axis.ticks = element_blank()#,
+    )
+})
+
+prow <- cowplot::plot_grid(plotlist = dummy,
+           align = 'vh',
+           labels = liste.scenario,
+           hjust = -1,
+           nrow = 2
+           )
+legend_b <- cowplot::get_legend(dummy[[1]] + theme(legend.position="bottom"))
+
+# add the legend underneath the row we made earlier. Give it 10% of the height
+# of one plot (via rel_heights).
+p <- cowplot::plot_grid(prow, legend_b, ncol = 1, rel_heights = c(8, 1))
+print(p)
+# legend("topright", c("Accessible <2km", "Accessible >2km", "Non accessible", "Non bûcheronnable"), fill=c("green", "yellow", "pink", "purple"))
+# plot(forestStands["dist"], border=NA, main="Distance forêt-route (m), polygones <2km")
+```
+
+# Affectation des itinéraires sylvicoles
+
+Afin de limiter la quantité de paramétrage à effectuer pour les itinéraires, il a été choisi de limiter à la fois le nombre d'itinéraires sylvicoles, et le nombre de catégories de peuplements.
+
+## Typologie des peuplements
+
+On considère que les itinéraires appliqués vont dépendre de la propriété (public / privé) et de la composition en essence. Une typologie des peuplements selon ces deux critères est donc proposée :
+
+* sapin et/ou épicéa en public
+- sapin et/ou épicéa en privé
+- mixte public : hêtre et (sapin ou épicéa) en public
+- mixte privé : hêtre et (sapin ou épicéa) en privé
+- hêtre pur
+- autres feuillus
+
+Une répartition indicative des peuplements dans les différents itinéraires a été proposée par le FCBA. Sa mise en oeuvre dans le code a été faite en respectant les ordres de grandeurs, mais par forcément les valeurs exactes, car cela nécessitait d'intervenir sur plusieurs parties du code. La répartition des peuplements est indépendante entre les scénarios.
+
+```{r typologie, echo=FALSE, warning=FALSE, message=FALSE, fig.width = 8}
+# gestion et type de peuplements
+# par(mfrow=c(1,2))
+tab.typo.gestion <- as.data.frame.matrix(questionr::wtd.table(forestStands$typologie, forestStands$gestion, weights = forestStands$AREA/10000, digits=0))
+tab.typo.gestion <- as.matrix(t(tab.typo.gestion))
+#
+tab.typo <- apply(tab.typo.gestion, 2, sum)
+pie(tab.typo, col=c("red", "orange", "green", "cyan", "darkgreen", "blue"), labels=paste(names(tab.typo), round(tab.typo/sum(tab.typo)*100, 1)))
+plot(forestStands["typologie"], border=NA, key.pos=NULL, pal=c("red", "orange", "green", "cyan", "darkgreen", "blue"), main="Typologie des polygones")
+```
+
+La répartition des types de peuplement selon la gestion (ou non) est présentée dans les figures ci-dessous, tout d'abord par scénario.
+
+```{r gestion.typo, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 5}
+tab.typo.gestion <- lapply(l.forestStands, function(x){aggregate(AREA/10000 ~ typologie + gestion, data = x, FUN = function(x){sum(x, na.rm = TRUE)})})
+tab.typo.gestion <- mapply(function(x, y){x$scenario <- y;return(x)}, tab.typo.gestion, as.list(liste.scenario), SIMPLIFY = FALSE)
+tab.typo.gestion <- do.call(rbind, tab.typo.gestion)
+tab.typo.gestion$gestion <- factor(tab.typo.gestion$gestion, levels = c("Non bûcheronnable", "Non accessible", "Accessible non géré", "Accessible géré"))
+tab.typo.gestion$scenario <- factor(tab.typo.gestion$scenario, levels = liste.scenario)
+names(tab.typo.gestion)[3] <- "Surface"
+g <- ggplot(data = tab.typo.gestion, aes(x=typologie, y=Surface, fill=gestion)) +
+  geom_bar(stat="identity") +
+  scale_fill_manual(breaks = c("Accessible géré", "Accessible non géré", "Non accessible", "Non bûcheronnable") , values=c("blue", "red", "pink", "purple")) +
+  facet_wrap(scenario ~ ., nrow = 1) +
+  theme(legend.position="bottom",
+        axis.text.x = element_text(angle = 90))
+print(g)
+```
+
+Afin de pouvoir comparer les variations entre scénarios, le graphique suivant compare les proportions gérées (ou non) pour chaque type de peuplement, entre les scénarios.
+
+```{r gestion.typo.percentage, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 3.5}
+g <- ggplot(data = tab.typo.gestion, aes(x=scenario, y=Surface, fill=gestion)) +
+  geom_bar(stat="identity", position="fill") +
+  scale_fill_manual(breaks = c("Accessible géré", "Accessible non géré", "Non accessible", "Non bûcheronnable") , values=c("blue", "red", "pink", "purple")) +
+  facet_wrap(typologie ~ ., nrow = 1) +
+  theme(legend.position="bottom",
+        axis.text.x = element_text(angle = 0))
+print(g)
+```
+
+## Typologie des itinéraires
+
+Les itinéraires proposés et leur implémentation dans le simulateur sont décrits ci-dessous :
+
+* Amélioration puis coupe rase : les sous-itinéraires sont caractérisés par des plages de RDI autorisées de 0,6 $\pm$ 0,05 et 0,7 $\pm$ 0,05. L'éclaircie se fait plutôt parmi les arbres les plus petits (Kg=0,9). L'ensemble du peuplement est coupé quand le diamètre objectif est atteint (résineux 50 cm et hêtre 40 cm en pur résineux public ou mixte public, 40 cm pour toutes les essences en pur résineux privé,  mixte privé et en hêtre pur privé et public).
+- Coupe rase : la coupe est déclenchée uniquement quand le diamètre dominant objectif est atteint (sapin et épicéa : 40cm ; hêtre et autres feuillus : 30 cm). Le RDI est maintenu au-dessous de 1 par mortalité. Pour le scénario "Adaptation forcée", le diamètre objectif de toutes les essences passe à 30 cm.
+- Irrégulier : les trois sous-itinéraires sont caractérisés par des plages de RDI autorisées de 0,5 $\pm$ 0,1 (clair), 0,7 $\pm$ 0,1 (moyen) et 0,9 $\pm$ 0,1 (dense). L'éclaircie se fait plutôt parmi les arbres les plus gros (Kg=1,5 par défaut), de manière permanente car le diamètre objectif fixé (200) est impossible à atteindre.
+- Inaction : la mortalité s'applique pour maintenir le RDI au-dessous de 1.
+
+Dans le cas de peuplements mélangés, le comportement par défaut du simulateur est de tendre vers l'équilibre des deux espèces.
+
+##  Répartition des itinéraires
+
+Chaque scénario se caractérise par une matrice de répartition de chaque catégorie de peuplement dans les différents itinéraires. Tout d'abord les polygones non-bûcheronnables sont placés en "Inaction". Pour les polygones bûcheronnables, un tableau de répartition a été proposé par FCBA sur la base de l'analyse des structures des placettes PROTEST et IFN (ces placettes étant jugés représentatives des peuplements qu'il est possible d'atteindre).
+
+### Affectaction des polygones bûcheronnables aux itinéraires
+
+Pour chaque polygone, la valeur de RDI est calculée pour chaque espèce du mélange (le cas échéant) et pour l'ensemble du peuplement. Sur la base du RDI et du diamètre quadratique moyen du polygone, une probabilité d'être un peuplement irrégulier est calculée (script code1.R)
+
+Pour chaque catégorie de polygones, les étapes successives pour l'affectaction des polygones bucheronnables aux itinéraires sont (scripts "src/sc1_XXX.R" contenant les proportions, et qui appelle des fonctions définies dans "src/management.R") :
+
+* Les polygones considérés comme non-gérés sont placés en "Inaction". Si le pourcentage de polygones placés en "Inaction" est supérieur au pourcentage indiqué dans la matrice, alors le pourcentage des autres itinéraires est modifié par réduction en proportion de leurs valeurs respectives. Sinon des peuplements tirés au sort sont affectés en "Inaction" jusqu'à que le pourcentage indiqué dans la matrice soit atteint.
+- Parmi les polygones restants, des polygones sont affectés à l'itinéraires "Irrégulier" jusqu'à atteindre le pourcentage indiqué, par tirage au sort prenant en compte la probabilité des polygones d'être des peuplements irréguliers.
+- Parmi les polygones restants, des polygones sont affectés par tirage au sort à l'itinéraire "Coupe Rase" jusqu'à atteindre le pourcentage indiqué.
+- Parmi les polygones restants, des polygones sont affectés par tirage au sort à l'itinéraire "Amélioration puis coupe Rase" jusqu'à atteindre le pourcentage indiqué (en théorie il s'agit de tous les polygones restants).
+
+Pour les scénarios autres que le tendanciel, seule la proportion de polygones en inaction est modifiée par ces scripts. Les variations de ventilation entre itinéraires sont réalisées dans un second temps, en réaffectant certaines peuplements selon les proportions proposées par le tableau FCBA. 
+
+### Répartition finale des itinéraires par scénario et type de peuplement
+
+```{r iti.typo, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 5}
+tab.typo.iti <- lapply(l.forestStands, function(x){aggregate(AREA/10000 ~ typologie + itineraire, data = x, FUN = function(x){sum(x, na.rm = TRUE)})})
+tab.typo.iti <- mapply(function(x, y){x$scenario <- y;return(x)}, tab.typo.iti, as.list(liste.scenario), SIMPLIFY = FALSE)
+tab.typo.iti <- do.call(rbind, tab.typo.iti)
+tab.typo.iti$itineraire <- factor(tab.typo.iti$itineraire, levels = c("Inaction", "Coupe rase", "Amélioration", "Irrégulier"))
+tab.typo.iti$scenario <- factor(tab.typo.iti$scenario, levels = liste.scenario)
+names(tab.typo.iti)[3] <- "Surface"
+g <- ggplot(data = tab.typo.iti, aes(x=typologie, y=Surface, fill=itineraire)) +
+  geom_bar(stat="identity") +
+  scale_fill_manual(breaks = c("Inaction", "Coupe rase", "Amélioration", "Irrégulier") , values=c("grey", "red", "orange", "yellow")) +
+  facet_wrap(scenario ~ ., nrow = 1) +
+  theme(legend.position="bottom",
+        axis.text.x = element_text(angle = 90))
+print(g)
+```
+
+
+```{r iti.typo.percentage, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 3.5}
+g <- ggplot(data = tab.typo.iti, aes(x=scenario, y=Surface, fill=itineraire)) +
+  geom_bar(stat="identity", position="fill") +
+  scale_fill_manual(breaks = c("Inaction", "Coupe rase", "Amélioration", "Irrégulier") , values=c("grey", "red", "orange", "yellow")) +
+  facet_wrap(typologie ~ ., nrow = 1) +
+  theme(legend.position="bottom",
+        axis.text.x = element_text(angle = 0))
+print(g)
+```
+
+### Répartition des itinéraires sur le territoire
+
+```{r iti.scenario, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 4, fig.width = 5}
+g <- ggplot(data = tab.typo.iti, aes(x=scenario, y=Surface, fill=itineraire)) +
+  geom_bar(stat="identity", position="fill") +
+  scale_fill_manual(breaks = c("Inaction", "Coupe rase", "Amélioration", "Irrégulier") , values=c("grey", "red", "orange", "yellow")) +
+  theme(legend.position="right")
+print(g)
+```
+
+```{r carte.itineraire, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 9, fig.width = 12}
+dummy <- lapply(l.forestStands, function(x){
+  ggplot() + geom_sf(data=x["itineraire"], aes(fill=itineraire), color = NA) + theme(legend.position="none") +
+    scale_fill_manual(breaks = c("Inaction", "Coupe rase", "Amélioration", "Irrégulier") , values=c("grey", "red", "orange", "yellow")) +
+    theme(
+      panel.border = element_blank(),
+      axis.text = element_blank(),
+      panel.grid = element_blank(),
+      axis.ticks = element_blank()#,
+    )
+})
+
+prow <- cowplot::plot_grid(plotlist = dummy,
+           align = 'vh',
+           labels = liste.scenario,
+           hjust = -1,
+           nrow = 2
+           )
+legend_b <- cowplot::get_legend(dummy[[1]] + theme(legend.position="bottom"))
+
+# add the legend underneath the row we made earlier. Give it 10% of the height
+# of one plot (via rel_heights).
+p <- cowplot::plot_grid(prow, legend_b, ncol = 1, rel_heights = c(8, 1))
+print(p)
+# legend("topright", c("Accessible <2km", "Accessible >2km", "Non accessible", "Non bûcheronnable"), fill=c("green", "yellow", "pink", "purple"))
+# plot(forestStands["dist"], border=NA, main="Distance forêt-route (m), polygones <2km")
+```
+
+
+### Affectation aux sous-itinéraires
+
+Afin de limiter les coupes initiales de rattrapage lorsque des peuplements avec un fort RDI sont affectés à un itinéraire autorisant des plages de RDI plus faibles, des sous-itinéraires sont proposés pour les itinéraires "Irrégulier" et "Amélioration puis coupe rase" (script code2.R). Étant donné qu'un peuplement avec un RDI et un Dg moyen "pousse" d'environ 0,047 RDI sur un intervalle de 3 ans, un polygone est affecté par défaut au sous-itinéraire vérifiant RDI_inf + 0.05 <= RDI_polygone < RDI_sup + 0.05. Les polygones avec des RDI hors de ces plages sont affectés, pour les RDI inférieurs (resp. supérieurs) au sous-itinéraire avec l'intervalle le plus bas (resp. le plus élevé).
+
+Les croix bleues sur les graphiques de Dg correspondent à la valeur de diamètre dominant (moyenne des 100 plus gros diamètres par hectare) qui va déclencher la coupe finale. Le scénario irrégulier est simulé comme un système permanent d'éclaircie, en fixant un diamètre objectif impossible à atteindre quand les éclaircies sont réalisées en prélevant préférentiellement les arbres les plus gros du peuplement.
+
+Les graphiques ne sont présentés que pour le scénario "patrimonialisation"
+
+```{r rdi, echo=FALSE, warning=FALSE, message=FALSE}
+# État initial des peuplements
+# summary(forestStands[,-26])
+# hist(forestStands$RDI)
+# boxplot(RDI~gestion, data=forestStands, las=2)
+# boxplot(RDI~COMMENT, data=forestStands)
+#
+forestStands <- l.forestStands[["PTR"]]
+# test <- aggregate(AREA~COMMENT, data)
+for (i in levels(forestStands$itineraire))
+{
+  par(mar=c(9.5,4,2,2))
+  par(mfrow=c(1,2))
+  par(las=2)
+  dummy <- forestStands[forestStands$itineraire==i,]
+  dummy$COMMENT <- factor(dummy$COMMENT)
+  levels(dummy$COMMENT) <- substr(levels(dummy$COMMENT), ifelse(is.element(i, c("Inaction", "Coupe rase")), 4, 3), 100)
+  levels(dummy$COMMENT) <- gsub("bfs","Mixte", levels(dummy$COMMENT))
+  levels(dummy$COMMENT) <- gsub("fsp","Sapin-épicéa", levels(dummy$COMMENT))
+  levels(dummy$COMMENT) <- gsub("oak","Chêne", levels(dummy$COMMENT))
+  levels(dummy$COMMENT) <- gsub("bee","Hêtre", levels(dummy$COMMENT))
+  levels(dummy$COMMENT) <- gsub("Pu","_Public", levels(dummy$COMMENT))
+  levels(dummy$COMMENT) <- gsub("Pr","_Privé", levels(dummy$COMMENT))
+  levels(dummy$COMMENT) <- gsub("PP","", levels(dummy$COMMENT))
+  test <- aggregate(AREA~COMMENT, data=dummy, FUN=sum)
+  boxplot(RDI~COMMENT, data=dummy, xlab="", width=test$AREA, main=paste0("RDI ",i))#, xaxt="n")
+  # if (i=="Coupe rase") {abline(h=1.5, col="blue");abline(h=c(1.5-0.05, 1.5+0.05), col="blue", lty=2)}
+  # if (i=="Amélioration") {abline(h=c(0.6, 0.7), col="blue");abline(h=c(0.55, 0.65, 0.75), col="blue", lty=2)}
+  if (i=="Amélioration")
+  {
+    segments(x0=0, x1=5.5, y0=c(0.55, 0.6, 0.65), col="blue", lty=c(2,1,2))
+    segments(x0=5.5, x1=11, y0=c(0.65, 0.7, 0.75), col="blue", lty=c(2,1,2))
+    }
+  if (i=="Irrégulier")
+  {
+    segments(x0=0, x1=5.5, y0=c(0.4, 0.5, 0.6), col="blue", lty=c(2,1,2))
+    segments(x0=5.5, x1=11, y0=c(0.6, 0.7, 0.8), col="blue", lty=c(2,1,2))
+    segments(x0=11, x1=16.5, y0=c(0.8, 0.9, 1), col="blue", lty=c(2,1,2))
+    }
+  abline(h=1, col="red", lty=3)
+  #
+  boxplot(Dgtot~COMMENT, data=dummy, xlab="", width=test$AREA, main=paste0("Dg ",i))#, xaxt="n")
+  if (i=="Coupe rase") {points(c(1,2,3), c(30, 40, 30),col="blue", pch=3)}
+  if (i=="Amélioration") {points(c(1,2,3,4, 6, 7,8,9, 3,5,8,10), c(rep(40,8), rep(50, 4)),col="blue", pch=3)}
+}
+```

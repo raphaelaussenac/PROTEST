@@ -2,7 +2,7 @@
 # COMPOSITION DONE - NOW MANAGEMENT
 # 
 rm(list = setdiff(ls(),"user"))
-scenario <- "ADA"
+scenario <- "SAN"
 load(file="./data/forestStands03c.rda")
 if (0) # add protected forests info
 {
@@ -85,6 +85,8 @@ forestStands$surface <- forestStands$meanParcelleArea/10000
 # apply model to all forest, considering that forest surface is 1000 for public forests
 # save surface field
 forestStands$surface.save <- forestStands$surface
+# save dist field
+forestStands$dist.save <- forestStands$dist
 #
 ###########################################
 # modificateur via surface
@@ -124,6 +126,67 @@ if (scenario =="ADA")
   # forestStands$proba[dummy] <- pmin(forestStands$proba[dummy] * 1.2, 1) # multiply management probability
   #
 }
+#
+if (scenario =="TRE")
+{
+  # surface equivalente de base pour public : 300 ha
+  forestStands$surface[forestStands$DOMAINE_TYPE=="Pub"] <- 300
+  #
+  # diminuer le conservatoire en hetre et autres feuillus (~ -25%)
+  # augmenter la probabilité de gestion
+  # via augmentation de surface en privé (travail auprès des propriétaires)
+  dummy <- which(is.element(forestStands$FOREST_TYPE_CODE, c("salem_beech", "salem_oak")) & forestStands$DOMAINE_TYPE == "Priv")
+  forestStands$surface[dummy] <- forestStands$surface[dummy] * 10
+  # via diminution de la distance en prive et public (augmentation des prix)
+  dummy <- which(is.element(forestStands$FOREST_TYPE_CODE, c("salem_beech", "salem_oak")))
+  forestStands$dist[dummy] <- pmax(0, forestStands$dist[dummy] - 500)
+  #
+  # diminuer le conservatoire en mixte privé (~ -10%)
+  # augmenter la probabilité de gestion
+  dummy <- which(is.element(forestStands$FOREST_TYPE_CODE, c("salem_beech_spruce", "salem_beech_fir")) & forestStands$DOMAINE_TYPE == "Priv")
+  # via augmentation de surface (travail auprès des propriétaires)
+  forestStands$surface[dummy] <- forestStands$surface[dummy] * 5
+  # via diminution de la distance (augmentation des prix)
+  forestStands$dist[dummy] <- pmax(0, forestStands$dist[dummy] - 200)
+  #
+}
+#
+if (scenario =="DYN")
+{
+  # surface equivalente de base pour public : 300 ha
+  forestStands$surface[forestStands$DOMAINE_TYPE=="Pub"] <- 300
+  #
+  # diminuer le conservatoire en sapin / épicéa privé (~ -15%)
+  # augmenter la probabilité de gestion
+  dummy <- which(is.element(forestStands$FOREST_TYPE_CODE, c("salem_spruce", "salem_fir", "salem_fir_spruce")) & forestStands$DOMAINE_TYPE == "Priv")
+  # via augmentation de surface en privé (travail auprès des propriétaires)
+  forestStands$surface[dummy] <- forestStands$surface[dummy] * 7
+  # via distance
+  forestStands$dist[dummy] <- pmax(0, forestStands$dist[dummy] -250)
+  
+  # diminuer le conservatoire en hetre et autres feuillus (~ -15%)
+  # augmenter la probabilité de gestion
+  # via augmentation de surface en privé (travail auprès des propriétaires)
+  dummy <- which(is.element(forestStands$FOREST_TYPE_CODE, c("salem_beech", "salem_oak")) & forestStands$DOMAINE_TYPE == "Priv")
+  forestStands$surface[dummy] <- forestStands$surface[dummy] * 7
+  # via diminution de la distance en prive et public (augmentation des prix)
+  dummy <- which(is.element(forestStands$FOREST_TYPE_CODE, c("salem_beech", "salem_oak")))
+  forestStands$dist[dummy] <- pmax(0, forestStands$dist[dummy] - 250)
+  #
+  # diminuer le conservatoire en mixte privé (~ -15%)
+  # augmenter la probabilité de gestion
+  dummy <- which(is.element(forestStands$FOREST_TYPE_CODE, c("salem_beech_spruce", "salem_beech_fir")) & forestStands$DOMAINE_TYPE == "Priv")
+  # via augmentation de surface (travail auprès des propriétaires)
+  forestStands$surface[dummy] <- forestStands$surface[dummy] * 7
+  # via diminution de la distance (augmentation des prix)
+  forestStands$dist[dummy] <- pmax(0, forestStands$dist[dummy] - 250)
+  #
+}
+if (scenario =="SAN")
+{
+  # surface equivalente de base pour public : 300 ha
+  forestStands$surface[forestStands$DOMAINE_TYPE=="Pub"] <- 300
+}
 
 #######################################
 # APPLY MODEL
@@ -131,7 +194,10 @@ if (scenario =="ADA")
 forestStands$proba <- predict.glm(model.glm, forestStands, type="response")
 # set back surface values
 forestStands$surface <- forestStands$surface.save
+# set back distance values
+forestStands$dist <- forestStands$dist.save
 forestStands$surface.save <- NULL
+forestStands$dist.save <- NULL
 #
 if (scenario =="ADA")
 {
@@ -147,6 +213,33 @@ if (scenario =="ADA")
   forestStands$deperissement <- test
   # augmenter ENCORE la probabilite de gestion dans ces zones, pour les peuplements epicea / sapin 
   dummy <- which(is.element(forestStands$FOREST_TYPE_CODE, c("salem_spruce", "salem_fir", "salem_fir_spruce", "salem_beech_spruce", "salem_beech_fir")) & forestStands$deperissement)
+  forestStands$proba[dummy] <- pmin(forestStands$proba[dummy] * 1.1, 1)
+}
+#
+if (scenario =="DYN")
+{
+  # augmenter encore plus proba de gestion sur zone d'animation
+  zone.animation <- sf::st_read(dsn="/media/reseau/lessem/ProjetsCommuns/PROTEST/T1/Donnees_SIG/Admin/LaMotteLeChatelard.shp")
+  # merge polygons
+  zone.animation <- sf::st_union(zone.animation)
+  # convert stands to spatial objects
+  dummy <- sf::st_as_sf(forestStands, wkt = "WKT-GEOM")
+  sf::st_crs(dummy) <- 2154
+  # test if overlap
+  test <- sf::st_intersects(dummy, zone.animation, sparse = FALSE)
+  forestStands$animation <- test
+  # augmenter ENCORE la probabilite de gestion dans ces zones, pour les forets prives
+  dummy <- which(forestStands$DOMAINE_TYPE =="Priv" & forestStands$animation)
+  forestStands$proba[dummy] <- pmin(forestStands$proba[dummy] * 1.1, 1)
+}
+
+if (scenario =="SAN")
+{
+  # diminuer la probabilité de gestion pour non "autres feuillus"
+  dummy <- which(forestStands$FOREST_TYPE_CODE !="salem_oak")
+  forestStands$proba[dummy] <- forestStands$proba[dummy] * 0.85
+  # augmenter la probabilité de gestion pour "autres feuillus"
+  dummy <- which(forestStands$FOREST_TYPE_CODE =="salem_oak")
   forestStands$proba[dummy] <- pmin(forestStands$proba[dummy] * 1.1, 1)
 }
 
@@ -277,7 +370,12 @@ beechFirSprucePrivList <- forestStands[forestStands$STAND_ID %in% beechFirSpruce
 #
 # affecter les itineraires sylvicoles
 # source('./src/sc1_BAU.R')
-source(paste0("./src/sc1_", scenario, ".R"))
+if(is.element(scenario, c("BAU", "TRE", "DYN")))
+{
+  dummyscenario <- "BAU"
+} else {dummyscenario <- scenario}
+
+source(paste0("./src/sc1_", dummyscenario, ".R"))
 # graphiques
 source("./code2.R")
 

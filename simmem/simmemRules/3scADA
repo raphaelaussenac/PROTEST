@@ -1,0 +1,78 @@
+      </standIds>
+    </group>
+    <actions>
+      <simmem.model.rule.ThinningAction>
+        <triplets>
+          <simmem.model.rule.ThinningAction_-Triplet>
+            <ddom>0.5</ddom>
+            <density>1.5</density>
+            <thickness>0.1</thickness>
+          </simmem.model.rule.ThinningAction_-Triplet>
+        </triplets>
+        <considerThinningTableToSort>false</considerThinningTableToSort>
+        <minThinningInterval>-1</minThinningInterval>
+      </simmem.model.rule.ThinningAction>
+      <simmem.model.rule.ClearCuttingAction>
+        <ddomMap>
+          <entry>
+            <simmem.model.SimSpecies>
+              <name>Abies alba</name>
+              <maxDdom>70.0</maxDdom>
+              <defaultFallow>0</defaultFallow>
+            </simmem.model.SimSpecies>
+            <double>30.0</double>
+          </entry>
+          <entry>
+            <simmem.model.SimSpecies>
+              <name>Quercus petraea</name>
+              <maxDdom>70.0</maxDdom>
+              <defaultFallow>0</defaultFallow>
+            </simmem.model.SimSpecies>
+            <double>30.0</double>
+          </entry>
+          <entry>
+            <simmem.model.SimSpecies>
+              <name>Picea abies</name>
+              <maxDdom>50.0</maxDdom>
+              <defaultFallow>2</defaultFallow>
+            </simmem.model.SimSpecies>
+            <double>30.0</double>
+          </entry>
+          <entry>
+            <simmem.model.SimSpecies>
+              <name>Fagus sylvatica</name>
+              <maxDdom>60.0</maxDdom>
+              <defaultFallow>0</defaultFallow>
+            </simmem.model.SimSpecies>
+            <double>30.0</double>
+          </entry>
+        </ddomMap>
+        <fallowMap>
+          <entry>
+            <simmem.model.SimSpecies reference="../../../ddomMap/entry/simmem.model.SimSpecies"/>
+            <int>0</int>
+          </entry>
+          <entry>
+            <simmem.model.SimSpecies reference="../../../ddomMap/entry[2]/simmem.model.SimSpecies"/>
+            <int>0</int>
+          </entry>
+          <entry>
+            <simmem.model.SimSpecies reference="../../../ddomMap/entry[3]/simmem.model.SimSpecies"/>
+            <int>0</int>
+          </entry>
+          <entry>
+            <simmem.model.SimSpecies reference="../../../ddomMap/entry[4]/simmem.model.SimSpecies"/>
+            <int>0</int>
+          </entry>
+        </fallowMap>
+        <allowNewSpeciesAfterClearCut>false</allowNewSpeciesAfterClearCut>
+      </simmem.model.rule.ClearCuttingAction>
+    </actions>
+    <defaultRule>false</defaultRule>
+  </simmem.model.rule.SimRule>
+  <simmem.model.rule.SimRule>
+    <id>4</id>
+    <name>R?gle 4</name>
+    <group>
+      <id>4</id>
+      <standIds>
