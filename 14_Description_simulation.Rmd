@@ -14,9 +14,6 @@ output:
 fig_caption: yes
 word_document: default
 urlcolor: blue
-params:
-  scenario: "BAUrmd"
-  titre: "hoprmd"
 ---
   
 ```{r setup, include=FALSE}
@@ -377,7 +374,7 @@ plot(forestStands['mean.volume.per.year'], border=NA,  main=expression(paste("Pr
 forestStands$mean.volume.per.year[dummy] <- temp.mean.volume.per.year
 ```
 
-## Intensité des interventions
+### Intensité des interventions
 
 Les histogrammes suivantes montrent la distribution de l'intensité des interventions, en volume par propriété, et en surface par itinéraire.
 

@@ -48,7 +48,7 @@ Les étapes suivantes sont réalisées pour affecter un itinéraire sylvicole à
 
 ```{r charge.donnees.peuplement, echo=FALSE, warning=FALSE, message=FALSE}
 l.forestStands <- list()
-liste.scenario <- c("ADA", "TRE", "DYN", "BAU", "SAN")
+liste.scenario <- c("ADA", "TRE", "DYN", "PTR", "SCT")
 for (i in liste.scenario)
 {
   # load full file
@@ -201,7 +201,7 @@ Spécificités liées aux scénarios :
 
 Les polygones avec une distance de débardage non renseignée (NA), ou se trouvant en zone non débardable ou non bûcheronnable sont affectés d'une probabilité de gestion de 0.
 
-Enfin, la probabilité de gestion est pondérée par la proportion du polygone ne se trouvant pas dans une aire protégée. Par exemple, un polygone avec une probabilité de gestion de 0,8, dont la proportion non concernée par une mesure de protection vaut 0,6, aura une probabilité de gestion finale de 0,48.
+Enfin, la probabilité de gestion est pondérée par la proportion du polygone ne se trouvant pas dans une aire protégée. Par exemple, un polygone avec une probabilité de gestion de 0,8, dont la proportion non concernée par une mesure de protection vaut 0,6, aura une probabilité de gestion finale de 0,48. Ceci permet de respecter la surface totale protégée sur le territoire.
 
 ```{r plot.modele.gestion, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 4, fig.width = 12}
 # build df
@@ -233,9 +233,7 @@ g <- ggplot(data = df.model.gestion, aes(x=surface, y=proba, col=DOMAINE_TYPE)) 
 print(g)
 ```
 
-## Choix gestion / non-gestion
-
-Un tirage au sort est ensuite effectué selon un loi uniforme entre 0 et 1 pour déterminer si une parcelle est gérée (valeur inférieure à la probabilité modélisée) ou non. Les parcelles non bûcheronnables ou non accessibles sont donc systématiquement non-gérés, pour les autres cela dépend de la surface moyenne des parcelles cadastrales qu'ils contiennent (pour les forêts privées), et de la distance à la route forestière. Les résultats sont présentés sur les figures suivantes.
+La carte de la probabilité de gestion est présenté ci-dessous pour chaque scénario.
 
 ```{r carte.probabilite.gestion, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 8, fig.width = 12}
 dummy <- lapply(l.forestStands, function(x){
@@ -264,6 +262,10 @@ legend_b <- cowplot::get_legend(dummy[[1]] + theme(legend.position="right"))
 p <- cowplot::plot_grid(prow, legend_b, nrow = 1, rel_widths = c(10, 1))
 print(p)
 ```
+
+## Choix gestion / non-gestion
+
+Un tirage au sort est ensuite effectué selon un loi uniforme entre 0 et 1 pour déterminer si une parcelle est gérée (valeur inférieure à la probabilité modélisée) ou non. Les parcelles non bûcheronnables ou non accessibles sont donc systématiquement non-gérés, pour les autres cela dépend de la surface moyenne des parcelles cadastrales qu'ils contiennent (pour les forêts privées), et de la distance à la route forestière. Les résultats sont présentés sur les figures suivantes.
 
 ```{r carte.gestion, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 9, fig.width = 12}
 dummy <- lapply(l.forestStands, function(x){

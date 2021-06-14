@@ -2,7 +2,7 @@
 # COMPOSITION DONE - NOW MANAGEMENT
 # 
 rm(list = setdiff(ls(),"user"))
-scenario <- "SAN"
+scenario <- "SCT"
 load(file="./data/forestStands03c.rda")
 if (0) # add protected forests info
 {
@@ -90,7 +90,7 @@ forestStands$dist.save <- forestStands$dist
 #
 ###########################################
 # modificateur via surface
-if (scenario == "BAU")
+if (scenario == "PTR")
 {
   # surface equivalente de base pour public : 300 ha
   forestStands$surface[forestStands$DOMAINE_TYPE=="Pub"] <- 300
@@ -182,7 +182,7 @@ if (scenario =="DYN")
   forestStands$dist[dummy] <- pmax(0, forestStands$dist[dummy] - 250)
   #
 }
-if (scenario =="SAN")
+if (scenario =="SCT")
 {
   # surface equivalente de base pour public : 300 ha
   forestStands$surface[forestStands$DOMAINE_TYPE=="Pub"] <- 300
@@ -233,7 +233,7 @@ if (scenario =="DYN")
   forestStands$proba[dummy] <- pmin(forestStands$proba[dummy] * 1.1, 1)
 }
 
-if (scenario =="SAN")
+if (scenario =="SCT")
 {
   # diminuer la probabilité de gestion pour non "autres feuillus"
   dummy <- which(forestStands$FOREST_TYPE_CODE !="salem_oak")
@@ -370,9 +370,9 @@ beechFirSprucePrivList <- forestStands[forestStands$STAND_ID %in% beechFirSpruce
 #
 # affecter les itineraires sylvicoles
 # source('./src/sc1_BAU.R')
-if(is.element(scenario, c("BAU", "TRE", "DYN")))
+if(is.element(scenario, c("PTR", "TRE", "DYN")))
 {
-  dummyscenario <- "BAU"
+  dummyscenario <- "PTR"
 } else {dummyscenario <- scenario}
 
 source(paste0("./src/sc1_", dummyscenario, ".R"))

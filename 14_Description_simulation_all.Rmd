@@ -1,0 +1,597 @@
+---
+title: "Résultat des simulations, PNR du Massif des Bauges"
+subtitle: "Comparaison des scénarios"
+author: "Jean-Matthieu MONNET, Raphaël Aussenac, Patrick Vallet"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    self_contained: TRUE
+    number_sections: true
+    toc: true
+    toc_depth: 2
+  pdf_document:
+    number_sections: true
+fig_caption: yes
+word_document: default
+urlcolor: blue
+---
+  
+```{r setup, include=FALSE}
+rm(list=setdiff(ls(), c("params")))
+library(knitr)
+knitr::opts_chunk$set(echo = TRUE, fig.width=12, fig.height=8)
+# library(kableExtra)
+#library(rgl)
+#knit_hooks$set(webgl = hook_webgl)
+options(scipen=999)
+# wkhtmltopdf -B 15 -L 15 -R 15 -T 15 fiche-observatoire.html fiche-observatoire.pdf
+# load packages
+library(ggplot2)
+library(plyr)
+#
+# set work directory
+setwd("/home/jean-matthieu/R/PROTEST")# "/media/data/R/packages/PROTEST")#
+```
+
+---
+# Introduction
+
+L'objectif de ce document est de présenter les simulations d'évolution forestière réalisées par le logiciel SIMMEM sur le territoire du PNR du Massif des Bauges. 
+
+
+```{r charge.donnees.initiales, echo=FALSE, warning=FALSE, message=FALSE}
+l.forestStands <- list()
+liste.scenario <- c("ADA", "TRE", "DYN", "PTR", "SCT")
+for (i in liste.scenario)
+{
+  # load full file
+  forestStands <- read.table(paste0("./output/forestStandsFULL", i,".txt"), header=TRUE, sep = '\t', stringsAsFactors = TRUE)
+  forestStands$`WKT-GEOM` <- as.character(forestStands$`WKT.GEOM`)
+  forestStands <- sf::st_sf(forestStands[,-which(names(forestStands)=="WKT-GEOM")], geom=sf::st_as_sfc(forestStands$`WKT-GEOM`))
+  sf::st_crs(forestStands) <- 2154
+  levels(forestStands$DOMAINE_TYPE) <- ifelse(levels(forestStands$DOMAINE_TYPE)=="Priv", "Privé", "Public")
+  levels(forestStands$gestion) <- gsub("AccGere", "Accessible géré", levels(forestStands$gestion))
+  levels(forestStands$gestion) <- gsub("AccNonGere", "Accessible non géré", levels(forestStands$gestion))
+  levels(forestStands$gestion) <- gsub("NonAcc", "Non accessible", levels(forestStands$gestion))
+  levels(forestStands$gestion) <- gsub("NonBuch", "Non bûcheronnable", levels(forestStands$gestion))
+  forestStands$Itinéraire <- factor(ifelse(substr(forestStands$COMMENT,1,2)=="Co", "Inaction",
+                                           ifelse(substr(forestStands$COMMENT,1,2)=="Ir", "Irrégulier",
+                                                  ifelse(substr(forestStands$COMMENT,1,2)=="Th", "Amélioration","Coupe rase"))))
+  forestStands$Essence <- forestStands$typologie
+  levels(forestStands$Essence) <- gsub("Priv_", "", levels(forestStands$Essence))
+  levels(forestStands$Essence) <- gsub("Pub_", "", levels(forestStands$Essence))
+  names(forestStands) <- gsub("DOMAINE_TYPE", "Propriété", names(forestStands))
+  names(forestStands) <- gsub("gestion", "Gestion", names(forestStands))
+  l.forestStands[[i]] <- forestStands
+}
+```
+
+Le nombre de polygones simulés est de `r nrow(forestStands)`, pour une surface totale de `r round(sum(forestStands$AREA)/10000,-1)` ha. 
+
+```{r charger.simus, echo=FALSE, warning=FALSE, message=FALSE}
+# simulation parameters
+# 
+duration <- 30
+# time step = 3 yrs
+timeStep <- 3
+#
+# load SIMMEM output file
+l.df <- list()
+for (i in liste.scenario)
+{
+  df <- read.csv(file=paste0("./simmem/simmemOutput/exportAuto", i, ".txt"), sep = "\t", skip = 3)
+  #
+  ###########################
+  # mise en forme
+  colnames(df)[1] <- "standId"
+  # create columns for sp2
+  # df$realSpecies2 <- -1
+  # df$Ddom2 <- -1
+  # #
+  # # separate sp1 and sp2 data
+  # df[df$realSpecies == 'Fagus sylvatica;Picea abies', 'realSpecies2'] <- 'Picea abies'
+  # df[df$realSpecies == 'Fagus sylvatica;Abies alba', 'realSpecies2'] <- 'Abies alba'
+  # df[df$realSpecies == 'Abies alba;Picea abies', 'realSpecies2'] <- 'Picea abies'
+  # #
+  # colnames(df)[colnames(df) == "realSpecies"] <- "realSpecies1"
+  # df[df$realSpecies1 == 'Fagus sylvatica;Picea abies', 'realSpecies1'] <- 'Fagus sylvatica'
+  # df[df$realSpecies1 == 'Fagus sylvatica;Abies alba', 'realSpecies1'] <- 'Fagus sylvatica'
+  # df[df$realSpecies1 == 'Abies alba;Picea abies', 'realSpecies1'] <- 'Abies alba'
+  # #
+  # # TODO: separate Ddom1 and Ddom2
+  # #
+  # # retrieve area
+  df <- merge(df, sf::st_drop_geometry(l.forestStands[[i]][,c("STAND_ID", "AREA", "Itinéraire", "Essence")]), by.x = "standId", by.y = "STAND_ID")
+  # # managType
+  # df$managType <- substr(df$comment, 1, 3)
+  # # compo
+  # df$compo <- substr(df$comment, 4, 6)
+  # # owner
+  # df$owner <- substr(df$comment, 7, 8)
+  # order by standId and then by date
+  df <- df[order(df$standId, df$date), ]
+  #
+  ##########################
+  # remove repeated clearcut
+  if(1)
+  {
+    # order df by standid then date
+    df <- df[order(df$standId, df$date),]
+    testStand <- df$standId[1:(nrow(df)-1)]==df$standId[2:nrow(df)]
+    testYear <- df$date[1:(nrow(df)-1)]==df$date[2:nrow(df)]-3
+    testVolume <- df$volumeRemoved_m3[1:(nrow(df)-1)]==df$volumeRemoved_m3[2:nrow(df)]
+    testVolumeZero <- df$volumeRemoved_m3[-nrow(df)]!=0
+    # testManagTyp <- df$managType[-nrow(df)]=="Har"
+    # testBasalArea <- df$basalArea_m2[1:(nrow(df)-1)]>=df$basalArea_m2[2:nrow(df)]
+    falseVolume <- which(testStand & testVolume & testVolumeZero & testYear)
+    df$volumeRemoved_m3[falseVolume+1] <- 0
+    #
+  }
+  #
+  # keep only 30 years
+  df <- df[df$date<=min(df$date)+duration,]
+  #
+  # récolte par periode
+  # multiply volume * area
+  # df$VolumeRemoved_m3 <- df$volumeRemoved_m3 * (df$AREA / 10000)
+  # surface traitée annuellement
+  # df$annualAREA <- (df$AREA / 10000) / timeStep
+  # df[df$annualVolumeRemoved_m3 == 0, "annualAREA"] <- 0
+  #
+  l.df[[i]] <- df
+}
+names(l.forestStands) <- names(l.df) <- liste.scenario <- c("ADA", "TRE", "DYN", "PTR", "SCT")
+```
+
+On s'intéresse à une durée simulée de `r duration` années, avec une période simulée de 3 ans.
+
+Dans le cas de la coupe rase, SIMMEM répète à chaque intervalle les valeurs du dernier volume exploité dans le fichier de sortie. Les valeurs en doublon sont enlevées du tableau de résultats. 
+
+Dans le fichier de sortie de SIMEMM, une ligne par année est indiquée. La première année reprend les valeurs initiales. Une intervention est éventuellement déclenchée dès la première année. Ce sont donc les caractéristiques du peuplement avant intervention qui sont indiquées. Les caractéristiques du peuplement juste après intervention ne sont pas disponibles, la ligne suivante présentant les caractéristiques du peuplement après intervention éventuelle et croissance du peuplement pendant la période de simulation suivante. Aucune exploitation n'est donc réalisée lors de la dernière année de simulation.
+
+```{r calcul.stats.globales, echo=FALSE, warning=FALSE, message=FALSE}
+for (i in names(l.df))
+{
+  df <- l.df[[i]]
+  forestStands <- l.forestStands[[i]]
+  # initial G
+  dummy <- df[df$date==2016, c("standId", "basalArea_m2")]
+  names(dummy) <- c("STAND_ID", "G.init.m2.ha")
+  forestStands <- merge(forestStands, dummy)
+  # final G
+  dummy <- df[df$date==(2016 + duration), c("standId", "basalArea_m2")]
+  names(dummy) <- c("STAND_ID", "G.final.m2.ha")
+  forestStands <- merge(forestStands, dummy)
+  # total volume harvested
+  dummy <- aggregate(volumeRemoved_m3 ~ standId, data = df, FUN = sum)
+  names(dummy) <- c("STAND_ID", "totalVolumeRemoved_m3.ha")
+  forestStands <- merge(forestStands, dummy)
+  # number of interventions
+  dummy <- aggregate(volumeRemoved_m3 ~ standId, data = df, FUN = function(x) sum(x>0))
+  names(dummy) <- c("STAND_ID", "nb.Interventions")
+  forestStands <- merge(forestStands, dummy)
+  #
+  forestStands$totalVolumeRemoved_m3 <- forestStands$totalVolumeRemoved_m3.ha * forestStands$AREA / 10000
+  #
+  l.df[[i]] <- df
+  l.forestStands[[i]] <- forestStands
+}
+```
+
+# Interventions sylvicoles
+
+## Récolte et surface traitée
+
+Le volume récolté correspondant dans le simulateur au volume des arbres coupés (PRECISION A APPORTER : PATRICK ?). On entend par surface traité la superficie des parcelles où a eu lieu une intervention sylvicole de coupe (éclaircie, coupe finale ou rase, coupe en irrégulier).
+
+### Aperçu général
+
+Les surfaces traitées annuellement et la récolte annuelle sont présentées sur le graphique ci-dessous, le scénario "Patrimonialisation" (PTR) représentant la base 100. Par rapport aux volumes et surfaces annoncés pour les scénarios, les résultats de simulation sont moins contrastés. Les augmentations pressenties étaient :
+
+* `r round(100/60*100)-100` % en volume et `r round(650/600*100)-100` % en surface pour "Adaptation forcée" (ADA),
+* `r round(100/60*100)-100` % en volume et `r round(600/600*100)-100` % en surface pour "Transition énergétique" (TRE),
+* `r round(85/60*100)-100` % en volume et `r round(650/600*100)-100` % en surface pour "Redynamisation forestière" (DYN),
+* `r round(40/60*100)-100` % en volume et `r round(400/600*100)-100` % en surface pour "Sanctuarisation" (SCT).
+
+Il paraît difficile de décorréler les volumes et surfaces, sauf à introduire des modifications plus importantes sur la sylviculture, notamment les diamètres objectifs et les régimes d'éclaircie.
+
+```{r recolte.annuelle, echo=FALSE, warning=FALSE, message=FALSE, fig.width = 8, fig.height = 4}
+par(mfrow = c(1,2))
+#tab.recolte.m3.an <- sapply(l.forestStands, FUN = function(x){list(surface.ha.an = round(sum(x$AREA * x$nb.Interventions)/10000/30, -1), recolte.m3.an = round(sum(x$totalVolumeRemoved_m3)/30, -3))})
+tab.recolte.m3.an <- sapply(l.forestStands, FUN = function(x){sum(x$totalVolumeRemoved_m3)/duration})
+dummy <- tab.recolte.m3.an/tab.recolte.m3.an["PTR"]*100
+my_bar <- barplot(dummy, main = "Récolte totale", ylab = "base 100 = scénario PTR")
+text(my_bar, dummy-5 , paste0(ifelse(dummy >= 100, "+", ""), round(dummy/dummy["PTR"]*100-100)), cex=1)
+abline(h=100, lty = 2)
+#
+tab.surface.ha.an <- sapply(l.forestStands, FUN = function(x){sum(x$AREA * x$nb.Interventions)/10000/duration})
+dummy <- tab.surface.ha.an/tab.surface.ha.an["PTR"]*100
+my_bar <- barplot(dummy, main = "Surface annuelle traitée", ylab = "base 100 = scénario PTR")
+text(my_bar, dummy-5 , paste0(ifelse(dummy >= 100, "+", ""), round(dummy/dummy["PTR"]*100-100)), cex=1)
+abline(h=100, lty = 2)
+```
+
+```{r donnees, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 5}
+tab.Surface.ha <- lapply(l.forestStands, function(x){aggregate(AREA*nb.Interventions/(duration*10000) ~ Essence + Itinéraire + Propriété, data = x, FUN = function(x){sum(x, na.rm = TRUE)})})
+tab.Surface.ha <- mapply(function(x, y){x$Scénario <- y;return(x)}, tab.Surface.ha, as.list(liste.scenario), SIMPLIFY = FALSE)
+tab.Surface.ha <- do.call(rbind, tab.Surface.ha)
+tab.Surface.ha$Itinéraire <- factor(tab.Surface.ha$Itinéraire, levels = c("Inaction", "Coupe rase", "Amélioration", "Irrégulier"))
+tab.Surface.ha$Scénario <- factor(tab.Surface.ha$Scénario, levels = liste.scenario)
+names(tab.Surface.ha)[ncol(tab.Surface.ha)-1] <- "Surface.traitee_ha"
+
+#
+tab.VolumeRemoved_m3 <- lapply(l.forestStands, function(x){aggregate(totalVolumeRemoved_m3/duration ~ Essence + Itinéraire + Propriété, data = x, FUN = function(x){sum(x, na.rm = TRUE)})})
+tab.VolumeRemoved_m3 <- mapply(function(x, y){x$Scénario <- y;return(x)}, tab.VolumeRemoved_m3, as.list(liste.scenario), SIMPLIFY = FALSE)
+tab.VolumeRemoved_m3 <- do.call(rbind, tab.VolumeRemoved_m3)
+tab.VolumeRemoved_m3$Itinéraire <- factor(tab.VolumeRemoved_m3$Itinéraire, levels = c("Inaction", "Coupe rase", "Amélioration", "Irrégulier"))
+tab.VolumeRemoved_m3$Scénario <- factor(tab.VolumeRemoved_m3$Scénario, levels = liste.scenario)
+names(tab.VolumeRemoved_m3)[ncol(tab.VolumeRemoved_m3) -1] <- "totalVolumeRemoved_m3"
+
+# create false scenario for initial state
+# forestStandsinit <- l.forestStands[[1]]
+# forestStandsinit$G.final.m2.ha <- forestStandsinit$G.init.m2.ha
+dummy <- l.forestStands
+# dummy[["INI"]] <- forestStandsinit
+tab.G.final.m2 <- lapply(dummy, function(x){aggregate(G.final.m2.ha*AREA/10000 ~ Essence + Itinéraire + Propriété, data = x, FUN = function(x){sum(x, na.rm = TRUE)})})
+# tab.G.m2 <- mapply(function(x, y){x$Scénario <- y;return(x)}, tab.G.m2, as.list(c(liste.scenario, "INI")), SIMPLIFY = FALSE)
+tab.G.final.m2 <- mapply(function(x, y){x$Scénario <- y;return(x)}, tab.G.final.m2, as.list(liste.scenario), SIMPLIFY = FALSE)
+tab.G.final.m2 <- do.call(rbind, tab.G.final.m2)
+tab.G.final.m2$Itinéraire <- factor(tab.G.final.m2$Itinéraire, levels = c("Inaction", "Coupe rase", "Amélioration", "Irrégulier"))
+tab.G.final.m2$Scénario <- factor(tab.G.final.m2$Scénario, levels = liste.scenario)
+# tab.G.final.m2$Scénario <- factor(tab.G.final.m2$Scénario, levels = c("INI", liste.scenario))
+names(tab.G.final.m2)[ncol(tab.G.final.m2) -1] <- "G.m2"
+tab.G.final.m2$Year <- "2046"
+#
+tab.G.init.m2 <- lapply(dummy, function(x){aggregate(G.init.m2.ha*AREA/10000 ~ Essence + Itinéraire + Propriété, data = x, FUN = function(x){sum(x, na.rm = TRUE)})})
+# tab.G.m2 <- mapply(function(x, y){x$Scénario <- y;return(x)}, tab.G.m2, as.list(c(liste.scenario, "INI")), SIMPLIFY = FALSE)
+tab.G.init.m2 <- mapply(function(x, y){x$Scénario <- y;return(x)}, tab.G.init.m2, as.list(liste.scenario), SIMPLIFY = FALSE)
+tab.G.init.m2 <- do.call(rbind, tab.G.init.m2)
+tab.G.init.m2$Itinéraire <- factor(tab.G.init.m2$Itinéraire, levels = c("Inaction", "Coupe rase", "Amélioration", "Irrégulier"))
+tab.G.init.m2$Scénario <- factor(tab.G.init.m2$Scénario, levels = liste.scenario)
+# tab.G.init.m2$Scénario <- factor(tab.G.init.m2$Scénario, levels = c("INI", liste.scenario))
+names(tab.G.init.m2)[ncol(tab.G.init.m2) -1] <- "G.m2"
+tab.G.init.m2$Year <- "2016"
+#
+tab.G.m2 <- rbind(tab.G.final.m2, tab.G.init.m2)
+rm(tab.G.init.m2, tab.G.final.m2)
+```
+
+```{r fonction.cumule.width, echo=FALSE, warning=FALSE, message=FALSE}
+prepare.data <- function(var, fac1, fac2, espace = TRUE, fac.names = c("x", "y"))
+{
+  
+  # tableau de contingence pondere
+  dummy <- questionr::wtd.table(x=fac1, y=fac2, weights = var)
+  #
+  # somme par ligne
+  dummy.sum <- apply(dummy, 1, sum)
+  # convertir en df
+  dummy.sum <- data.frame(dummy.sum)
+  # calculer les centres des barres
+  dummy.sum$xcenter <- cumsum(dummy.sum$dummy.sum) - 0.5 * dummy.sum$dummy.sum + espace * sum(dummy.sum$dummy.sum)/ 50 * (1:nrow(dummy.sum)-1)
+  #
+  # convertir le tableau de contingence en proportion par ligne
+  dummy <- dummy/dummy.sum$dummy.sum
+  # inverser les colonnes
+  dummy <- dummy[, rev(1:ncol(dummy))]
+  # calculer la somme cumulee
+  dummy <- t(apply(dummy, 1, cumsum))
+  # convertir en df
+  dummy <- as.data.frame.matrix(dummy)
+  # ajouter la colonne scenario
+  dummy$x <- row.names(dummy)
+  # convertir du format wide au long
+  dummy <- reshape(dummy, direction="long",varying = list(names(dummy)[1:(ncol(dummy)-1)]), idvar = "x", timevar="y", times = names(dummy)[1:(ncol(dummy)-1)], v.names="CumProportion")
+  # mettre dans l'ordre avant calcul proportion
+  dummy <- dummy[order(match(dummy$y, rev(levels(fac2)))),]
+  dummy <- dummy[order(dummy$x),]
+  # dummy <- dummy[order(dummy$x, dummy$y, decreasing = c(FALSE, TRUE), method = "radix"),]
+  # calcul proportion par difference
+  dummy$Proportion <- NA
+  dummy$Proportion[2:nrow(dummy)] <- ifelse(dummy$x[1:(nrow(dummy)-1)] == dummy$x[2:(nrow(dummy))], dummy$CumProportion[2:(nrow(dummy))] - dummy$CumProportion[1:(nrow(dummy)-1)], NA)
+  dummy$Proportion[is.na(dummy$Proportion)] <- dummy$CumProportion[is.na(dummy$Proportion)]
+  #
+  # ajouter le centre de la barre
+  dummy$xcenter <- dummy.sum[dummy$x, "xcenter"]
+  # ajouter la largeur de la barre
+  dummy$xwidth <- dummy.sum[dummy$x, "dummy.sum"]
+  names(dummy)[1:2] <- fac.names
+  list(dummy, dummy.sum)
+}
+```
+
+### Par propriété
+
+Concernant la répartition de la récolte par type de propriété, les différences avec les scénarios sont importantes :
+
+* ADA prévoyait +50% en forêt publique et +100% en forêt privée,
+* TRE prévoyait environ +10% en public et presque +175% en privé,
+* DYN +125% en privé,
+* SCT -25% en public et -50% en privé.
+
+Il apparaît déjà que le scénario de référence table sur un volume récolté deux fois supérieur en public qu'en privé, alors que les simulations donnent un volume près de 1,5 fois supérieur en privé.
+
+Dans les simulations, ADA comporte une augmentation en privé et public. Pour les scénarios TRE et DYN, l'augmentation est réalisée majoritairement en privé. La répartition de la récolte change peu avec le scénario SCT.
+
+```{r recolte.propriete, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 3.5, fig.width = 9}
+g1 <- ggplot(data = tab.VolumeRemoved_m3, aes(x=Scénario, y=totalVolumeRemoved_m3, fill=Propriété)) +
+  geom_bar(stat="identity") +
+  scale_fill_manual(breaks = c("Privé", "Public") , values=c("green", "blue")) +
+  # facet_wrap(scenario ~ ., nrow = 1) +
+  theme(legend.position="none",
+        axis.text.x = element_text(angle = 0)) +
+  labs(y="Récolte (m3/an)")
+#
+dummy <- prepare.data(tab.VolumeRemoved_m3$totalVolumeRemoved_m3, tab.VolumeRemoved_m3$Scénario, tab.VolumeRemoved_m3$Propriété, espace = TRUE, fac.names = c("Scénario", "Propriété"))
+#
+g3 <- ggplot(data = dummy[[1]], aes(x=xcenter, y=CumProportion - 0.5 * Proportion, fill=Propriété)) +
+  geom_tile(aes(width=xwidth, height=Proportion)) +
+  scale_x_continuous(breaks=dummy[[2]]$xcenter, labels=row.names(dummy[[2]])) +
+  # geom_text(aes(label = Essence)) +
+  scale_fill_manual(breaks = c("Privé", "Public") , values=c("green", "blue")) +
+  # facet_wrap(Scénario ~ ., nrow = 1) +
+  theme(legend.position="none",
+        axis.text.x = element_text(angle = 0)) +
+  labs(y="Récolte (proportion)", x="Scénario")
+#
+g2 <- ggplot(data = tab.Surface.ha, aes(x=Scénario, y=Surface.traitee_ha, fill=Propriété)) +
+  geom_bar(stat="identity") +
+  scale_fill_manual(breaks = c("Privé", "Public") , values=c("green", "blue")) +
+  # facet_wrap(scenario ~ ., nrow = 1) +
+  theme(legend.position="none",
+        axis.text.x = element_text(angle = 0)) +
+  labs(y="Surface traitée (ha/an)")
+#
+cowplot::plot_grid(g1, g3, g2, cowplot::get_legend(g1 + theme(legend.position="right")), nrow = 1, rel_widths = c(5, 5, 5, 1.5))
+```
+
+### Par essence
+
+Là encore les scénarios restent peu contrastés:
+
+* ADA a une proportion plus importante de récolte en mixte, et très légèrement en sapin-épicéa.
+* TRE et dans une moindre mesure DYN ont une récolte un peu plus importante en feuillus.
+* SCT a une proportion plus importante en "Autres feuillus".
+
+
+
+```{r recolte.essence, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 3.5, fig.width = 12}
+dummy <- prepare.data(tab.VolumeRemoved_m3$totalVolumeRemoved_m3, tab.VolumeRemoved_m3$Scénario, tab.VolumeRemoved_m3$Essence, espace = TRUE, fac.names = c("Scénario", "Essence"))
+#
+g3 <- ggplot(data = dummy[[1]], aes(x=xcenter, y=CumProportion - 0.5 * Proportion, fill=Essence)) +
+  geom_tile(aes(width=xwidth, height=Proportion)) +
+  scale_x_continuous(breaks=dummy[[2]]$xcenter, labels=row.names(dummy[[2]])) +
+  # geom_text(aes(label = Essence)) +
+  #scale_fill_manual(breaks = c("Privé", "Public") , values=c("green", "blue")) +
+  # facet_wrap(Scénario ~ ., nrow = 1) +
+  theme(legend.position="none",
+        axis.text.x = element_text(angle = 0)) +
+  labs(y="Récolte (proportion)", x="Scénario")
+#
+g1 <- ggplot(data = tab.VolumeRemoved_m3, aes(x=Scénario, y=totalVolumeRemoved_m3, fill=Essence)) +
+  geom_bar(stat="identity") +
+  #scale_fill_manual(breaks = c("Privé", "Public") , values=c("green", "blue")) +
+  # facet_wrap(scenario ~ ., nrow = 1) +
+  theme(legend.position="none",
+        axis.text.x = element_text(angle = 0)) +
+  labs(y="Récolte (m3/an)")
+#
+g2 <- ggplot(data = tab.Surface.ha, aes(x=Scénario, y=Surface.traitee_ha, fill=Essence)) +
+  geom_bar(stat="identity") +
+  #scale_fill_manual(breaks = c("Privé", "Public") , values=c("green", "blue")) +
+  # facet_wrap(scenario ~ ., nrow = 1) +
+  theme(legend.position="none",
+        axis.text.x = element_text(angle = 0)) +
+  labs(y="Surface traitée (ha/an)")
+#
+cowplot::plot_grid(g1, g3, g2, cowplot::get_legend(g1 + theme(legend.position="right")), ncol = 4, rel_widths = c(5, 5, 5, 2))
+```
+
+
+### Par essence et propriété
+
+```{r recolte.essence.propriete, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 3.5, fig.width = 7}
+g <- ggplot(data = tab.VolumeRemoved_m3, aes(x=Propriété, y=totalVolumeRemoved_m3, fill=Essence)) +
+  geom_bar(stat="identity") +
+  # scale_fill_manual(breaks = c("Privé", "Public") , values=c("green", "blue")) +
+  facet_wrap(Scénario ~ ., nrow = 1) +
+  theme(legend.position="right",
+        axis.text.x = element_text(angle = 0)) +
+  labs(y="Récolte (m3/an)")
+print(g)
+```
+
+### Par itinéraire
+
+ADA est caractérisé par une augmentation de la proportion de coupe rase (surtout en privé) et d'amélioration (surtout en public) par rapport aux autres scénarios. SCT a une proportion plus importante d'irrégulier.
+
+```{r recolte.itineraire, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 3.5, fig.width = 12}
+dummy <- tab.VolumeRemoved_m3[tab.VolumeRemoved_m3$Itinéraire != "Inaction",]
+dummy <- prepare.data(tab.VolumeRemoved_m3$totalVolumeRemoved_m3, tab.VolumeRemoved_m3$Scénario, tab.VolumeRemoved_m3$Itinéraire, espace = TRUE, fac.names = c("Scénario", "Itinéraire"))
+#
+g3 <- ggplot(data = dummy[[1]], aes(x=xcenter, y=CumProportion - 0.5 * Proportion, fill=Itinéraire)) +
+  geom_tile(aes(width=xwidth, height=Proportion)) +
+  scale_x_continuous(breaks=dummy[[2]]$xcenter, labels=row.names(dummy[[2]])) +
+  # geom_text(aes(label = Essence)) +
+  scale_fill_manual(breaks = c("Inaction", "Coupe rase", "Amélioration", "Irrégulier") , values=c("grey", "red", "orange", "yellow")) +
+  # facet_wrap(Scénario ~ ., nrow = 1) +
+  theme(legend.position="none",
+        axis.text.x = element_text(angle = 0)) +
+  labs(y="Récolte (proportion)", x="Scénario")
+
+g1 <- ggplot(data = tab.VolumeRemoved_m3, aes(x=Scénario, y=totalVolumeRemoved_m3, fill=Itinéraire)) +
+  geom_bar(stat="identity") +
+  scale_fill_manual(breaks = c("Inaction", "Coupe rase", "Amélioration", "Irrégulier") , values=c("grey", "red", "orange", "yellow")) +
+  # facet_wrap(scenario ~ ., nrow = 1) +
+  theme(legend.position="none",
+        axis.text.x = element_text(angle = 0)) +
+  labs(y="Récolte (m3/an)")
+#
+g2 <- ggplot(data = tab.Surface.ha, aes(x=Scénario, y=Surface.traitee_ha, fill=Itinéraire)) +
+  geom_bar(stat="identity") +
+  scale_fill_manual(breaks = c("Inaction", "Coupe rase", "Amélioration", "Irrégulier") , values=c("grey", "red", "orange", "yellow")) +
+  # facet_wrap(scenario ~ ., nrow = 1) +
+  theme(legend.position="none",
+        axis.text.x = element_text(angle = 0)) +
+  labs(y="Surface traitée (ha/an)")
+#
+cowplot::plot_grid(g1, g3, g2, cowplot::get_legend(g1 + theme(legend.position="right")), ncol = 4, rel_widths = c(5, 5, 5, 2))
+```
+
+La répartition des volumes récoltés par itinéraire, essence et propriété est présentée ci-dessous.
+
+```{r recolte.iti.essence.propriete, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 5}
+g <- ggplot(data = tab.VolumeRemoved_m3, aes(x=Scénario, y=totalVolumeRemoved_m3, fill=Itinéraire)) +
+  geom_bar(stat="identity") +
+  scale_fill_manual(breaks = c("Inaction", "Coupe rase", "Amélioration", "Irrégulier") , values=c("grey", "red", "orange", "yellow")) +
+  facet_grid(Propriété ~ Essence) +
+  theme(legend.position="right",
+        axis.text.x = element_text(angle = 0)) +
+  labs(y="Récolte (m3/an)")
+print(g)
+```
+## Fréquence et intensité
+
+### Fréquence d'intervention
+
+Les cartes ci-dessous montrent le nombre d'interventions sur la période (éclaircie ou coupe). Il n'y a pas de différence flagrante entre les scénarios.
+
+```{r carte.itineraire, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 9, fig.width = 12}
+dummy <- lapply(l.forestStands, function(x){
+  x$Intervention <- x$nb.Interventions
+  x$Intervention[x$Itinéraire=="Inaction"] <- -1
+  x$Intervention[x$Intervention>3] <- 3
+  x$Intervention <- factor(as.character(x$Intervention), levels = c(-1, 0, 1, 2, 3))
+  levels(x$Intervention) <- c("Inaction", "0", "1", "2", "3 et plus")
+  g <- ggplot() + geom_sf(data=x["Intervention"], aes(fill=Intervention), color = NA) + theme(legend.position="none") +
+    scale_fill_manual(breaks = levels(x$Intervention) , values=c("grey", "red", "orange", "yellow", "green", "blue")) +
+    theme(
+      panel.border = element_blank(),
+      axis.text = element_blank(),
+      panel.grid = element_blank(),
+      axis.ticks = element_blank()#,
+    )
+})
+
+prow <- cowplot::plot_grid(plotlist = dummy,
+           align = 'vh',
+           labels = liste.scenario,
+           hjust = -1,
+           nrow = 2
+           )
+legend_b <- cowplot::get_legend(dummy[[1]] + theme(legend.position="bottom"))
+
+# add the legend underneath the row we made earlier. Give it 10% of the height
+# of one plot (via rel_heights).
+p <- cowplot::plot_grid(prow, legend_b, ncol = 1, rel_heights = c(8, 1))
+print(p)
+# legend("topright", c("Accessible <2km", "Accessible >2km", "Non accessible", "Non bûcheronnable"), fill=c("green", "yellow", "pink", "purple"))
+# plot(f
+```
+
+### Intensité moyenne de récolte
+
+```{r carte.intensite, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 9, fig.width = 12}
+# bind
+dummy <- mapply(function(x, y){x$Scénario <- y;return(x)}, l.forestStands, as.list(liste.scenario))
+dummy <- lapply(dummy, function(x){x[,c("Scénario", "Itinéraire", "totalVolumeRemoved_m3.ha")]})
+dummy <- do.call(rbind, dummy)
+dummy$totalVolumeRemoved_m3.ha[dummy$Itinéraire=="Inaction"] <- NA
+col.pal <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan", "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
+fill.colors <- col.pal(64)
+#qn <- scales::rescale(quantile(test$totalVolumeRemoved_m3.ha, probs=seq(0, 1, length.out=length(fill.colors)), na.rm = TRUE))
+g <- ggplot() + geom_sf(data=dummy, aes(fill=totalVolumeRemoved_m3.ha/duration), color = NA) + theme(legend.position="bottom") +
+  #scale_fill_gradientn(colours=fill.colors, values = qn) +
+  scale_fill_gradientn(colours=fill.colors) +
+  # scale_fill_gradientn(colours=fill.colors, trans = 'norm', breaks = quantile(dummy$totalVolumeRemoved_m3.ha, probs=seq(0, 1, length.out=length(fill.colors)), na.rm = TRUE)) +
+  facet_wrap(Scénario ~ .) +
+  theme(
+    panel.border = element_blank(),
+    axis.text = element_blank(),
+    panel.grid = element_blank(),
+    axis.ticks = element_blank()#,
+  ) +
+  labs(fill = "Récolte moyenne (m3/ha/an)")
+print(g)
+```
+
+La répartition de la récolte par intensité d'intervention est présentée ci-dessous.
+
+```{r recolte.intensite, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 3.5, fig.width = 12}
+dummy <- mapply(FUN = function(x, y){x$Scénario <-y; return(x)}, l.df, as.list(liste.scenario), SIMPLIFY = FALSE)
+dummy <- do.call(rbind, dummy)
+dummy$volumeRemoved_m3[dummy$volumeRemoved_m3==0] <- NA
+dummy$Scénario <- factor(dummy$Scénario, levels = c("ADA", "TRE", "DYN", "PTR", "SCT"))
+g <- ggplot(data = dummy, aes(x=volumeRemoved_m3, weight = volumeRemoved_m3*AREA/10000 , fill=Itinéraire)) +
+  geom_histogram(stat="bin") +
+  scale_fill_manual(breaks = c("Inaction", "Coupe rase", "Amélioration", "Irrégulier") , values=c("grey", "red", "orange", "yellow")) +
+  facet_wrap(Scénario ~ ., ncol = 5) +
+  theme(legend.position="bottom",
+        axis.text.x = element_text(angle = 0)) +
+  labs(y="Récolte sur 30 ans", x="Intensité de l'intervention (m3/ha)")
+print(g)
+```
+
+
+La distribution (en surface) de chaque itinéraire pour l'intensité de coupe est présentée sur les graphiques ci-dessous.
+
+```{r distribution.intensite, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 3.5, fig.width = 12}
+g <- ggplot(data = dummy, aes(x=volumeRemoved_m3, weight = AREA, col=Itinéraire)) +
+  geom_density() +
+  scale_colour_manual(breaks = c("Coupe rase", "Amélioration", "Irrégulier") , values=c("red", "orange", "yellow")) +
+  facet_wrap(Scénario ~ ., ncol = 5) +
+  theme(legend.position="bottom",
+        axis.text.x = element_text(angle = 0)) +
+  labs(y="Densité (en surface)", x="Intensité de l'intervention (m3/ha)")
+print(g)
+```
+
+La distribution de l'intensité de l'intervention selon la propriété et l'essence est présentée ci-dessous.
+
+```{r distribution.intensite.essence.propriete, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 3.5, fig.width = 12}
+g <- ggplot(data = dummy, aes(y=volumeRemoved_m3, x=Scénario, col = domainType)) +
+  geom_violin(position = "dodge") +
+  # scale_col_manual(breaks = c("Inaction", "Coupe rase", "Amélioration", "Irrégulier") , values=c("grey", "red", "orange", "yellow")) +
+  facet_wrap(Essence ~ ., ncol = 5) +
+  theme(legend.position="bottom",
+        axis.text.x = element_text(angle = 0)) +
+  labs(y="Récolte (m3/ha)")
+print(g)
+```
+
+# Surface terrière
+
+```{r g.itineraire, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 3.5, fig.width = 6}
+tab.G.m2$Scénario.Year <- paste0(tab.G.m2$Scénario, "", tab.G.m2$Year)
+g1 <- ggplot(data = tab.G.m2, aes(x=Year, y=G.m2/1000000, fill=Itinéraire)) +
+  geom_col() +
+  scale_fill_manual(breaks = c("Inaction", "Coupe rase", "Amélioration", "Irrégulier") , values=c("grey", "red", "orange", "yellow")) +
+  facet_wrap(Scénario ~ ., nrow = 1) +
+  theme(legend.position="right",
+        axis.text.x = element_text(angle = 45)) +
+  labs(y="Surface terrière (Mm2)")
+print(g1)
+```
+
+```{r g.essence, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 3.5, fig.width = 6}
+g1 <- ggplot(data = tab.G.m2[tab.G.m2$Itinéraire!="Inaction",], aes(x=Year, y=G.m2/1000000, fill=Essence)) +
+  geom_bar(stat="identity") +
+  #scale_fill_manual(breaks = c("Inaction", "Coupe rase", "Amélioration", "Irrégulier") , values=c("grey", "red", "orange", "yellow")) +
+  facet_wrap(Scénario ~ ., nrow = 1) +
+  theme(legend.position="right",
+        axis.text.x = element_text(angle = 45)) +
+  labs(y="Surface terrière en gestion (Mm2)")
+print(g1)
+```
+
+```{r g.propriete, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 3.5, fig.width = 6}
+g1 <- ggplot(data = tab.G.m2[tab.G.m2$Itinéraire!="Inaction",], aes(x=Year, y=G.m2/1000000, fill=Propriété)) +
+  geom_bar(stat="identity") +
+  scale_fill_manual(breaks = c("Privé", "Public") , values=c("green", "blue")) +
+  facet_wrap(Scénario ~ ., nrow = 1) +
+  theme(legend.position="right",
+        axis.text.x = element_text(angle = 45)) +
+  labs(y="Surface terrière en gestion (Mm2)")
+print(g1)
+```
+

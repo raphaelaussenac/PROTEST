@@ -38,7 +38,7 @@ ir3 <- paste('        <int>', ir3, '</int>', sep = '')
 # assemble java commande lines and plot lists
 ###############################################################
 
-dummy <- "BAU"
+dummy <- "XXX"
 # read text file
 # start list conservation
 sc1 <- readLines(paste0("./simmem/simmemRules/1sc", dummy))
