@@ -133,18 +133,18 @@ Cette étape est réalisée par le script "03d_model_anthr.R", qui s'occupe éga
 
 Dans le cadre du projet OUI-GEF, une enquête a été mise en oeuvre par Mihai Tivadar (UR LESSEM, INRAE Grenoble) sur les conditions influençant la gestion des parcelles. Sur le massif des Bauges, 311 parcelles ont été enquêtées. On s'intéresse notamment à la réponse à la question : "avez-vous réalisé une opération de gestion sur votre parcelle ?". Plusieurs choix étaient proposés, la réponse a été convertie en réponse binaire oui/non. Pour chaque parcelle enquêtée sont extraites les variables suivantes, de la même manière que pour les polygones :
 
-* surface cadastrale $surface$,
-- distance moyenne de débardage $dist$,
+* surface cadastrale `surface`,
+- distance moyenne de débardage `dist`,
 - polygone accessible ou non.
 
-Un modèle linéaire généralisé avec une loi binomiale est utilisé pour modéliser la probabilité de gestion en fonction de deux variables : le logarithme de $surface$ et la distance de débardage $dist$. Pour la calibration seules les parcelles suivantes sont prises en compte :
+Un modèle linéaire généralisé avec une loi binomiale est utilisé pour modéliser la probabilité de gestion en fonction de deux variables : le logarithme de `surface` et la distance de débardage `dist.` Pour la calibration seules les parcelles suivantes sont prises en compte :
 
 * parcelles considérées comme "accessibles";
 * parcelles avec une distance de débardage inférieure à 2000 m.
 
 Des variables environmentales (altitude, pente) ou biophysiques (paramètres forestiers) auraient pu être intégrées au modèle mais on a préféré se restreindre à ces deux variables que l'on souhaite pouvoir faire varier entre les scénarios.
 
-Les paramètres du modèle, ainsi que les courbes de réponses en fonction de la distance, pour différentes surfaces, sont présentés ci-dessous.
+Les paramètres du modèle, ainsi que les courbes de réponse en fonction de la distance, pour différentes surfaces, sont présentés ci-dessous.
 
 ```{r modele.gestion, echo=FALSE, warning=FALSE, message=FALSE, fig.width = 6, fig.height = 6}
 load(file="./data/modelGestion2.rda")

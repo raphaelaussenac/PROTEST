@@ -2,7 +2,7 @@
 # COMPOSITION DONE - NOW MANAGEMENT
 # 
 rm(list = setdiff(ls(),"user"))
-scenario <- "SCT"
+scenario <- "TRE"
 load(file="./data/forestStands03c.rda")
 if (0) # add protected forests info
 {
@@ -82,7 +82,38 @@ load(file="./data/modelGestion2.rda")
 # convert mean parcel surface in hectares
 forestStands$surface <- forestStands$meanParcelleArea/10000
 #
-# apply model to all forest, considering that forest surface is 1000 for public forests
+# change distance for TRE to include accessibility due to additional roads & tracks
+if (scenario =="TRE")
+{
+  # load skidding distance
+  dist  <- raster::raster(paste0(user$NetworkProtestDir, "T1/Accessibilite/sylvaccess/sylvaccessv3.3/Skidder_TRE/PNRfilled_F.distance.tif"))
+  # numeric value (transport distance between felling place and roadside) NA (forest not accessible OR not forest not harvestable OR outside forest)
+  # set projection
+  raster::crs(dist) <- 2154
+  # remove extreme (error) value
+  dist[dist > 100000] <- NA
+  # extract dist
+  # if most of the plot is inaccessible (x = NA) -> inaccessible (i.e. plot dist = NA)
+  # if most of the plot is accessible (x != NA) -> dist = mean(dist != NA)
+  # a proportio nof 0.85 is applied so that surfaces are globally consistent between raster and polygons
+  getdist <- function(x) {
+    inaccess <- length(x[is.na(x)])
+    access <- length(x[!is.na(x)])
+    if (inaccess > 0.85 *access){
+      NA
+    } else {
+      mean(x, na.rm = TRUE)
+    }
+  }
+  distVr <- velox::velox(dist)
+  rm(dist)
+  distExt <- distVr$extract(sp = forestStands, fun = getdist, small = TRUE)
+  rm(distVr)
+  gc()
+  #
+  forestStands$dist <- as.vector(distExt)
+}
+#
 # save surface field
 forestStands$surface.save <- forestStands$surface
 # save dist field
@@ -127,6 +158,7 @@ if (scenario =="ADA")
   #
 }
 #
+
 if (scenario =="TRE")
 {
   # surface equivalente de base pour public : 300 ha

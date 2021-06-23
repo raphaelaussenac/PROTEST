@@ -4,14 +4,14 @@ subtitle: Parc naturel régional du Massif des Bauges
 # author: "Raphaël Aussenac, Jean-Matthieu MONNET, Patrick Vallet"
 date: "14 juin 2020"
 output:
-  pdf_document:
-    number_sections: true
-    fig_caption: yes
   html_document:
     self_contained: TRUE
     number_sections: true
     toc: true
     toc_depth: 2
+  pdf_document:
+    number_sections: true
+    fig_caption: yes
   word_document: default
 urlcolor: blue
 ---
