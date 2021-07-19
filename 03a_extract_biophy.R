@@ -119,58 +119,19 @@ rum@crs <- pnr@proj4string
 #
 ###############################################################
 # Universal Soil Loss Equation (USLE) parameters
+# K (resolution 500 m)
+usle.k <- raster::raster(paste0(user$NetworkProtestDir, "T3/rasterVanneck/KFactor/K_new_crop.tif"))
+# Ls (resolution 100 m)
+usle.ls <- raster::raster(paste0(user$NetworkProtestDir, "T3/rasterVanneck/EU_LS_Mosaic_100m.tif"))
+# P (resolution 100 m)
+usle.p <- raster::raster(paste0(user$NetworkProtestDir, "T3/rasterVanneck/EU_PFactor_V2.tif"))
+# R (resolution 500 m)
+usle.r <- raster::raster(paste0(user$NetworkProtestDir, "T3/rasterVanneck/Rf_gp1.tif"))
 #
-if (0)
-{
-  # K
-  gdalwarp('Z:/Private/rasterVanneck/K_new_crop.tif',
-           dstfile="Z:/Private/rasterVanneck/k.tif", t_srs = crs(elev),
-           output_Raster = FALSE, overwrite = TRUE, verbose = TRUE,
-           te = c(925930, 6489455, 968160, 6538375), te_srs = crs(elev)) # change projection
-  k <- raster('Z:/Private/rasterVanneck/k.tif')
-  
-  # Ls
-  gdalwarp('Z:/Private/rasterVanneck/EU_LS_Mosaic_100m.tif',
-           dstfile="Z:/Private/rasterVanneck/ls.tif", t_srs = crs(elev),
-           output_Raster = FALSE, overwrite = TRUE, verbose = TRUE,
-           te = c(925930, 6489455, 968160, 6538375), te_srs = crs(elev)) # change projection
-  ls <- raster('Z:/Private/rasterVanneck/ls.tif')
-  
-  # P
-  gdalwarp('Z:/Private/rasterVanneck/EU_PFactor_V2.tif',
-           dstfile="Z:/Private/rasterVanneck/p.tif", t_srs = crs(elev),
-           output_Raster = FALSE, overwrite = TRUE, verbose = TRUE,
-           te = c(925930, 6489455, 968160, 6538375), te_srs = crs(elev)) # change projection
-  p <- raster('Z:/Private/rasterVanneck/p.tif')
-  
-  # R
-  gdalwarp('Z:/Private/rasterVanneck/Rf_gp1.tif',
-           dstfile="Z:/Private/rasterVanneck/r.tif", t_srs = crs(elev),
-           output_Raster = FALSE, overwrite = TRUE, verbose = TRUE,
-           te = c(925930, 6489455, 968160, 6538375), te_srs = crs(elev)) # change projection
-  r <- raster('Z:/Private/rasterVanneck/r.tif')
-  
-  ###############################################################
-  # Protection forest
-  
-  # forest length
-  # gdalwarp('X:/ProjetsCommuns/PROTEST/T1/Donnees_SIG/Foret_protection.tif',
-  # dstfile="Z:/Private/rasterVanneck/forProtec.tif", t_srs = crs(elev),
-  # output_Raster = FALSE, overwrite = TRUE, verbose = TRUE,
-  # te = c(925930, 6489455, 968160, 6538375), te_srs = crs(elev)) # change projection
-  # forProtec <- raster::raster(paste0(user$NetworkProtestDir, "T3/rasterVanneck/forProtec.tif"))
-  # CHECK THAT FORPROTECT EXTENT IS LARGE ENOUGh TO COVER PNR EXTENT
-  forProtec <- raster::raster(paste0(user$NetworkProtestDir, "T3/rasterVanneck/Foret_protection.tif"))
-  # round extent to resolution multiple
-  # extentTemp <- elev@extent
-  # extentTemp[c(1,3)] <- floor(extentTemp[c(1,3)]/raster::res(forProtec))*raster::res(forProtec)
-  # extentTemp[c(2,4)] <- ceiling(extentTemp[c(2,4)]/raster::res(forProtec))*raster::res(forProtec)
-  # crop extent to match elev raster
-  # forProtec <- raster::crop(forProtec, extentTemp)
-  forProtec@crs <- pnr@proj4string
-}
-
-
+# Protection forest
+forProtec <- raster::raster(paste0(user$NetworkProtestDir, "T3/rasterVanneck/Foret_protection.tif"))
+forProtec@crs <- pnr@proj4string
+#
 ###############################################################
 # prepare NFI data for extraction
 ###############################################################
@@ -241,6 +202,39 @@ if (!user$mihai)
 
 # add unique id
 forestStands$WKTid <- c(1:nrow(forestStands@data))
+
+
+# extract USLE factors
+# project stands
+forestStandsPr <- sf::st_transform(sf::st_as_sf(forestStands), raster::crs(usle.k))
+test <- sf::st_bbox(forestStandsPr)
+test[1:2] <- floor(test[1:2]/1000)*1000
+test[3:4] <- ceiling(test[3:4]/1000)*1000
+usle.k <- raster::crop(usle.k, test)
+usle.ls <- raster::crop(usle.ls, test)
+usle.p <- raster::crop(usle.p, test)
+usle.r <- raster::crop(usle.r, test)
+
+# check if same order
+if (all(forestStandsPr$WKTid == forestStands$WKTid))
+{
+  dummy <- velox::velox(usle.k)
+  forestStands$usle.k <- as.numeric(dummy$extract(sp = forestStandsPr, fun = function(x) {mean(x, na.rm = TRUE)}, small = TRUE))
+  dummy <- velox::velox(usle.ls)
+  forestStands$usle.ls <- as.numeric(dummy$extract(sp = forestStandsPr, fun = function(x) {mean(x, na.rm = TRUE)}, small = TRUE))
+  dummy <- velox::velox(usle.p)
+  forestStands$usle.p <- as.numeric(dummy$extract(sp = forestStandsPr, fun = function(x) {mean(x, na.rm = TRUE)}, small = TRUE))
+  dummy <- velox::velox(usle.r)
+  forestStands$usle.r <- as.numeric(dummy$extract(sp = forestStandsPr, fun = function(x) {mean(x, na.rm = TRUE)}, small = TRUE))
+}
+
+# protection forest length along propagation path
+dummy <- velox::velox(forProtec)
+forestStands$forProtec.L <- as.numeric(dummy$extract(sp = forestStands, fun = function(x) {median(x, na.rm = TRUE)}, small = TRUE))
+#
+#
+# forest.SE.parameters  <- forestStands@data[,c("WKTid", "usle.k", "usle.ls", "usle.p", "usle.r", "forProtec.L", "slope", "expoEW", "alti")]
+# save(forest.SE.parameters, file = "./output/forest.SE.parameters.rda")
 
 # Create a function to calculate the mode # could use "names(sort(table(variable),decreasing=TRUE))[1])" but numeric values are converted to text
 # Each plot is assigned the most represented value

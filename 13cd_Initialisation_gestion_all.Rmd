@@ -415,6 +415,13 @@ Pour les scénarios autres que le tendanciel, seule la proportion de polygones e
 
 ### Répartition finale des itinéraires par scénario et type de peuplement
 
+```{r iti.salem, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 5}
+tab.typo.salem <- lapply(l.forestStands, function(x){aggregate(AREA/10000 ~ FOREST_TYPE_CODE + itineraire + DOMAINE_TYPE, data = x, FUN = function(x){sum(x, na.rm = TRUE)})})
+tab.typo.salem <- mapply(function(x, y){x$scenario <- y;return(x)}, tab.typo.salem, as.list(liste.scenario), SIMPLIFY = FALSE)
+tab.typo.salem <- do.call(rbind, tab.typo.salem)
+names(tab.typo.salem)[3] <- "Surface"
+```
+
 ```{r iti.typo, echo=FALSE, warning=FALSE, message=FALSE, fig.height = 5}
 tab.typo.iti <- lapply(l.forestStands, function(x){aggregate(AREA/10000 ~ typologie + itineraire, data = x, FUN = function(x){sum(x, na.rm = TRUE)})})
 tab.typo.iti <- mapply(function(x, y){x$scenario <- y;return(x)}, tab.typo.iti, as.list(liste.scenario), SIMPLIFY = FALSE)
